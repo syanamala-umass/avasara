@@ -1,0 +1,21 @@
+from app.models.user import User
+from app.models.startup import Startup
+from app.models.contributor import Contributor, contributor_skill
+from app.models.task import Task, task_skill, task_resource
+from app.models.application import Application
+from app.models.review import Review
+from app.models.skill import Skill
+
+# Add Resource model
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+from app.database import Base
+
+class Resource(Base):
+    __tablename__ = "resources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    
+    # Relationships
+    tasks = relationship("Task", secondary=task_resource, back_populates="resources")
