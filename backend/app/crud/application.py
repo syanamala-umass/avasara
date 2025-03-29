@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.models.application import Application
 from app.schemas.application import ApplicationCreate, ApplicationUpdate
+from app.models.task import Task
 
 def create_application(db: Session, application: ApplicationCreate, contributor_id: int):
     db_application = Application(

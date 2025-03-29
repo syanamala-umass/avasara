@@ -6,9 +6,16 @@ from app.schemas.skill import SkillCreate
 def create_skill(db: Session, skill: SkillCreate):
     db_skill = Skill(name=skill.name)
     db.add(db_skill)
-    db.commit()
-    db.refresh(db_skill)
-    return db_skill
+    try:
+        db.commit()
+        db.refresh(db_skill)
+        print(f"Created skill: {db_skill.id} - {db_skill.name}")
+        return db_skill
+    except Exception as e:
+        print(f"Error creating skill: {e}")
+        db.rollback()
+        raise
+    
 
 def get_skill(db: Session, skill_id: int):
     return db.query(Skill).filter(Skill.id == skill_id).first()

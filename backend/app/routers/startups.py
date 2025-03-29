@@ -31,6 +31,17 @@ def read_startups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     startups = get_startups(db, skip=skip, limit=limit)
     return startups
 
+# /me endpoint listed beofre /{startup_id} to avoid int parse error
+@router.get("/me", response_model=StartupWithTasks)
+def read_own_startup(
+    db: Session = Depends(get_db), 
+    current_user = Depends(get_current_startup)
+):
+    db_startup = get_startup(db, user_id=current_user.id)
+    if db_startup is None:
+        raise HTTPException(status_code=404, detail="Startup profile not found")
+    return db_startup
+
 @router.get("/{startup_id}", response_model=StartupWithTasks)
 def read_startup(startup_id: int, db: Session = Depends(get_db)):
     db_startup = get_startup(db, startup_id=startup_id)
@@ -57,12 +68,3 @@ def update_startup_details(
     
     return update_startup(db=db, startup_id=startup_id, startup=startup)
 
-@router.get("/me", response_model=StartupWithTasks)
-def read_own_startup(
-    db: Session = Depends(get_db), 
-    current_user = Depends(get_current_startup)
-):
-    db_startup = get_startup(db, user_id=current_user.id)
-    if db_startup is None:
-        raise HTTPException(status_code=404, detail="Startup profile not found")
-    return db_startup
