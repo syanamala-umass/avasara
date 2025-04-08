@@ -15,3 +15,4 @@ class User(Base):
     # Relationships
     startup = relationship("Startup", back_populates="user", uselist=False)
     contributor = relationship("Contributor", back_populates="user", uselist=False)
+    task_reviews = relationship("TaskReviewer", back_populates="user")

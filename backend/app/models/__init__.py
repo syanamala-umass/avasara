@@ -5,6 +5,7 @@ from app.models.task import Task, task_skill, task_resource
 from app.models.application import Application
 from app.models.review import Review
 from app.models.skill import Skill
+from app.models.peer_review import PeerReview
 
 # Add Resource model
 from sqlalchemy import Column, Integer, String

@@ -37,4 +37,5 @@ class TaskWithDetails(Task):
     skills: List[Skill] = []
     startup_name: str
     startup_logo: Optional[str] = None
-    applications_count: int = 0
+    assignments_count: int = 0
+    reviews_count: int = 0

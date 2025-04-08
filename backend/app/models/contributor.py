@@ -22,6 +22,7 @@ class Contributor(Base):
     
     # Relationships
     user = relationship("User", back_populates="contributor")
-    skills = relationship("Skill", secondary=contributor_skill, back_populates="contributors")
-    applications = relationship("Application", back_populates="contributor")
-    reviews_received = relationship("Review", back_populates="contributor")
+    skills = relationship("Skill", secondary="contributor_skills", back_populates="contributors")
+    assignments = relationship("TaskAssignment", back_populates="contributor")
+    reviews_received = relationship("Review", foreign_keys="[Review.contributor_id]", back_populates="contributor")
+    reviews_given = relationship("Review", foreign_keys="[Review.reviewer_id]", back_populates="reviewer")

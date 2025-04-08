@@ -7,22 +7,29 @@ class ReviewBase(BaseModel):
     comment: Optional[str] = None
 
 class ReviewCreate(ReviewBase):
-    contributor_id: int
-    task_id: Optional[int] = None
+    task_id: int
+    assignment_id: int
+    contributor_id: int  # Person who did the task
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[float] = None
+    comment: Optional[str] = None
 
 class Review(ReviewBase):
     id: int
-    startup_id: int
-    contributor_id: int
-    task_id: Optional[int] = None
+    task_id: int
+    assignment_id: int
+    contributor_id: int  # Person who did the task
+    reviewer_id: int     # Person reviewing the task
+    compensation_amount: float
     created_at: datetime
     
     class Config:
         orm_mode = True
 
 class ReviewWithDetails(Review):
-    startup_name: str
-    startup_logo: Optional[str] = None
+    task_title: str
     contributor_name: str
     contributor_avatar: Optional[str] = None
-    task_title: Optional[str] = None
+    reviewer_name: str
+    reviewer_avatar: Optional[str] = None

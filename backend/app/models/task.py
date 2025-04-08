@@ -30,10 +30,11 @@ class Task(Base):
     compensation_amount = Column(Float)
     deadline = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
-    status = Column(String, default="open")  # open, in_progress, completed
+    status = Column(String, default="open")  # open, in_progress, completed, reviewed
     
     # Relationships
     startup = relationship("Startup", back_populates="tasks")
     skills = relationship("Skill", secondary=task_skill, back_populates="tasks")
     resources = relationship("Resource", secondary=task_resource, back_populates="tasks")
-    applications = relationship("Application", back_populates="task")
+    assignments = relationship("TaskAssignment", back_populates="task")
+    reviews = relationship("Review", back_populates="task")
