@@ -1,5 +1,9 @@
 from app.models.review import Review
 from app.schemas.review import ReviewCreate, ReviewUpdate
+from sqlalchemy.orm import Session
+from typing import Optional
+from app.models.task_assignment import TaskAssignment
+
 
 def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensation_amount: float):
     db_review = Review(

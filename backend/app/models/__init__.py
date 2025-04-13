@@ -2,10 +2,10 @@ from app.models.user import User
 from app.models.startup import Startup
 from app.models.contributor import Contributor, contributor_skill
 from app.models.task import Task, task_skill, task_resource
-from app.models.application import Application
+from app.models.task_assignment import TaskAssignment
 from app.models.review import Review
 from app.models.skill import Skill
-from app.models.peer_review import PeerReview
+from app.models.task_reviewer import TaskReviewer  # Add this import
 
 # Add Resource model
 from sqlalchemy import Column, Integer, String

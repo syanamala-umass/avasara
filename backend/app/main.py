@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, startups, contributors, tasks, task_assignments, reviews, skills
+from app.routers import auth, startups, contributors, tasks, task_assignment, reviews, skills
 from app.database import engine, Base
 
 # Create database tables
@@ -32,7 +32,7 @@ app.include_router(auth.router)
 app.include_router(startups.router)
 app.include_router(contributors.router)
 app.include_router(tasks.router)
-app.include_router(task_assignments.router)  # Updated from applications
+app.include_router(task_assignment.router)  # Updated from applications
 app.include_router(reviews.router)
 app.include_router(skills.router)
 
