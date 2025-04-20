@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.models.startup import Startup
-from app.models.application import Application
+# from app.models.application import Application
 
 from app.database import get_db
 from app.schemas.task import TaskCreate, Task, TaskUpdate, TaskWithDetails
@@ -25,7 +25,7 @@ def read_tasks(skip: int = 0, limit: int = 100, status: str = None, db: Session 
     # Import the SQLAlchemy models, not the Pydantic schemas
     from app.models.task import Task
     from app.models.startup import Startup
-    from app.models.application import Application
+    # from app.models.application import Application
     
     # Get basic tasks
     query = db.query(Task)

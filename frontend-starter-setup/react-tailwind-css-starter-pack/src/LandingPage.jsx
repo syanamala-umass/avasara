@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Award, Building, CheckCircle, Users } from 'lucide-react';
+import LoginPopup from './LoginPopup';
 
 const LandingPage = () => {
   const [stats, setStats] = useState({
@@ -8,30 +9,43 @@ const LandingPage = () => {
     topContributors: []
   });
   const [loading, setLoading] = useState(true);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  const openLoginPopup = () => {
+    setShowLoginPopup(true);
+  };
+
+  const closeLoginPopup = () => {
+    setShowLoginPopup(false);
+  };
 
   useEffect(() => {
-    // In a real implementation, this would fetch data from your API
-    // For example:
-    // fetch('/api/landing-stats')
-    //   .then(res => res.json())
-    //   .then(data => setStats(data))
-    //   .finally(() => setLoading(false));
+    // Fetch landing page statistics from the API
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/landing/stats`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch landing page stats');
+        }
+
+        const data = await response.json();
+        console.log("API response:", data);
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching landing page stats:', error);
+        // Fallback to sample data if API request fails
+        setStats({
+          startupCount: 0,
+          completedTasksCount: 0,
+          topContributors: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Simulating API call with mock data
-    setTimeout(() => {
-      setStats({
-        startupCount: 127,
-        completedTasksCount: 543,
-        topContributors: [
-          { id: 1, name: "Alex Johnson", avatar: null, rating: 4.9, completedTasks: 32 },
-          { id: 2, name: "Maria Garcia", avatar: null, rating: 4.8, completedTasks: 28 },
-          { id: 3, name: "David Kim", avatar: null, rating: 4.7, completedTasks: 25 },
-          { id: 4, name: "Sarah Thompson", avatar: null, rating: 4.7, completedTasks: 22 },
-          { id: 5, name: "James Wilson", avatar: null, rating: 4.6, completedTasks: 19 }
-        ]
-      });
-      setLoading(false);
-    }, 1000);
+    fetchStats();
   }, []);
 
   return (
@@ -44,7 +58,10 @@ const LandingPage = () => {
               <span className="text-2xl font-bold text-blue-600">Avasara</span>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 rounded text-blue-600 font-medium hover:bg-blue-50 transition">
+              <button 
+                className="px-4 py-2 rounded text-blue-600 font-medium hover:bg-blue-50 transition"
+                onClick={openLoginPopup}
+              >
                 Log In
               </button>
               <button className="px-4 py-2 bg-blue-600 rounded text-white font-medium hover:bg-blue-700 transition">
@@ -54,6 +71,9 @@ const LandingPage = () => {
           </div>
         </div>
       </nav>
+
+      {/* Login Popup */}
+      <LoginPopup isOpen={showLoginPopup} onClose={closeLoginPopup} />
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
