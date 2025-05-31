@@ -332,6 +332,52 @@ def complete_task(db: Session, task_id: int) -> dict:
     response.raise_for_status()
     return response.json()
 
+def pick_up_review(db: Session, task_id: int, user_id: int) -> dict:
+    """A user picks up a task to review"""
+    assignment_data = {
+        "task_id": task_id,
+        "assignment_type": "review",
+        "notes": f"User {user_id} has picked up this task for review"
+    }
+    
+    # Get auth token for the user
+    headers = get_auth_headers(user_id)
+    
+    response = client.post(
+        "/task-assignments/",
+        json=assignment_data,
+        headers=headers
+    )
+    response.raise_for_status()
+    return response.json()
+
+def submit_peer_evaluation(db: Session, task_id: int, evaluator_id: int, evaluatee_id: int, assignment_id: int) -> dict:
+    """Submit a peer evaluation for a task"""
+    evaluation_data = {
+        "task_id": task_id,
+        "evaluator_id": evaluator_id,
+        "evaluatee_id": evaluatee_id,
+        "assignment_id": assignment_id,
+        "technical_score": 4.5,
+        "collaboration_score": 4.0,
+        "innovation_score": 4.2,
+        "reliability_score": 4.8,
+        "strengths": "Great technical skills and communication",
+        "areas_for_improvement": "Could improve documentation",
+        "additional_comments": "Overall excellent work"
+    }
+    
+    # Get auth token for the evaluator
+    headers = get_auth_headers(evaluator_id)
+    
+    response = client.post(
+        "/peer-evaluations/",
+        json=evaluation_data,
+        headers=headers
+    )
+    response.raise_for_status()
+    return response.json()
+
 def cleanup_demo_data(db: Session):
     """Clean up all demo data"""
     with get_db_cursor(commit=True) as cursor:
@@ -371,8 +417,8 @@ def interactive_demo():
         
         # Users pick up tasks
         print("\nUsers picking up tasks...")
-        pick_up_task(db, task1["id"], john["id"])
-        pick_up_task(db, task2["id"], jane["id"])
+        john_assignment = pick_up_task(db, task1["id"], john["id"])
+        jane_assignment = pick_up_task(db, task2["id"], jane["id"])
         
         # Show assignments
         print("\nCurrent assignments:")
@@ -382,6 +428,24 @@ def interactive_demo():
         print("\nCompleting tasks...")
         complete_task(db, task1["id"])
         complete_task(db, task2["id"])
+        
+        # Show task status after completion
+        print("\nTask status after completion:")
+        show_task_status()
+        
+        # Users pick up reviews
+        print("\nUsers picking up reviews...")
+        bob_review = pick_up_review(db, task1["id"], bob["id"])
+        startup_owner_review = pick_up_review(db, task2["id"], startup_owner["id"])
+        
+        # Show assignments including reviews
+        print("\nCurrent assignments including reviews:")
+        show_assignments()
+        
+        # Submit peer evaluations
+        print("\nSubmitting peer evaluations...")
+        submit_peer_evaluation(db, task1["id"], bob["id"], john["id"], john_assignment["id"])
+        submit_peer_evaluation(db, task2["id"], startup_owner["id"], jane["id"], jane_assignment["id"])
         
         # Show final state
         print("\nFinal task state:")
