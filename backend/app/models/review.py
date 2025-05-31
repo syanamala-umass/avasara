@@ -9,8 +9,8 @@ class Review(Base):
     id = Column(Integer, primary_key=True, index=True)
     task_id = Column(Integer, ForeignKey("tasks.id"))
     assignment_id = Column(Integer, ForeignKey("task_assignments.id"))
-    contributor_id = Column(Integer, ForeignKey("contributors.id"))  # Person who did the task
-    reviewer_id = Column(Integer, ForeignKey("contributors.id"))  # Person reviewing the task
+    user_id = Column(Integer, ForeignKey("users.id"))  # Person who did the task
+    reviewer_id = Column(Integer, ForeignKey("users.id"))  # Person reviewing the task
     rating = Column(Float)
     comment = Column(Text, nullable=True)
     compensation_amount = Column(Float)  # Compensation for the reviewer
@@ -19,5 +19,5 @@ class Review(Base):
     # Relationships
     task = relationship("Task", back_populates="reviews")
     assignment = relationship("TaskAssignment", back_populates="reviews")
-    contributor = relationship("Contributor", foreign_keys=[contributor_id], back_populates="reviews_received")
-    reviewer = relationship("Contributor", foreign_keys=[reviewer_id], back_populates="reviews_given")
+    user = relationship("User", foreign_keys=[user_id], back_populates="reviews_received")
+    reviewer = relationship("User", foreign_keys=[reviewer_id], back_populates="reviews_given")

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Award, Building, CheckCircle, Users } from 'lucide-react';
 import LoginPopup from './LoginPopup';
+import { fetchLandingStats } from './api';
 
 const LandingPage = () => {
   const [stats, setStats] = useState({
@@ -23,13 +24,10 @@ const LandingPage = () => {
     // Fetch landing page statistics from the API
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/landing/stats`);
+        const response = await fetchLandingStats();
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch landing page stats');
-        }
+        const data = response.data;
 
-        const data = await response.json();
         console.log("API response:", data);
         setStats(data);
       } catch (error) {

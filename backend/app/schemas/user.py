@@ -4,7 +4,6 @@ from typing import Optional
 class UserBase(BaseModel):
     email: EmailStr
     username: str
-    is_startup: bool = False
 
 class UserCreate(UserBase):
     password: str

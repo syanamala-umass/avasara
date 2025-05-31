@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 from app.schemas.task import Task
 
 class StartupBase(BaseModel):
@@ -17,6 +18,8 @@ class Startup(StartupBase):
     id: int
     user_id: int
     logo: Optional[str] = None
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
     
     class Config:
         orm_mode = True

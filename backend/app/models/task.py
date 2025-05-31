@@ -31,11 +31,14 @@ class Task(Base):
     deadline = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
     status = Column(String, default="open")  # open, in_progress, completed, reviewed
-    
+    num_reviewers = Column(Integer, nullable=True)  # Optional
+    max_parallel_contributors = Column(Integer, nullable=True)
+    contributor_time_limit_hours = Column(Integer, nullable=True)
+
     # Relationships
     startup = relationship("Startup", back_populates="tasks")
     skills = relationship("Skill", secondary=task_skill, back_populates="tasks")
     resources = relationship("Resource", secondary=task_resource, back_populates="tasks")
     assignments = relationship("TaskAssignment", back_populates="task")
-    reviewers = relationship("TaskReviewer", back_populates="task")
     reviews = relationship("Review", back_populates="task")
+    peer_evaluations = relationship("PeerEvaluation", back_populates="task")

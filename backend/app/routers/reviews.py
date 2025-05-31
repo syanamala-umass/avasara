@@ -114,7 +114,6 @@ def read_review(review_id: int, db: Session = Depends(get_db)):
     db_review = get_review(db, review_id=review_id)
     if db_review is None:
         raise HTTPException(status_code=404, detail="Review not found")
-
     return db_review
 
 @router.put("/{review_id}", response_model=Review)
@@ -125,36 +124,16 @@ def update_review_details(
     current_user = Depends(get_current_contributor)
 ):
     # Only the reviewer can update their review
-
-    # Get startup and contributor details
-    startup = db.query(Startup).filter(Startup.id == db_review.startup_id).first()
-    contributor = db.query(Contributor).filter(Contributor.id == db_review.contributor_id).first()
-
-    # Get task details if provided
-    task_title = None
-    if db_review.task_id:
-        task = db.query(Task).filter(Task.id == db_review.task_id).first()
-        if task:
-            task_title = task.title
-
-    # Create a dictionary with all required fields
-    review_dict = {
-        # Basic review fields
-        "id": db_review.id,
-        "startup_id": db_review.startup_id,
-        "contributor_id": db_review.contributor_id,
-        "task_id": db_review.task_id,
-        "rating": db_review.rating,
-        "comment": db_review.comment,
-        "created_at": db_review.created_at,
-
-        # Additional fields required by ReviewWithDetails
-        "startup_name": startup.name if startup else "",
-        "startup_logo": startup.logo if startup else None,
-        "contributor_name": contributor.name if contributor else "",
-        "contributor_avatar": contributor.avatar if contributor else None,
-        "task_title": task_title
-    }
-
-    return review_dict
-
+    db_review = get_review(db, review_id=review_id)
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    if db_review.reviewer_id != current_user.contributor.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this review")
+    
+    return update_review(
+        db=db, 
+        review_id=review_id, 
+        review=review, 
+        reviewer_id=current_user.contributor.id
+    )

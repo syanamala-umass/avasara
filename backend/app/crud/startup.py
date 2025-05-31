@@ -1,19 +1,30 @@
 from sqlalchemy.orm import Session
 from app.models.startup import Startup
 from app.schemas.startup import StartupCreate, StartupUpdate
+from datetime import datetime
 
 def create_startup(db: Session, startup: StartupCreate, user_id: int):
-    db_startup = Startup(**startup.dict(), user_id=user_id)
+    # Create startup with all required fields
+    db_startup = Startup(
+        **startup.dict(),
+        user_id=user_id,
+        logo=None  # Default to None if not provided
+    )
     db.add(db_startup)
     db.commit()
     db.refresh(db_startup)
     return db_startup
 
-def get_startup(db: Session, startup_id: int = None, user_id: int = None):
+def get_startup(db: Session,  startup_id: int = None):
+    print(f"yo, this is the startup user id: {startup_id}")
     if startup_id:
         return db.query(Startup).filter(Startup.id == startup_id).first()
-    elif user_id:
-        return db.query(Startup).filter(Startup.user_id == user_id).first()
+    return None
+
+def get_my_startups(db: Session,  user_id: int = None):
+    print(f"yo, this is the startup user id: {user_id}")
+    if user_id:
+        return db.query(Startup).filter(Startup.user_id == user_id).all()
     return None
 
 def get_startups(db: Session, skip: int = 0, limit: int = 100):

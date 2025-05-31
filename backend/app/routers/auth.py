@@ -6,7 +6,8 @@ from datetime import timedelta
 from app.database import get_db
 from app.schemas.user import UserCreate, User, Token
 from app.crud.user import create_user, authenticate_user
-from app.dependencies import create_access_token, get_current_user
+from app.core.security import create_access_token
+from app.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -28,7 +29,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user.email})
+    access_token = create_access_token(data={"sub": user["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=User)

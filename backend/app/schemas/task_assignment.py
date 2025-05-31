@@ -7,16 +7,17 @@ class TaskAssignmentBase(BaseModel):
 
 class TaskAssignmentCreate(TaskAssignmentBase):
     task_id: int
+    assignment_type: str = "task"  # Default to "task" for backward compatibility
 
 class TaskAssignmentUpdate(BaseModel):
-    status: str
-    completed_at: Optional[datetime] = None
+    status: Optional[str] = None
     notes: Optional[str] = None
 
 class TaskAssignment(TaskAssignmentBase):
     id: int
     task_id: int
-    contributor_id: int
+    user_id: int
+    assignment_type: str
     status: str
     created_at: datetime
     completed_at: Optional[datetime] = None
@@ -26,6 +27,6 @@ class TaskAssignment(TaskAssignmentBase):
 
 class TaskAssignmentWithDetails(TaskAssignment):
     task_title: str
-    contributor_name: str
-    contributor_avatar: Optional[str] = None
+    user_name: str
+    user_avatar: Optional[str] = None
     review_count: int = 0
