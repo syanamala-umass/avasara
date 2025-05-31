@@ -1,0 +1,90 @@
+[users]
+    *id {label:"INTEGER"}
+    email {label:"VARCHAR"}
+    hashed_password {label:"VARCHAR"}
+    is_active {label:"BOOLEAN"}
+    is_startup {label:"BOOLEAN"}
+    username {label:"VARCHAR"}
+[startups]
+    *id {label:"INTEGER"}
+    description {label:"TEXT"}
+    logo {label:"VARCHAR"}
+    name {label:"VARCHAR"}
+    user_id {label:"INTEGER"}
+    website {label:"VARCHAR"}
+[contributors]
+    *id {label:"INTEGER"}
+    avatar {label:"VARCHAR"}
+    average_rating {label:"DOUBLE PRECISION"}
+    bio {label:"TEXT"}
+    name {label:"VARCHAR"}
+    user_id {label:"INTEGER"}
+[contributor_skills]
+    *contributor_id {label:"INTEGER"}
+    *skill_id {label:"INTEGER"}
+[skills]
+    *id {label:"INTEGER"}
+    name {label:"VARCHAR"}
+[tasks]
+    *id {label:"INTEGER"}
+    compensation_amount {label:"DOUBLE PRECISION"}
+    compensation_type {label:"VARCHAR"}
+    created_at {label:"TIMESTAMP"}
+    deadline {label:"TIMESTAMP"}
+    description {label:"TEXT"}
+    startup_id {label:"INTEGER"}
+    status {label:"VARCHAR"}
+    title {label:"VARCHAR"}
+[task_skills]
+    *skill_id {label:"INTEGER"}
+    *task_id {label:"INTEGER"}
+[task_resources]
+    *resource_id {label:"INTEGER"}
+    *task_id {label:"INTEGER"}
+[resources]
+    *id {label:"INTEGER"}
+    name {label:"VARCHAR"}
+[task_assignments]
+    *id {label:"INTEGER"}
+    completed_at {label:"TIMESTAMP"}
+    contributor_id {label:"INTEGER"}
+    created_at {label:"TIMESTAMP"}
+    notes {label:"TEXT"}
+    status {label:"VARCHAR"}
+    task_id {label:"INTEGER"}
+[task_reviewers]
+    *id {label:"INTEGER"}
+    comment {label:"VARCHAR"}
+    created_at {label:"TIMESTAMP"}
+    rating {label:"INTEGER"}
+    reviewed_at {label:"TIMESTAMP"}
+    status {label:"VARCHAR"}
+    task_id {label:"INTEGER"}
+    user_id {label:"INTEGER"}
+[reviews]
+    *id {label:"INTEGER"}
+    assignment_id {label:"INTEGER"}
+    comment {label:"TEXT"}
+    compensation_amount {label:"DOUBLE PRECISION"}
+    contributor_id {label:"INTEGER"}
+    created_at {label:"TIMESTAMP"}
+    rating {label:"DOUBLE PRECISION"}
+    reviewer_id {label:"INTEGER"}
+    task_id {label:"INTEGER"}
+users."id" ?--* startups."user_id"
+users."id" ?--* contributors."user_id"
+skills."id" 1--* contributor_skills."skill_id"
+contributors."id" 1--* contributor_skills."contributor_id"
+startups."id" ?--* tasks."startup_id"
+skills."id" 1--* task_skills."skill_id"
+tasks."id" 1--* task_skills."task_id"
+resources."id" 1--* task_resources."resource_id"
+tasks."id" 1--* task_resources."task_id"
+tasks."id" ?--* task_assignments."task_id"
+contributors."id" ?--* task_assignments."contributor_id"
+tasks."id" ?--* task_reviewers."task_id"
+users."id" ?--* task_reviewers."user_id"
+tasks."id" ?--* reviews."task_id"
+contributors."id" ?--* reviews."reviewer_id"
+contributors."id" ?--* reviews."contributor_id"
+task_assignments."id" ?--* reviews."assignment_id"
