@@ -14,5 +14,4 @@ class Startup(Base):
     
     # Relationships
     user = relationship("User", back_populates="startup")
-    tasks = relationship("Task", back_populates="startup")
     # reviews_given = relationship("Review", back_populates="startup")

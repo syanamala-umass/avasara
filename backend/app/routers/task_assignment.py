@@ -3,6 +3,7 @@ from typing import List
 import random
 from app.database.connection import get_db_cursor
 from app.schemas.task_assignment import TaskAssignmentCreate, TaskAssignment, TaskAssignmentUpdate, TaskAssignmentWithDetails
+from app.schemas.peer_evaluation import PeerEvaluationCreate
 from app.dependencies import get_current_user
 from app.repositories.task_assignment_repository import TaskAssignmentRepository
 from app.repositories.peer_evaluation_repository import PeerEvaluationRepository
@@ -102,7 +103,7 @@ def read_assignment(
         raise HTTPException(status_code=403, detail="Not authorized to view this assignment")
     return assignment
 
-@router.put("/{assignment_id}", response_model=TaskAssignment)
+@router.put("/{assignment_id}", response_model=TaskAssignmentWithDetails)
 async def update_assignment_status(
     assignment_id: int, 
     assignment: TaskAssignmentUpdate, 
@@ -117,7 +118,7 @@ async def update_assignment_status(
         current_user: The authenticated user
         
     Returns:
-        TaskAssignment: The updated assignment
+        TaskAssignmentWithDetails: The updated assignment
         
     Raises:
         HTTPException: If assignment not found or doesn't belong to user
@@ -125,15 +126,20 @@ async def update_assignment_status(
     db_assignment = crud.get_task_assignment(assignment_id)
     if not db_assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
-    if db_assignment.user_id != current_user.id:
+    if db_assignment['user_id'] != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this assignment")
     
     # Only allow updating from in_progress to completed
-    if db_assignment["status"] != "in_progress" and assignment.status == "completed":
-        raise HTTPException(status_code=400, detail="Can only mark in-progress assignments as completed")
+    if db_assignment['status'] != "in_progress" and assignment.status == "completed":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Can only mark in-progress assignments as completed. Current status: {db_assignment['status']}"
+        )
     
     # Update the assignment
     updated_assignment = crud.update_task_assignment(assignment_id, assignment)
+    if not updated_assignment:
+        raise HTTPException(status_code=404, detail="Failed to update assignment")
     
     # If the assignment is being marked as completed, trigger peer evaluation process
     if assignment.status == "completed":
@@ -141,13 +147,13 @@ async def update_assignment_status(
         with get_db_cursor() as cursor:
             cursor.execute(
                 "SELECT num_reviewers FROM tasks WHERE id = %s",
-                (db_assignment["task_id"],)
+                (db_assignment['task_id'],)
             )
             task = cursor.fetchone()
         
         # Get other contributors who have completed the same task
         other_contributors = TaskAssignmentRepository.get_completed_task_contributors(
-            task_id=db_assignment["task_id"],
+            task_id=db_assignment['task_id'],
             exclude_assignment_id=assignment_id
         )
         
@@ -159,7 +165,7 @@ async def update_assignment_status(
             # Create peer evaluation assignments
             for evaluator in selected_evaluators:
                 evaluation = PeerEvaluationCreate(
-                    task_id=db_assignment["task_id"],
+                    task_id=db_assignment['task_id'],
                     evaluatee_id=current_user.id,
                     assignment_id=assignment_id,
                     technical_score=0,
@@ -171,7 +177,7 @@ async def update_assignment_status(
                 )
                 PeerEvaluationRepository.create_evaluation(
                     evaluation=evaluation,
-                    evaluator_id=evaluator["user_id"]
+                    evaluator_id=evaluator['user_id']
                 )
     
     return updated_assignment

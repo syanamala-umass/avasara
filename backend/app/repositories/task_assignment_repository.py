@@ -58,9 +58,9 @@ class TaskAssignmentRepository:
         
         assignment_query = """
         INSERT INTO task_assignments (
-            task_id, user_id, assignment_type, notes
+            task_id, user_id, assignment_type, status, notes
         ) VALUES (
-            %s, %s, %s, %s
+            %s, %s, %s, 'in_progress', %s
         ) RETURNING *;
         """
         
@@ -80,36 +80,40 @@ class TaskAssignmentRepository:
     @staticmethod
     def get_assignment(assignment_id: int) -> Optional[Dict]:
         """
-        Retrieve a single task assignment with detailed information.
-        
-        This method fetches a specific assignment and includes related information
-        from the tasks and users tables to provide a complete view of the assignment.
+        Get a single task assignment by ID.
         
         Args:
-            assignment_id (int): The ID of the assignment to retrieve
+            assignment_id (int): The ID of the assignment to get
             
         Returns:
-            Optional[Dict]: The assignment record with task and user details, or None if not found
-            
-        Note:
-            Includes:
-            - Basic assignment information
-            - Task title and description
-            - User name
+            Optional[Dict]: The assignment record, or None if not found
         """
         query = """
-        SELECT ta.*, 
-               t.title as task_title,
-               t.description as task_description,
-               u.name as user_name
+        SELECT 
+            ta.id,
+            ta.task_id,
+            ta.user_id,
+            ta.assignment_type,
+            ta.status,
+            ta.notes,
+            ta.created_at,
+            ta.completed_at,
+            t.title as task_title,
+            u.username as user_name,
+            (SELECT COUNT(*) FROM reviews r WHERE r.assignment_id = ta.id) as review_count
         FROM task_assignments ta
         JOIN tasks t ON ta.task_id = t.id
         JOIN users u ON ta.user_id = u.id
         WHERE ta.id = %s;
         """
+        
         with get_db_cursor() as cursor:
             cursor.execute(query, (assignment_id,))
-            return cursor.fetchone()
+            result = cursor.fetchone()
+            if result:
+                # Convert RealDictRow to dict to ensure proper field access
+                return dict(result)
+            return None
 
     @staticmethod
     def get_assignments(
@@ -136,20 +140,32 @@ class TaskAssignmentRepository:
             
         Returns:
             List[Dict]: List of assignment records with task and user details
-            
-        Note:
-            - Results are ordered by creation date (newest first)
-            - Includes task and user information
-            - Supports multiple filter combinations
         """
         query = """
-        SELECT ta.*, 
-               t.title as task_title,
-               t.description as task_description,
-               u.name as user_name
+        SELECT 
+            ta.id,
+            ta.task_id,
+            ta.user_id,
+            ta.assignment_type,
+            ta.status,
+            ta.notes,
+            ta.created_at,
+            ta.completed_at,
+            t.title as task_title,
+            t.description as task_description,
+            tc_task.compensation_type AS compensation_type,
+            tc_task.amount AS compensation_amount,
+            tc_review.compensation_type AS review_compensation_type,
+            tc_review.amount AS review_compensation_amount,
+            t.deadline,
+            t.status as task_status,
+            u.username as user_name,
+            (SELECT COUNT(*) FROM reviews r WHERE r.assignment_id = ta.id) as review_count
         FROM task_assignments ta
         JOIN tasks t ON ta.task_id = t.id
         JOIN users u ON ta.user_id = u.id
+        LEFT JOIN task_compensations tc_task ON tc_task.task_id = t.id AND tc_task.amount_type = 'task'
+        LEFT JOIN task_compensations tc_review ON tc_review.task_id = t.id AND tc_review.amount_type = 'review'
         WHERE 1=1
         """
         params = []
@@ -217,18 +233,33 @@ class TaskAssignmentRepository:
         params.append(assignment_id)
         
         query = f"""
-        UPDATE task_assignments
+        UPDATE task_assignments ta
         SET {", ".join(update_fields)}
-        WHERE id = %s
-        RETURNING *;
+        FROM tasks t, users u
+        WHERE ta.id = %s
+        AND ta.task_id = t.id
+        AND ta.user_id = u.id
+        RETURNING 
+            ta.*,
+            t.title as task_title,
+            u.username as user_name,
+            (SELECT COUNT(*) FROM reviews r WHERE r.assignment_id = ta.id) as review_count;
         """
         
         with get_db_cursor(commit=True) as cursor:
             cursor.execute(query, tuple(params))
             updated_assignment = cursor.fetchone()
             
-            # If status is completed, check if we need to update task status
-            if assignment.status == "completed":
+            # Update task status based on assignment status
+            if assignment.status == "submitted_for_review":
+                # When an assignment is submitted for review, update task status
+                update_task_query = """
+                UPDATE tasks
+                SET status = 'submitted_for_review'
+                WHERE id = %s;
+                """
+                cursor.execute(update_task_query, (updated_assignment["task_id"],))
+            elif assignment.status == "completed":
                 # Check if all assignments for this task are completed
                 check_query = """
                 SELECT COUNT(*) as count
@@ -269,7 +300,7 @@ class TaskAssignmentRepository:
             Excludes the current assignment to prevent self-evaluation
         """
         query = """
-        SELECT ta.*, u.name as user_name
+        SELECT ta.*, u.username as user_name
         FROM task_assignments ta
         JOIN users u ON ta.user_id = u.id
         WHERE ta.task_id = %s 

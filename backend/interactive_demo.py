@@ -295,14 +295,19 @@ def complete_task(db: Session, task_id: int) -> dict:
     # First get the assignment ID for this task
     with get_db_cursor() as cursor:
         cursor.execute("""
-            SELECT id FROM task_assignments 
+            SELECT id, user_id, status 
+            FROM task_assignments 
             WHERE task_id = %s AND assignment_type = 'task'
         """, (task_id,))
         assignment = cursor.fetchone()
         if not assignment:
             raise ValueError(f"No task assignment found for task {task_id}")
         
+        if assignment['status'] == 'completed':
+            raise ValueError(f"Task {task_id} is already completed")
+        
         assignment_id = assignment['id']
+        user_id = assignment['user_id']
     
     # Update the assignment status
     update_data = {
@@ -310,25 +315,16 @@ def complete_task(db: Session, task_id: int) -> dict:
         "notes": "Task completed successfully"
     }
     
-    # Get auth token for the user who has the assignment
-    with get_db_cursor() as cursor:
-        cursor.execute("""
-            SELECT user_id FROM task_assignments 
-            WHERE id = %s
-        """, (assignment_id,))
-        assignment = cursor.fetchone()
-        if not assignment:
-            raise ValueError(f"Assignment {assignment_id} not found")
-        
-        user_id = assignment['user_id']
-    
     headers = get_auth_headers(user_id)
     
+    logger.debug(f"Sending update request with data: {update_data}")
     response = client.put(
         f"/task-assignments/{assignment_id}",
         json=update_data,
         headers=headers
     )
+    if response.status_code != 200:
+        logger.error(f"Error response: {response.text}")
     response.raise_for_status()
     return response.json()
 
@@ -382,7 +378,9 @@ def cleanup_demo_data(db: Session):
     """Clean up all demo data"""
     with get_db_cursor(commit=True) as cursor:
         # Delete in correct order to respect foreign key constraints
-        cursor.execute("DELETE FROM task_skills")  # Delete task skills first
+        cursor.execute("DELETE FROM peer_evaluations")  # Delete peer evaluations first
+        cursor.execute("DELETE FROM reviews")  # Then reviews
+        cursor.execute("DELETE FROM task_skills")  # Then task skills
         cursor.execute("DELETE FROM task_assignments")  # Then task assignments
         cursor.execute("DELETE FROM tasks")  # Then tasks
         cursor.execute("DELETE FROM contributor_skill")  # Then contributor skills
@@ -401,58 +399,69 @@ def interactive_demo():
         jane = create_user(db, "jane@example.com", "password123", "janesmith")
         bob = create_user(db, "bob@example.com", "password123", "bobwilson")
         startup_owner = create_user(db, "startup@example.com", "password123", "startupowner")
+        input("\nPress Enter to continue after checking users table...")
         
         # Create startup
         print("\nCreating startup...")
         startup = create_startup(db, startup_owner["id"], "Tech Innovators", "We build innovative solutions")
+        input("\nPress Enter to continue after checking startups table...")
         
         # Create tasks
         print("\nCreating tasks...")
         task1 = create_task(db, startup["id"], "Implement User Authentication", "Create a secure authentication system with JWT")
         task2 = create_task(db, startup["id"], "Design Database Schema", "Design and implement the database schema for the application")
+        input("\nPress Enter to continue after checking tasks table...")
         
         # Show tasks
         print("\nCurrent tasks:")
         show_task_status()
+        input("\nPress Enter to continue after reviewing task status...")
         
         # Users pick up tasks
         print("\nUsers picking up tasks...")
         john_assignment = pick_up_task(db, task1["id"], john["id"])
         jane_assignment = pick_up_task(db, task2["id"], jane["id"])
+        input("\nPress Enter to continue after checking task assignments...")
         
         # Show assignments
         print("\nCurrent assignments:")
         show_assignments()
+        input("\nPress Enter to continue after reviewing assignments...")
         
         # Complete tasks
         print("\nCompleting tasks...")
         complete_task(db, task1["id"])
         complete_task(db, task2["id"])
+        input("\nPress Enter to continue after checking completed tasks...")
         
         # Show task status after completion
         print("\nTask status after completion:")
         show_task_status()
+        input("\nPress Enter to continue after reviewing task completion status...")
         
         # Users pick up reviews
         print("\nUsers picking up reviews...")
         bob_review = pick_up_review(db, task1["id"], bob["id"])
         startup_owner_review = pick_up_review(db, task2["id"], startup_owner["id"])
+        input("\nPress Enter to continue after checking review assignments...")
         
         # Show assignments including reviews
         print("\nCurrent assignments including reviews:")
         show_assignments()
+        input("\nPress Enter to continue after reviewing assignments with reviews...")
         
         # Submit peer evaluations
         print("\nSubmitting peer evaluations...")
         submit_peer_evaluation(db, task1["id"], bob["id"], john["id"], john_assignment["id"])
         submit_peer_evaluation(db, task2["id"], startup_owner["id"], jane["id"], jane_assignment["id"])
+        input("\nPress Enter to continue after checking peer evaluations...")
         
         # Show final state
         print("\nFinal task state:")
         show_task_status()
-        
         print("\nFinal assignment state:")
         show_assignments()
+        input("\nPress Enter to continue to cleanup...")
         
     except Exception as e:
         print(f"Error during demo: {str(e)}")

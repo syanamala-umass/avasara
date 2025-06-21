@@ -4,6 +4,7 @@ from app.models.task import Task, task_skill, task_resource
 from app.models.task_assignment import TaskAssignment
 from app.models.review import Review
 from app.models.skill import Skill
+from app.models.task_compensation import TaskCompensation
 
 # Add Resource model
 from sqlalchemy import Column, Integer, String

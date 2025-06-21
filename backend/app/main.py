@@ -1,12 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+import time
+import sys
 
-from app.routers import auth, startups, tasks, task_assignment, reviews, skills, landing_page, peer_evaluation
+from app.routers import auth, startups, tasks, task_assignment, reviews, skills, landing_page, peer_evaluation, users
 from app.database import engine, Base
 from app import models
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[ 
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Avasara API",
@@ -14,10 +27,37 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # Log request details
+    logger.info(f"Request: {request.method} {request.url}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    
+    # Get request body if it exists
+    try:
+        body = await request.body()
+        if body:
+            logger.info(f"Body: {body.decode()}")
+    except:
+        pass
+    
+    # Time the request
+    start_time = time.time()
+    
+    # Process the request
+    response = await call_next(request)
+    
+    # Log response time
+    process_time = time.time() - start_time
+    logger.info(f"Response time: {process_time:.2f}s")
+    logger.info(f"Response status: {response.status_code}")
+    
+    return response
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["http://localhost:3000"],  # Your frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +72,7 @@ app.include_router(reviews.router)
 app.include_router(skills.router)
 app.include_router(landing_page.router)
 app.include_router(peer_evaluation.router)
+app.include_router(users.router)
 
 @app.get("/")
 async def root():

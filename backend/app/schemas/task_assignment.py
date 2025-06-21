@@ -18,8 +18,8 @@ class TaskAssignment(TaskAssignmentBase):
     task_id: int
     user_id: int
     assignment_type: str
-    status: str
-    created_at: datetime
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     
     class Config:

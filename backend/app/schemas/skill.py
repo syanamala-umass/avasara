@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class SkillBase(BaseModel):
     name: str
@@ -11,3 +12,6 @@ class Skill(SkillBase):
     
     class Config:
         orm_mode = True
+
+class SkillWithRating(Skill):
+    rating: Optional[int] = None

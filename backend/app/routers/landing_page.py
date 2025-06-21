@@ -33,7 +33,7 @@ async def get_landing_stats(db: Session = Depends(get_db)) -> Dict[str, Any]:
             users.username,
             COUNT(task_assignments.id) AS completed_tasks
         FROM users
-        JOIN task_assignments ON users.id = task_assignments.contributor_id 
+        JOIN task_assignments ON users.id = task_assignments.user_id 
         WHERE task_assignments.status IN ('completed', 'reviewed')
         GROUP BY users.id, users.username
         ORDER BY completed_tasks desc

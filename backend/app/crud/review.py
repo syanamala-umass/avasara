@@ -97,3 +97,4 @@ def update_contributor_rating(db: Session, contributor_id: int):
         if contributor:
             contributor.average_rating = avg_rating
             db.commit()
+ 

@@ -34,7 +34,7 @@ def get_user_by_email(db: Session, email: str):
     return None
 
 def create_user(db: Session, user: UserCreate):
-    """Create a new user with hashed password"""
+    """Create a new user with hashed password and skills"""
     # Check if user already exists
     existing_user = get_user_by_email(db, user.email)
     if existing_user:
@@ -52,13 +52,23 @@ def create_user(db: Session, user: UserCreate):
         "username": user.username,
         "hashed_password": hashed_password
     }).fetchone()
+    
+    # Add skills if provided
+    if user.skills:
+        for skill_id in user.skills:
+            db.execute(
+                text("INSERT INTO contributor_skill (user_id, skill_id) VALUES (:user_id, :skill_id)"),
+                {"user_id": result.id, "skill_id": skill_id}
+            )
+    
     db.commit()
     
     return {
         "id": result.id,
         "email": result.email,
         "username": result.username,
-        "is_active": result.is_active
+        "is_active": result.is_active,
+        "skills": user.skills
     }
 
 def authenticate_user(db: Session, email: str, password: str):

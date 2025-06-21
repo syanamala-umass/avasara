@@ -10,7 +10,7 @@ class TaskAssignment(Base):
     task_id = Column(Integer, ForeignKey("tasks.id"))
     user_id = Column(Integer, ForeignKey("users.id"))  # Changed
     assignment_type = Column(String, default="task")  # "task" or "review"
-    status = Column(String, default="in_progress")
+    status = Column(String, default="in_progress")  # Default to in_progress
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
