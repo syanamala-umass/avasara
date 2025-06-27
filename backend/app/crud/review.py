@@ -3,6 +3,7 @@ from app.schemas.review import ReviewCreate, ReviewUpdate
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.task_assignment import TaskAssignment
+from app.models.task import Task
 
 
 def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensation_amount: float):
@@ -11,35 +12,43 @@ def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensat
         assignment_id=review.assignment_id,
         contributor_id=review.contributor_id,
         reviewer_id=reviewer_id,
-        rating=review.rating,
-        comment=review.comment,
+        is_approved=review.is_approved,
+        feedback=review.feedback,
         compensation_amount=compensation_amount
     )
     db.add(db_review)
     
     # Update assignment status
     assignment = db.query(TaskAssignment).filter(TaskAssignment.id == review.assignment_id).first()
-    if assignment and assignment.status == "completed":
+    if assignment and assignment.status == "submitted_for_review":
         assignment.status = "reviewed"
-        
-    # Check if all assignments for this task have been reviewed
-    # If so, update task status
-    from app.models.task import Task
+    
+    # Check majority decision for task completion
     task = db.query(Task).filter(Task.id == review.task_id).first()
-    if task and task.status == "completed":
-        pending_reviews = db.query(TaskAssignment).filter(
-            TaskAssignment.task_id == review.task_id,
-            TaskAssignment.status == "completed"
-        ).count()
+    if task and task.status == "submitted_for_review":
+        # Get all reviews for this task
+        all_reviews = db.query(Review).filter(Review.task_id == review.task_id).all()
         
-        if pending_reviews == 0:
-            task.status = "reviewed"
+        if all_reviews:
+            # Count approvals vs rejections
+            approvals = sum(1 for r in all_reviews if r.is_approved)
+            rejections = len(all_reviews) - approvals
+            
+            # Check if we have enough reviews to make a decision
+            required_reviews = task.num_reviewers or 1
+            
+            if len(all_reviews) >= required_reviews:
+                # Majority decision
+                if approvals > rejections:
+                    task.status = "completed"
+                else:
+                    task.status = "rejected"
+                    # Reset assignment status for resubmission
+                    if assignment:
+                        assignment.status = "in_progress"
     
     db.commit()
     db.refresh(db_review)
-    
-    # Update contributor's average rating
-    update_contributor_rating(db, review.contributor_id)
     
     return db_review
 
@@ -53,7 +62,7 @@ def get_reviews(db: Session, skip: int = 0, limit: int = 100,
     query = db.query(Review)
     
     if contributor_id:
-        query = query.filter(Review.contributor_id == contributor_id)
+        query = query.filter(Review.user_id == contributor_id)
         
     if reviewer_id:
         query = query.filter(Review.reviewer_id == reviewer_id)
@@ -76,12 +85,32 @@ def update_review(db: Session, review_id: int, review: ReviewUpdate, reviewer_id
         
         db.commit()
         db.refresh(db_review)
-        
-        # If rating was updated, recalculate contributor's average
-        if "rating" in update_data:
-            update_contributor_rating(db, db_review.contributor_id)
             
     return db_review
+
+def get_task_review_summary(db: Session, task_id: int):
+    """Get summary of reviews for a task"""
+    reviews = db.query(Review).filter(Review.task_id == task_id).all()
+    
+    if not reviews:
+        return {
+            "total_reviews": 0,
+            "approvals": 0,
+            "rejections": 0,
+            "majority_decision": None,
+            "is_complete": False
+        }
+    
+    approvals = sum(1 for r in reviews if r.is_approved)
+    rejections = len(reviews) - approvals
+    
+    return {
+        "total_reviews": len(reviews),
+        "approvals": approvals,
+        "rejections": rejections,
+        "majority_decision": "approved" if approvals > rejections else "rejected",
+        "is_complete": approvals != rejections  # No tie
+    }
 
 def update_contributor_rating(db: Session, contributor_id: int):
     """Update the average rating for a contributor based on all reviews."""

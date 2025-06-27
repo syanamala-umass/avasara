@@ -89,7 +89,7 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
 
 
 
-@router.post("/", response_model=Task, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=TaskWithDetails, status_code=status.HTTP_201_CREATED)
 def create_new_task(
     task: TaskCreate,
     db: Session = Depends(get_db),
@@ -100,7 +100,67 @@ def create_new_task(
     print(f"Task data: {task}")
     
     # Create task with user_id
-    return create_task(db=db, task=task, user_id=current_user.id)
+    db_task = create_task(db=db, task=task, user_id=current_user.id)
+    
+    # Get task assignments count
+    assignments_count = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == db_task.id
+    ).count()
+    
+    # Get reviews count
+    reviews_count = db.query(Review).filter(
+        Review.task_id == db_task.id
+    ).count()
+
+    # Get number of people currently working on the task
+    num_people_working = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == db_task.id,
+        TaskAssignment.status == 'in_progress'
+    ).count()
+    
+    # Get task compensations
+    task_compensations = {}
+    for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == db_task.id).all():
+        if tc.task_id not in task_compensations:
+            task_compensations[tc.task_id] = {'task': None, 'review': None}
+        task_compensations[tc.task_id][tc.amount_type] = tc
+
+    # Format skills for response
+    skills = [
+        {
+            "id": skill.id,
+            "name": skill.name
+        }
+        for skill in db_task.skills
+    ]
+    
+    # Create response with all required fields explicitly listed
+    task_response = {
+        # Basic task fields
+        "id": db_task.id,
+        "user_id": db_task.user_id,
+        "title": db_task.title,
+        "description": db_task.description,
+        "compensation_type": task_compensations.get(db_task.id, {}).get('task').compensation_type if task_compensations.get(db_task.id, {}).get('task') else None,
+        "compensation_amount": task_compensations.get(db_task.id, {}).get('task').amount if task_compensations.get(db_task.id, {}).get('task') else None,
+        "review_compensation_type": task_compensations.get(db_task.id, {}).get('review').compensation_type if task_compensations.get(db_task.id, {}).get('review') else None,
+        "review_compensation_amount": task_compensations.get(db_task.id, {}).get('review').amount if task_compensations.get(db_task.id, {}).get('review') else None,
+        "deadline": db_task.deadline,
+        "created_at": db_task.created_at,
+        "status": db_task.status,
+        "category": "task",  # Default category for newly created tasks
+        
+        # Additional fields required by TaskWithDetails
+        "skills": skills,
+        "creator_name": db_task.user.username,
+        "creator_avatar": None,
+        "assignments_count": assignments_count,
+        "reviews_count": reviews_count,
+        "num_people_working": num_people_working,
+        "has_assignment": False  # Newly created tasks don't have assignments yet
+    }
+    
+    return task_response
 
 
 @router.get("/", response_model=List[TaskWithDetails])
@@ -111,12 +171,14 @@ def read_tasks(
     status: str = None, 
     creator_id: int = None,
     category: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     try:
         # Log the full URL and query parameters
         logger.info(f"Request URL: {request.url}")
         logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}")
+        logger.info(f"Current user: {current_user.id}")
         
         # Get tasks with skills and user relationships loaded
         query = db.query(models.Task).options(
@@ -130,8 +192,10 @@ def read_tasks(
             query = query.filter(models.Task.user_id == creator_id)
         if category == 'review':
             # For review tasks, we want tasks that have submitted assignments
+            # BUT exclude tasks where the current user is the original task completer
             query = query.join(models.TaskAssignment).filter(
-                models.TaskAssignment.status == 'submitted_for_review'
+                models.TaskAssignment.status == 'submitted_for_review',
+                models.TaskAssignment.user_id != current_user.id  # Exclude tasks completed by current user
             ).distinct()
             
         tasks = query.offset(skip).limit(limit).all()
@@ -448,7 +512,6 @@ async def review_task(
     
     logger.info(f"Task found: {task.title} (ID: {task.id})")
     logger.info(f"Task current status: {task.status}")
-    logger.info(f"Task num_reviewers required: {task.num_reviewers}")
 
     # Get the task assignment for the specific user
     assignment = db.query(TaskAssignment).filter(
@@ -462,83 +525,266 @@ async def review_task(
     
     logger.info(f"Assignment found: ID {assignment.id}")
     logger.info(f"Assignment current status: {assignment.status}")
-    logger.info(f"Assignment user_id (who did the work): {assignment.user_id}")
-    logger.info(f"Current user_id (who is reviewing): {current_user.id}")
+
+    # Check if user has already reviewed this task
+    existing_review = db.query(models.Review).filter(
+        models.Review.task_id == task_id,
+        models.Review.reviewer_id == current_user.id
+    ).first()
+    
+    if existing_review:
+        logger.error(f"User {current_user.id} has already reviewed task {task_id}")
+        raise HTTPException(status_code=400, detail="You have already reviewed this task")
 
     try:
-        # Log existing reviews before creating new one
-        existing_reviews = db.query(models.Review).filter(
-            models.Review.task_id == task_id
-        ).all()
-        logger.info(f"Existing reviews count before adding new review: {len(existing_reviews)}")
-        for i, existing_review in enumerate(existing_reviews):
-            logger.info(f"  Review {i+1}: ID={existing_review.id}, reviewer_id={existing_review.reviewer_id}, rating={existing_review.rating}")
-
+        # Extract review data
+        is_approved = review_data.get('status') == 'accepted'  # Convert accept/reject to boolean
+        feedback = review_data.get('feedback', '')
+        
         # Create review
         review = models.Review(
             task_id=task_id,
             assignment_id=assignment.id,
             user_id=assignment.user_id,
             reviewer_id=current_user.id,
-            rating=review_data.get('rating'),
-            comment=review_data.get('feedback')
+            is_approved=is_approved,
+            feedback=feedback if not is_approved else None  # Only store feedback for rejections
         )
         db.add(review)
-        logger.info(f"New review created: rating={review.rating}, comment_length={len(review.comment) if review.comment else 0}")
+        logger.info(f"New review created: is_approved={is_approved}, feedback_length={len(feedback) if feedback else 0}")
 
         # Update assignment status
-        old_assignment_status = assignment.status
         assignment.status = 'reviewed'
-        logger.info(f"Assignment status updated: {old_assignment_status} -> {assignment.status}")
+        logger.info(f"Assignment status updated to: {assignment.status}")
         
-        # Check if all required reviews have been submitted
-        num_reviews = db.query(models.Review).filter(
+        # Check majority decision
+        all_reviews = db.query(models.Review).filter(
             models.Review.task_id == task_id
-        ).count()
+        ).all()
         
-        logger.info(f"Review count query result: {num_reviews}")
-        logger.info(f"Required reviews: {task.num_reviewers}")
-        logger.info(f"Logic check: {num_reviews}+1 >= {task.num_reviewers} = {num_reviews+1 >= task.num_reviewers}")
+        logger.info(f"Total reviews for task: {len(all_reviews)}")
+        logger.info(f"Required reviews: {task.num_reviewers or 1}")
         
-        # Only mark task as reviewed if we have all required reviews
-        old_task_status = task.status
-        if task.num_reviewers and num_reviews+1 >= task.num_reviewers:
-            task.status = 'completed'
-            logger.info(f"Task status updated: {old_task_status} -> {task.status} (all reviews submitted)")
+        if len(all_reviews) >= (task.num_reviewers or 1):
+            # Count approvals vs rejections
+            approvals = sum(1 for r in all_reviews if r.is_approved)
+            rejections = len(all_reviews) - approvals
+            
+            logger.info(f"Approvals: {approvals}, Rejections: {rejections}")
+            
+            # Majority decision
+            if approvals > rejections:
+                task.status = 'completed'
+                logger.info(f"Task approved by majority. Status: {task.status}")
+            else:
+                task.status = 'rejected'
+                # Reset assignment for resubmission
+                assignment.status = 'in_progress'
+                logger.info(f"Task rejected by majority. Status: {task.status}, Assignment reset to: {assignment.status}")
         else:
             task.status = 'submitted_for_review'
-            logger.info(f"Task status updated: {old_task_status} -> {task.status} (more reviews needed)")
+            logger.info(f"More reviews needed. Status: {task.status}")
 
         db.commit()
         logger.info("Database changes committed successfully")
         
-        # Verify final state after commit
-        final_review_count = db.query(models.Review).filter(
-            models.Review.task_id == task_id
-        ).count()
-        logger.info(f"Final review count after commit: {final_review_count}")
-        
-        # Log all reviews after commit for verification
-        all_reviews_after = db.query(models.Review).filter(
-            models.Review.task_id == task_id
-        ).all()
-        logger.info(f"All reviews after commit:")
-        for i, review_after in enumerate(all_reviews_after):
-            logger.info(f"  Review {i+1}: ID={review_after.id}, reviewer_id={review_after.reviewer_id}, rating={review_after.rating}")
-        
-        logger.info(f"=== Review submission completed successfully ===")
-        
         return {
             "message": "Review submitted successfully",
             "status": task.status,
-            "reviews_submitted": num_reviews,
-            "reviews_required": task.num_reviewers
+            "reviews_submitted": len(all_reviews),
+            "reviews_required": task.num_reviewers or 1,
+            "approvals": sum(1 for r in all_reviews if r.is_approved),
+            "rejections": sum(1 for r in all_reviews if not r.is_approved)
         }
     except Exception as e:
         logger.error(f"Error during review submission: {str(e)}")
-        logger.error(f"Exception type: {type(e).__name__}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{task_id}/details")
+def get_task_details(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get comprehensive task details including assignments, reviews, and statistics"""
+    
+    logger.info(f"=== Task Details Request ===")
+    logger.info(f"Task ID: {task_id}")
+    logger.info(f"Current user: {current_user.id}")
+    
+    # Get the task with relationships loaded
+    db_task = db.query(models.Task).options(
+        joinedload(models.Task.skills),
+        joinedload(models.Task.user)
+    ).filter(models.Task.id == task_id).first()
+    
+    if db_task is None:
+        logger.error(f"Task {task_id} not found")
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    logger.info(f"Task found: {db_task.title}")
+    
+    # Check if current user is the task creator (dispatcher)
+    is_dispatcher = db_task.user_id == current_user.id
+    logger.info(f"User is dispatcher: {is_dispatcher}")
+    
+    # Check if current user is assigned as a reviewer for this task
+    user_assignment = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == task_id,
+        TaskAssignment.user_id == current_user.id,
+        TaskAssignment.assignment_type == 'review'
+    ).first()
+    is_reviewer = user_assignment is not None
+    logger.info(f"User is reviewer: {is_reviewer}")
+    
+    # Get task compensations
+    task_compensations = {}
+    for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == task_id).all():
+        if tc.task_id not in task_compensations:
+            task_compensations[tc.task_id] = {'task': None, 'review': None}
+        task_compensations[tc.task_id][tc.amount_type] = tc
+    
+    # Format skills
+    skills = [
+        {
+            "id": skill.id,
+            "name": skill.name
+        }
+        for skill in db_task.skills
+    ]
+    
+    # Base task information (available to all users)
+    task_details = {
+        # Basic task info
+        "id": db_task.id,
+        "title": db_task.title,
+        "description": db_task.description,
+        "status": db_task.status,
+        "category": "task",
+        "created_at": db_task.created_at,
+        "deadline": db_task.deadline,
+        "creator_name": db_task.user.username if db_task.user else "Unknown Creator",
+        
+        # Compensation
+        "compensation_type": task_compensations.get(db_task.id, {}).get('task').compensation_type if task_compensations.get(db_task.id, {}).get('task') else None,
+        "compensation_amount": task_compensations.get(db_task.id, {}).get('task').amount if task_compensations.get(db_task.id, {}).get('task') else None,
+        "review_compensation_type": task_compensations.get(db_task.id, {}).get('review').compensation_type if task_compensations.get(db_task.id, {}).get('review') else None,
+        "review_compensation_amount": task_compensations.get(db_task.id, {}).get('review').amount if task_compensations.get(db_task.id, {}).get('review') else None,
+        
+        # Task configuration
+        "num_reviewers": db_task.num_reviewers,
+        "max_parallel_contributors": db_task.max_parallel_contributors,
+        "contributor_time_limit_hours": db_task.contributor_time_limit_hours,
+        
+        # Skills
+        "skills": skills,
+        
+        # Additional metadata
+        "has_assignment": check_existing_assignment(task_id=task_id, user_id=current_user.id)
+    }
+    
+    # If user is the dispatcher or a reviewer, add detailed information
+    if is_dispatcher or is_reviewer:
+        logger.info(f"User is dispatcher ({is_dispatcher}) or reviewer ({is_reviewer}) - adding detailed information")
+        
+        # Get all assignments for this task (excluding review assignments)
+        assignments = db.query(TaskAssignment).options(
+            joinedload(TaskAssignment.user)
+        ).filter(
+            TaskAssignment.task_id == task_id,
+            TaskAssignment.assignment_type != 'review'  # Only show contributor assignments
+        ).all()
+        
+        logger.info(f"Found {len(assignments)} contributor assignments for task {task_id}")
+        
+        # Format assignments
+        formatted_assignments = []
+        for assignment in assignments:
+            formatted_assignments.append({
+                "id": assignment.id,
+                "user_id": assignment.user_id,
+                "contributor_name": assignment.user.username if assignment.user else "Unknown User",
+                "status": assignment.status,
+                "assignment_type": assignment.assignment_type,
+                "notes": assignment.notes,
+                "submission_files": assignment.submission_files or [],
+                "created_at": assignment.created_at,
+                "updated_at": assignment.updated_at,
+                "submitted_at": assignment.submitted_at
+            })
+        
+        # Get all reviews for this task
+        reviews = db.query(models.Review).options(
+            joinedload(models.Review.reviewer)
+        ).filter(models.Review.task_id == task_id).all()
+        
+        logger.info(f"Found {len(reviews)} reviews for task {task_id}")
+        
+        # Format reviews
+        formatted_reviews = []
+        for review in reviews:
+            formatted_reviews.append({
+                "id": review.id,
+                "reviewer_id": review.reviewer_id,
+                "reviewer_name": review.reviewer.username if review.reviewer else "Unknown Reviewer",
+                "is_approved": review.is_approved,
+                "feedback": review.feedback,
+                "rating": review.rating,
+                "created_at": review.created_at
+            })
+        
+        # Calculate statistics (only for contributor assignments)
+        total_assignments = len(formatted_assignments)
+        active_assignments = len([a for a in formatted_assignments if a["status"] == "in_progress"])
+        total_reviews = len(formatted_reviews)
+        
+        # Calculate average rating
+        ratings = [r["rating"] for r in formatted_reviews if r["rating"] is not None]
+        avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0
+        
+        # Add detailed information for dispatchers and reviewers
+        task_details.update({
+            "assignments": formatted_assignments,
+            "reviews": formatted_reviews,
+            "assignments_count": total_assignments,
+            "active_assignments": active_assignments,
+            "reviews_count": total_reviews,
+            "avg_rating": avg_rating,
+            "num_people_working": active_assignments
+        })
+        
+        logger.info(f"Returning detailed view with {len(formatted_assignments)} contributor assignments and {len(formatted_reviews)} reviews")
+    else:
+        logger.info("User is contributor - returning basic information only")
+        
+        # For contributors, only add basic statistics without sensitive details
+        # Count only contributor assignments (exclude review assignments)
+        assignments_count = db.query(TaskAssignment).filter(
+            TaskAssignment.task_id == task_id,
+            TaskAssignment.assignment_type != 'review'
+        ).count()
+        active_assignments = db.query(TaskAssignment).filter(
+            TaskAssignment.task_id == task_id,
+            TaskAssignment.status == 'in_progress',
+            TaskAssignment.assignment_type != 'review'
+        ).count()
+        
+        task_details.update({
+            "assignments": [],  # Empty array for contributors
+            "reviews": [],      # Empty array for contributors
+            "assignments_count": assignments_count,
+            "active_assignments": active_assignments,
+            "reviews_count": 0,  # Don't reveal review count to contributors
+            "avg_rating": 0,     # Don't reveal ratings to contributors
+            "num_people_working": active_assignments
+        })
+        
+        logger.info(f"Returning contributor view with basic stats only")
+    
+    logger.info(f"Task details keys: {list(task_details.keys())}")
+    
+    return task_details
 
 

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { X, Clock, CheckCircle, XCircle, User, FileText, Star, MessageSquare, Calendar, DollarSign } from 'lucide-react';
+import { fetchTaskDetails } from './api';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -11,125 +13,700 @@ const TaskDetailModal = ({ isOpen, task = {
   status: 'open',
   creator_name: 'Unknown Creator',
   has_assignment: false,
-  category: 'task'
-}, onClose, onUndertake, isReviewTask }) => {
+  category: 'task',
+  id: null
+}, onClose, onUndertake, isReviewTask, onResubmit }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [taskDetails, setTaskDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      console.log('TaskDetailModal opened with task:', task);
+      console.log('Task status:', task.status);
+      console.log('Task category:', task.category);
+      console.log('onUndertake exists:', !!onUndertake);
+      // For review tasks, default to submissions tab since that's what reviewers need to see
+      if (task.category === 'review') {
+        setActiveTab('submissions');
+      } else {
+        setActiveTab('overview');
+      }
+      loadTaskDetails();
+    }
+  }, [isOpen, task?.id]);
+
+  const loadTaskDetails = async () => {
+    if (!task?.id) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching task details for task ID:', task.id);
+      
+      // Try to fetch detailed task information including assignments and reviews
+      const response = await fetchTaskDetails(task.id);
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response status:', response.status);
+      
+      // Handle different response structures
+      const taskData = response.data || response;
+      console.log('Task data to set:', taskData);
+      
+      setTaskDetails(taskData);
+    } catch (err) {
+      console.error('Error fetching task details:', err);
+      console.error('Error response:', err.response);
+      
+      // Fallback: use the basic task data if the details endpoint fails
+      console.log('Using fallback task data:', task);
+      setTaskDetails({
+        ...task,
+        assignments: [],
+        reviews: [],
+        assignments_count: 0,
+        active_assignments: 0,
+        reviews_count: 0,
+        avg_rating: 0
+      });
+      
+      setError('Failed to load detailed task information. Showing basic task data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen || !task) {
     return null;
   }
 
   const formatCompensation = (type, amount) => {
-    if (!type) return 'No compensation specified';
+    if (!type || !amount) return 'No compensation specified';
     if (type === 'cash') {
       return `$${amount}`;
     } else if (type === 'equity') {
       return `${amount}% equity`;
     }
-    return 'No compensation specified';
+    return `${amount} ${type}`;
   };
 
-  const getCompensationDisplay = () => {
-    if (task.status === 'submitted_for_review') {
-      return {
-        label: 'Review Compensation',
-        type: task.review_compensation_type || 'cash',
-        amount: task.review_compensation_amount || 0
-      };
-    } else {
-      return {
-        label: 'Task Compensation',
-        type: task.compensation_type || 'cash',
-        amount: task.compensation_amount || 0
-      };
+  const getStatusBadge = (status) => {
+    const baseClasses = "px-3 py-1 text-sm rounded-full font-medium";
+    switch (status) {
+      case 'open':
+        return `${baseClasses} bg-green-100 text-green-800`;
+      case 'in_progress':
+        return `${baseClasses} bg-blue-100 text-blue-800`;
+      case 'submitted_for_review':
+        return `${baseClasses} bg-yellow-100 text-yellow-800`;
+      case 'completed':
+        return `${baseClasses} bg-purple-100 text-purple-800`;
+      case 'rejected':
+        return `${baseClasses} bg-red-100 text-red-800`;
+      default:
+        return `${baseClasses} bg-gray-100 text-gray-800`;
     }
   };
 
-  const compensation = getCompensationDisplay();
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not specified';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  const getStatusDescription = (status) => {
+    switch (status) {
+      case 'open':
+        return 'This task is available for contributors to undertake.';
+      case 'in_progress':
+        return 'One or more contributors are currently working on this task.';
+      case 'submitted_for_review':
+        return 'Work has been submitted and is awaiting review by assigned reviewers.';
+      case 'completed':
+        return 'This task has been successfully completed and approved.';
+      case 'rejected':
+        return 'The submitted work was rejected and needs to be resubmitted.';
+      default:
+        return 'Status information not available.';
+    }
+  };
+
+  const renderOverviewTab = () => (
+    <div className="space-y-6">
+      {/* Basic Information */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-gray-700 mb-3">Basic Information</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-gray-500">Title</p>
+            <p className="text-sm font-medium text-gray-900">{task.title}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Status</p>
+            <div className="flex items-center mt-1">
+              <span className={getStatusBadge(task.status)}>
+                {task.status.replace(/_/g, ' ')}
+              </span>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Created By</p>
+            <p className="text-sm font-medium text-gray-900">{task.creator_name}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Created Date</p>
+            <p className="text-sm font-medium text-gray-900">{formatDate(task.created_at)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Deadline</p>
+            <p className="text-sm font-medium text-gray-900">{formatDate(task.deadline)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Category</p>
+            <p className="text-sm font-medium text-gray-900 capitalize">{task.category}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Task Configuration */}
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-blue-700 mb-3">Task Configuration</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-blue-600">Number of Reviewers</p>
+            <p className="text-sm font-medium text-blue-900">
+              {taskDetails?.num_reviewers || task.num_reviewers || 'Not specified'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-blue-600">Max Parallel Contributors</p>
+            <p className="text-sm font-medium text-blue-900">
+              {taskDetails?.max_parallel_contributors || task.max_parallel_contributors || 'Unlimited'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-blue-600">Time Limit (Hours)</p>
+            <p className="text-sm font-medium text-blue-900">
+              {taskDetails?.contributor_time_limit_hours || task.contributor_time_limit_hours || 'No limit'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</p>
+        </div>
+      </div>
+
+      {/* Compensation */}
+      <div className="bg-green-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-green-700 mb-3">Compensation Details</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-3 rounded border border-green-200">
+            <h5 className="text-sm font-medium text-green-800 mb-2">Task Compensation</h5>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-xs text-green-600">Type:</span>
+                <span className="text-sm font-medium text-green-900 capitalize">
+                  {taskDetails?.compensation_type || task.compensation_type || 'Not specified'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-green-600">Amount:</span>
+                <span className="text-sm font-medium text-green-900">
+                  {formatCompensation(
+                    taskDetails?.compensation_type || task.compensation_type,
+                    taskDetails?.compensation_amount || task.compensation_amount
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-3 rounded border border-green-200">
+            <h5 className="text-sm font-medium text-green-800 mb-2">Review Compensation</h5>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-xs text-green-600">Type:</span>
+                <span className="text-sm font-medium text-green-900 capitalize">
+                  {taskDetails?.review_compensation_type || task.review_compensation_type || 'Not specified'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-green-600">Amount:</span>
+                <span className="text-sm font-medium text-green-900">
+                  {formatCompensation(
+                    taskDetails?.review_compensation_type || task.review_compensation_type,
+                    taskDetails?.review_compensation_amount || task.review_compensation_amount
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Skills */}
+      {task.skills && task.skills.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
+          <div className="flex flex-wrap gap-2">
+            {task.skills.map((skill, index) => (
+              <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {skill.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Status Description */}
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-blue-700 mb-2">Status Information</h4>
+        <p className="text-sm text-blue-600">{getStatusDescription(task.status)}</p>
+      </div>
+    </div>
+  );
+
+  const renderSubmissionsTab = () => {
+    if (!taskDetails?.assignments || taskDetails.assignments.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <FileText className="mx-auto h-12 w-12 text-gray-400" />
+          <p className="mt-2 text-sm text-gray-500">No submissions found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-700">Submissions ({taskDetails.assignments.length})</h4>
+        </div>
+        
+        {taskDetails.assignments.map((assignment, index) => (
+          <div key={assignment.id} className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {assignment.contributor_name || 'Unknown Contributor'}
+                  </span>
+                  <span className={getStatusBadge(assignment.status)}>
+                    {assignment.status.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Started</p>
+                    <p className="font-medium">{formatDate(assignment.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Submitted</p>
+                    <p className="font-medium">{formatDate(assignment.submitted_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Last Updated</p>
+                    <p className="font-medium">{formatDate(assignment.updated_at)}</p>
+                  </div>
+                </div>
+
+                {assignment.notes && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-1">Notes</p>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="text-sm text-gray-700">{assignment.notes}</p>
+                    </div>
+                  </div>
+                )}
+
+                {assignment.submission_files && assignment.submission_files.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-1">Submitted Files</p>
+                    <div className="flex flex-wrap gap-2">
+                      {assignment.submission_files.map((file, fileIndex) => (
+                        <span key={fileIndex} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                          <FileText className="h-3 w-3 mr-1" />
+                          {file}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderReviewsTab = () => {
+    if (!taskDetails?.reviews || taskDetails.reviews.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Star className="mx-auto h-12 w-12 text-gray-400" />
+          <p className="mt-2 text-sm text-gray-500">No reviews found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-700">Reviews ({taskDetails.reviews.length})</h4>
+        </div>
+        
+        {taskDetails.reviews.map((review, index) => (
+          <div key={review.id} className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {review.reviewer_name || 'Unknown Reviewer'}
+                  </span>
+                  <div className="flex items-center">
+                    {review.is_approved ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className={`ml-1 text-xs font-medium ${
+                      review.is_approved ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      {review.is_approved ? 'Approved' : 'Rejected'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-3">
+                  <div>
+                    <p className="text-gray-500">Reviewed On</p>
+                    <p className="font-medium">{formatDate(review.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Rating</p>
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${
+                            star <= (review.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-1 text-sm text-gray-600">({review.rating || 0}/5)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {review.feedback && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Feedback</p>
+                    <div className={`p-3 rounded ${
+                      review.is_approved ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className={`text-sm ${
+                        review.is_approved ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                        {review.feedback}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderStatsTab = () => (
+    <div className="space-y-6">
+      {/* Task Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 p-4 rounded-lg text-center">
+          <div className="text-2xl font-bold text-blue-600">{taskDetails?.assignments_count || 0}</div>
+          <div className="text-xs text-blue-600">Total Assignments</div>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg text-center">
+          <div className="text-2xl font-bold text-green-600">{taskDetails?.active_assignments || 0}</div>
+          <div className="text-xs text-green-600">Active Contributors</div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg text-center">
+          <div className="text-2xl font-bold text-yellow-600">{taskDetails?.reviews_count || 0}</div>
+          <div className="text-xs text-yellow-600">Reviews Received</div>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg text-center">
+          <div className="text-2xl font-bold text-purple-600">{taskDetails?.avg_rating || 0}</div>
+          <div className="text-xs text-purple-600">Avg Rating</div>
+        </div>
+      </div>
+
+      {/* Review Progress */}
+      <div className="bg-orange-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-orange-700 mb-3">Review Progress</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-3 rounded border border-orange-200">
+            <div className="text-center">
+              <div className="text-lg font-bold text-orange-600">
+                {taskDetails?.reviews_count || 0} / {taskDetails?.num_reviewers || task.num_reviewers || '?'}
+              </div>
+              <div className="text-xs text-orange-600">Reviews Completed</div>
+            </div>
+          </div>
+          <div className="bg-white p-3 rounded border border-orange-200">
+            <div className="text-center">
+              <div className="text-lg font-bold text-orange-600">
+                {taskDetails?.num_reviewers || task.num_reviewers || 'Not set'}
+              </div>
+              <div className="text-xs text-orange-600">Required Reviews</div>
+            </div>
+          </div>
+          <div className="bg-white p-3 rounded border border-orange-200">
+            <div className="text-center">
+              <div className="text-lg font-bold text-orange-600">
+                {taskDetails?.reviews_count >= (taskDetails?.num_reviewers || task.num_reviewers || 0) ? 'Complete' : 'Pending'}
+              </div>
+              <div className="text-xs text-orange-600">Review Status</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Task Configuration Summary */}
+      <div className="bg-indigo-50 p-4 rounded-lg">
+        <h4 className="text-sm font-medium text-indigo-700 mb-3">Task Configuration Summary</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-3 rounded border border-indigo-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-indigo-600">Max Contributors:</span>
+              <span className="text-sm font-medium text-indigo-900">
+                {taskDetails?.max_parallel_contributors || task.max_parallel_contributors || 'Unlimited'}
+              </span>
+            </div>
+          </div>
+          <div className="bg-white p-3 rounded border border-indigo-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-indigo-600">Time Limit:</span>
+              <span className="text-sm font-medium text-indigo-900">
+                {taskDetails?.contributor_time_limit_hours || task.contributor_time_limit_hours || 'No limit'} hours
+              </span>
+            </div>
+          </div>
+          <div className="bg-white p-3 rounded border border-indigo-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-indigo-600">Task Compensation:</span>
+              <span className="text-sm font-medium text-indigo-900">
+                {formatCompensation(
+                  taskDetails?.compensation_type || task.compensation_type,
+                  taskDetails?.compensation_amount || task.compensation_amount
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="bg-white p-3 rounded border border-indigo-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-indigo-600">Review Compensation:</span>
+              <span className="text-sm font-medium text-indigo-900">
+                {formatCompensation(
+                  taskDetails?.review_compensation_type || task.review_compensation_type,
+                  taskDetails?.review_compensation_amount || task.review_compensation_amount
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 mb-3">Task Timeline</h4>
+        <div className="space-y-3">
+          <div className="flex items-center">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900">Task Created</p>
+              <p className="text-xs text-gray-500">{formatDate(task.created_at)}</p>
+            </div>
+          </div>
+          
+          {taskDetails?.assignments?.map((assignment, index) => (
+            <div key={assignment.id} className="flex items-center">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  {assignment.contributor_name} started working
+                </p>
+                <p className="text-xs text-gray-500">{formatDate(assignment.created_at)}</p>
+              </div>
+            </div>
+          ))}
+          
+          {taskDetails?.assignments?.filter(a => a.submitted_at).map((assignment, index) => (
+            <div key={`submitted-${assignment.id}`} className="flex items-center">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  {assignment.contributor_name} submitted work
+                </p>
+                <p className="text-xs text-gray-500">{formatDate(assignment.submitted_at)}</p>
+              </div>
+            </div>
+          ))}
+          
+          {taskDetails?.reviews?.map((review, index) => (
+            <div key={review.id} className="flex items-center">
+              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  {review.reviewer_name} {review.is_approved ? 'approved' : 'rejected'} the work
+                </p>
+                <p className="text-xs text-gray-500">{formatDate(review.created_at)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="fixed z-10 inset-0 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div className="fixed z-50 inset-0 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="sm:flex sm:items-start">
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  {isReviewTask ? 'Review Task Details' : 'Task Details'}
-                </h3>
-                <div className="mt-4">
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500">Title</h4>
-                    <p className="mt-1 text-sm text-gray-900">{task.title || 'Untitled Task'}</p>
-                  </div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500">Description</h4>
-                    <p className="mt-1 text-sm text-gray-900">{task.description || 'No description provided'}</p>
-                  </div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500">Skills Required</h4>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {task.skills?.length > 0 ? (
-                        task.skills.map(skill => (
-                          <span
-                            key={skill.id}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            {skill.name}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-500">No skills required</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500">Compensation</h4>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {compensation.label}: {formatCompensation(compensation.type, compensation.amount)}
-                    </p>
-                  </div>
-                  {isReviewTask && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-500">Submitted By</h4>
-                      <p className="mt-1 text-sm text-gray-900">{task.creator_name || 'Unknown Creator'}</p>
-                    </div>
-                  )}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-500">Status</h4>
-                    <span className={`px-3 py-1 text-sm rounded-full ${
-                      task.status === 'open' ? 'bg-green-100 text-green-800' :
-                      task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                      task.status === 'submitted_for_review' ? 'bg-yellow-100 text-yellow-800' :
-                      task.status === 'completed' ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {task.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-              </div>
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+          {/* Header */}
+          <div className="bg-white px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Task Details: {task.title}
+              </h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
             </div>
           </div>
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            {task.status !== 'completed' && !task.has_assignment && (
+
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-6">
+              {taskDetails?.assignments?.length > 0 || taskDetails?.reviews?.length > 0 ? (
+                // Dispatcher view: show all tabs
+                ['overview', 'submissions', 'reviews', 'stats'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === tab
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))
+              ) : (
+                // Contributor view: only show overview tab
+                <button
+                  className="py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600"
+                >
+                  Overview
+                </button>
+              )}
+            </nav>
+          </div>
+
+          {/* Content */}
+          <div className="bg-white px-6 py-6 max-h-96 overflow-y-auto">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-500">Loading task details...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-red-600">{error}</p>
+                <button
+                  onClick={loadTaskDetails}
+                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'overview' && renderOverviewTab()}
+                {activeTab === 'submissions' && renderSubmissionsTab()}
+                {activeTab === 'reviews' && renderReviewsTab()}
+                {activeTab === 'stats' && renderStatsTab()}
+              </>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
+            {(() => {
+              console.log('Footer rendering - task status:', task.status);
+              console.log('Footer rendering - task category:', task.category);
+              console.log('Footer rendering - onUndertake exists:', !!onUndertake);
+              console.log('Footer rendering - should show button:', onUndertake && (task.status === 'open' || task.status === 'available'));
+              return null;
+            })()}
+            {onUndertake && (
+              (task.status === 'open' || task.status === 'available' || !task.status) || 
+              (task.category === 'review' && task.status === 'submitted_for_review')
+            ) && (
               <button
-                type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                onClick={onUndertake}
+                onClick={() => onUndertake(task)}
+                className={`px-4 py-2 text-white rounded-md text-sm font-medium hover:bg-opacity-90 ${
+                  task.category === 'review' 
+                    ? 'bg-yellow-600 hover:bg-yellow-700' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
-                {task.status === 'submitted_for_review' ? 'Review Task' : 
-                 task.category === 'review' ? 'Start Review' : 'Undertake Task'}
+                {task.category === 'review' ? 'Review Task' : 'Undertake Task'}
+              </button>
+            )}
+            {onResubmit && task.status === 'rejected' && (
+              <button
+                onClick={() => onResubmit(task)}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
+              >
+                Reset for Resubmission
               </button>
             )}
             <button
-              type="button"
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Close
             </button>

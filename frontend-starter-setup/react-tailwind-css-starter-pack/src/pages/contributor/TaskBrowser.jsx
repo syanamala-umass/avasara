@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
+import ReviewDetailModal from '../../ReviewDetailModal';
 import { fetchTasks, fetchSkills, assignTask, createTaskAssignment } from '../../api';
 
 const TaskBrowser = () => {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     status: 'open',
     compensationType: '',
@@ -101,7 +105,11 @@ const TaskBrowser = () => {
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
-    setIsModalOpen(true);
+    if (task.category === 'review') {
+      setIsReviewModalOpen(true);
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   const handleUndertakeTask = async (task) => {
@@ -124,8 +132,29 @@ const TaskBrowser = () => {
       // Update the task status in the UI
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'in_progress' } : t));
       setIsModalOpen(false);
+      setIsReviewModalOpen(false);
     } catch (err) {
+      console.error('Error undertaking task:', err);
       setError('Failed to undertake task. Please try again.');
+    }
+  };
+
+  const handleReviewSubmission = async (task, submission) => {
+    setError('');
+    setSuccess('');
+    try {
+      // Create a review assignment for this specific submission
+      await createTaskAssignment({
+        task_id: task.id,
+        assignment_type: 'review',
+        status: 'in_progress',
+        notes: `Reviewing submission from ${submission.contributor_name}`
+      });
+      setSuccess('You have been assigned to review this submission!');
+      setIsReviewModalOpen(false);
+    } catch (err) {
+      console.error('Error starting review:', err);
+      setError('Failed to start review. Please try again.');
     }
   };
 
@@ -143,9 +172,18 @@ const TaskBrowser = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
-            Find Tasks
-          </h2>
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
+              Find Tasks
+            </h2>
+          </div>
         </div>
       </div>
 
@@ -310,7 +348,9 @@ const TaskBrowser = () => {
                       <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         task.status === 'open' ? 'bg-green-100 text-green-800' :
                         task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                        task.status === 'submitted_for_review' ? 'bg-yellow-100 text-yellow-800' :
                         task.status === 'completed' ? 'bg-purple-100 text-purple-800' :
+                        task.status === 'rejected' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {task.status.replace('_', ' ').toUpperCase()}
@@ -349,6 +389,15 @@ const TaskBrowser = () => {
           onClose={() => setIsModalOpen(false)}
           onUndertake={() => handleUndertakeTask(selectedTask)}
           isReviewTask={selectedTask.category === 'review'}
+        />
+      )}
+
+      {isReviewModalOpen && selectedTask && (
+        <ReviewDetailModal
+          isOpen={isReviewModalOpen}
+          task={selectedTask}
+          onClose={() => setIsReviewModalOpen(false)}
+          onReview={handleReviewSubmission}
         />
       )}
     </div>

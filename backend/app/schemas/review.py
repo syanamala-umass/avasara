@@ -3,8 +3,8 @@ from typing import Optional
 from datetime import datetime
 
 class ReviewBase(BaseModel):
-    rating: float
-    comment: Optional[str] = None
+    is_approved: bool
+    feedback: Optional[str] = None
 
 class ReviewCreate(ReviewBase):
     task_id: int
@@ -12,8 +12,8 @@ class ReviewCreate(ReviewBase):
     contributor_id: int  # Person who did the task
 
 class ReviewUpdate(BaseModel):
-    rating: Optional[float] = None
-    comment: Optional[str] = None
+    is_approved: Optional[bool] = None
+    feedback: Optional[str] = None
 
 class Review(ReviewBase):
     id: int

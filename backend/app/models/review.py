@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Float, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -11,9 +11,16 @@ class Review(Base):
     assignment_id = Column(Integer, ForeignKey("task_assignments.id"))
     user_id = Column(Integer, ForeignKey("users.id"))  # Person who did the task
     reviewer_id = Column(Integer, ForeignKey("users.id"))  # Person reviewing the task
-    rating = Column(Float)
-    comment = Column(Text, nullable=True)
-    compensation_amount = Column(Float)  # Compensation for the reviewer
+    
+    # Binary decision: True = approved, False = rejected
+    is_approved = Column(Boolean, nullable=False)
+    
+    # Optional feedback for rejected tasks
+    feedback = Column(Text, nullable=True)
+    
+    # Compensation for the reviewer
+    compensation_amount = Column(Float, default=0.0)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

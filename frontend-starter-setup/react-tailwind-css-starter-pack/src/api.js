@@ -64,6 +64,7 @@ export const loginUser = async (credentials) => {
 // Task services
 export const fetchTasks = (filters) => api.get('/tasks', { params: filters });
 export const fetchTaskById = (id) => api.get(`/tasks/${id}`);
+export const fetchTaskDetails = (id) => api.get(`/tasks/${id}/details`);
 export const createTask = (taskData) => api.post('/tasks', taskData);
 export const updateTask = (id, taskData) => api.put(`/tasks/${id}`, taskData);
 export const deleteTask = async (taskId) => {
@@ -157,7 +158,7 @@ export const pingBackend = () => api.get('/health');
 export const assignTask = (taskId) =>
   api.post('/task-assignments', {
     task_id: taskId,
-    assignment_type: 'contributor'
+    assignment_type: 'task'
   });
 
 export default api;

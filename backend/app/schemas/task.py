@@ -1,11 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from app.schemas.skill import Skill
 
 class TaskBase(BaseModel):
     title: str
     description: str
+    detailed_instructions: Optional[str] = None
+    evaluation_criteria: Optional[str] = None
+    quality_guidelines: Optional[str] = None
+    common_mistakes: Optional[str] = None
+    expected_output_format: Optional[str] = None
+    reference_materials: Optional[Dict[str, Any]] = None
     deadline: Optional[datetime] = None
     category: str = "task"  # Add category field with default value "task"
 
@@ -21,6 +27,12 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    detailed_instructions: Optional[str] = None
+    evaluation_criteria: Optional[str] = None
+    quality_guidelines: Optional[str] = None
+    common_mistakes: Optional[str] = None
+    expected_output_format: Optional[str] = None
+    reference_materials: Optional[Dict[str, Any]] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = None
     skills: Optional[List[int]] = None
@@ -31,7 +43,10 @@ class Task(TaskBase):
     user_id: int
     created_at: datetime
     status: str
-    
+    num_reviewers: Optional[int] = None
+    max_parallel_contributors: Optional[int] = None
+    contributor_time_limit_hours: Optional[int] = None
+
     class Config:
         orm_mode = True
 

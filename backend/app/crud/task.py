@@ -55,6 +55,13 @@ def create_task(db: Session, task: TaskCreate, user_id: int):
     
     db.commit()
     db.refresh(db_task)
+    
+    # Load the user relationship for the response
+    db_task = db.query(Task).options(
+        joinedload(Task.user),
+        joinedload(Task.skills)
+    ).filter(Task.id == db_task.id).first()
+    
     return db_task
 
 def get_task(db: Session, task_id: int):

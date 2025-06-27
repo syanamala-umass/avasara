@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, Trash2 } from 'lucide-react';
+import { Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, Trash2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
@@ -28,6 +28,7 @@ const UserDashboard = () => {
   const [completedTasks, setCompletedTasks] = useState([]);
   const [reviewableTasks, setReviewableTasks] = useState([]);
   const [pendingReviewTasks, setPendingReviewTasks] = useState([]);
+  const [rejectedTasks, setRejectedTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,13 +73,15 @@ const UserDashboard = () => {
           assignedTasksResponse, 
           completedTasksResponse, 
           reviewableTasksResponse,
-          pendingReviewResponse
+          pendingReviewResponse,
+          rejectedTasksResponse
         ] = await Promise.all([
           fetchTasks({ creator_id: userData.id }),
           fetchMyAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
           fetchTasks({ status: 'submitted' }),
-          fetchTasks({ status: 'submitted_for_review', creator_id: userData.id })
+          fetchMyAssignments('submitted_for_review'),
+          fetchMyAssignments('rejected')
         ]);
 
         setCreatedTasks(createdTasksResponse.data || []);
@@ -86,6 +89,16 @@ const UserDashboard = () => {
         setCompletedTasks(completedTasksResponse.data || []);
         setReviewableTasks(reviewableTasksResponse.data || []);
         setPendingReviewTasks(pendingReviewResponse.data || []);
+        setRejectedTasks(rejectedTasksResponse.data || []);
+
+        console.log('Dashboard data loaded:');
+        console.log('Created tasks:', createdTasksResponse.data?.length || 0);
+        console.log('Assigned tasks:', assignedTasksResponse.data?.length || 0);
+        console.log('Assigned tasks data:', assignedTasksResponse.data);
+        console.log('Completed tasks:', completedTasksResponse.data?.length || 0);
+        console.log('Reviewable tasks:', reviewableTasksResponse.data?.length || 0);
+        console.log('Pending review tasks:', pendingReviewResponse.data?.length || 0);
+        console.log('Rejected tasks:', rejectedTasksResponse.data?.length || 0);
 
       } catch (err) {
         console.error('Error loading dashboard data:', err);
@@ -126,25 +139,20 @@ const UserDashboard = () => {
     try {
       setLoading(true);
       // Fetch complete task details including skills and other related data
-      const taskId = activeTab === 'undertaking' ? task.task_id : task.id;
+      // Both undertaking and pending_review tabs contain assignment data with task_id
+      // Other tabs (completed, dispatched, rejected) contain task data with id
+      const taskId = (activeTab === 'undertaking' || activeTab === 'pending_review') ? task.task_id : task.id;
       const response = await fetchTaskById(taskId);
       const taskData = response.data;
       
       console.log('Task clicked:', task);
       console.log('Task data:', taskData);
       console.log('Assignment type:', task.assignment_type);
+      console.log('Active tab:', activeTab);
+      console.log('Using taskId:', taskId);
       
-      // Check if this is a review task before setting task data or opening modal
-      if (task.assignment_type === 'review') {
-        console.log('Review task detected, showing error and closing modal');
-        setError('Review task details view is not yet implemented');
-        setIsTaskModalOpen(false);
-        setSelectedTask(null);
-        return;
-      }
-      
-      // For regular tasks, explicitly set modal state
-      console.log('Regular task detected, opening modal');
+      // Set modal state for all tasks (including review tasks)
+      console.log('Opening modal for task');
       setSelectedTask(taskData);
       setIsTaskModalOpen(true);
       
@@ -173,17 +181,20 @@ const UserDashboard = () => {
 
       await submitTask(taskId, formData);
       
-      // Update the task status in the UI
-      setAssignedTasks(prevTasks => 
-        prevTasks.filter(t => t.id !== taskId)
-      );
+      // Refresh task data to get updated lists
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const [assignedTasksResponse, pendingReviewResponse] = await Promise.all([
+        fetchMyAssignments('in_progress'),
+        fetchMyAssignments('submitted_for_review')
+      ]);
+      
+      // Update the lists with fresh data
+      setAssignedTasks(assignedTasksResponse.data || []);
+      setPendingReviewTasks(pendingReviewResponse.data || []);
 
-      // Add to pending review tasks with submitted status
-      setPendingReviewTasks(prevTasks => [{
-        ...selectedTask,
-        status: 'submitted_for_review',
-        submitted_at: new Date().toISOString()
-      }, ...prevTasks]);
+      console.log('Task submission completed:');
+      console.log('Assigned tasks after submission:', assignedTasksResponse.data?.length || 0);
+      console.log('Pending review tasks after submission:', pendingReviewResponse.data?.length || 0);
 
       setSuccess('Work submitted successfully! Your submission is now pending review.');
       
@@ -202,18 +213,22 @@ const UserDashboard = () => {
   // Handler for reviewing task
   const handleTaskReview = async (taskId, reviewData) => {
     try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+      
       // Only send rating and feedback to the backend
       const { rating, feedback } = reviewData;
       await reviewTask(taskId, { rating, feedback });
       
-      // Update the task status in the UI
-      setCompletedTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: 'reviewed' } 
-            : task
-        )
-      );
+      // Refresh task data to get updated lists
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const [completedTasksResponse] = await Promise.all([
+        fetchTaskAssignments({ status: 'completed' })
+      ]);
+      
+      // Update the lists with fresh data
+      setCompletedTasks(completedTasksResponse.data || []);
       
       // Close the modal
       setIsTaskActionModalOpen(false);
@@ -223,6 +238,8 @@ const UserDashboard = () => {
     } catch (error) {
       console.error('Error reviewing task:', error);
       setError('Failed to submit review. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -256,16 +273,19 @@ const UserDashboard = () => {
   };
 
   const formatCompensation = (amount, type) => {
+    if (!amount || !type) return 'No compensation specified';
     if (type === 'cash') {
       return `$${amount}`;
     } else if (type === 'equity') {
       return `${amount}% equity`;
     }
-    return amount;
+    return `${amount} ${type}`;
   };
 
   const handleTaskCreated = (newTask) => {
+    console.log('Task created:', newTask);
     setCreatedTasks(prev => [newTask, ...prev]);
+    setSuccess('Task created successfully!');
   };
 
   // Add handleUndertakeTask function
@@ -275,20 +295,21 @@ const UserDashboard = () => {
       setError(null);
       setSuccess(null);
       
-      if (task.assignment_type === 'review') {
-        // For review tasks, create assignment with being_reviewed status
+      if (task.category === 'review') {
+        // For review tasks, create assignment with in_progress status
         await createTaskAssignment({
           task_id: task.id,
           assignment_type: 'review',
-          status: 'being_reviewed',
+          status: 'in_progress',
           notes: 'Task being reviewed'
         });
         
         // Update the task status in the UI
         setAssignedTasks(prevTasks => [{
           ...task,
-          status: 'being_reviewed',
-          task_id: task.id
+          status: 'in_progress',
+          task_id: task.id,
+          assignment_type: 'review'
         }, ...prevTasks]);
         setSuccess('Successfully started reviewing the task!');
       } else {
@@ -304,7 +325,8 @@ const UserDashboard = () => {
         setAssignedTasks(prevTasks => [{
           ...task,
           status: 'in_progress',
-          task_id: task.id
+          task_id: task.id,
+          assignment_type: 'task'
         }, ...prevTasks]);
         setSuccess('Successfully undertaken the task!');
       }
@@ -358,6 +380,40 @@ const UserDashboard = () => {
     } catch (error) {
       console.error('Error deleting task:', error);
       setError('Failed to delete task. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResubmit = async (task) => {
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      // Reset the task status back to in_progress for resubmission
+      await updateTaskAssignment(task.task_id, { status: 'in_progress' });
+      
+      // Refresh task data to get updated lists
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      const [assignedTasksResponse, rejectedTasksResponse] = await Promise.all([
+        fetchMyAssignments('in_progress'),
+        fetchMyAssignments('rejected')
+      ]);
+      
+      // Update the lists with fresh data
+      setAssignedTasks(assignedTasksResponse.data || []);
+      setRejectedTasks(rejectedTasksResponse.data || []);
+
+      setSuccess('Task has been reset for resubmission. You can now submit your work again.');
+      
+      // Close the modal
+      setIsTaskModalOpen(false);
+      setSelectedTask(null);
+      
+    } catch (error) {
+      console.error('Error resubmitting task:', error);
+      setError('Failed to reset task for resubmission. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -560,6 +616,19 @@ const UserDashboard = () => {
               </div>
             </button>
             <button
+              onClick={() => setActiveTab('rejected')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'rejected'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center">
+                <XCircle className="h-5 w-5 mr-2" />
+                Rejected
+              </div>
+            </button>
+            <button
               onClick={() => setActiveTab('dispatched')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'dispatched'
@@ -597,7 +666,11 @@ const UserDashboard = () => {
             ) : (
               <div className="bg-white shadow rounded-lg overflow-hidden">
                 <ul className="divide-y divide-gray-200">
-                  {assignedTasks.map(task => (
+                  {assignedTasks.map(task => {
+                    console.log('Rendering task in undertaking tab:', task);
+                    console.log('Task assignment_type:', task.assignment_type);
+                    console.log('Task status:', task.status);
+                    return (
                     <li 
                       key={task.id} 
                       className="p-4 hover:bg-gray-50 transition cursor-pointer"
@@ -623,6 +696,9 @@ const UserDashboard = () => {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              console.log('Task action clicked:', task);
+                              console.log('Assignment type:', task.assignment_type);
+                              console.log('Task status:', task.status);
                               handleTaskAction(task, task.assignment_type === 'review' ? 'review' : 'submit');
                             }}
                           >
@@ -632,7 +708,8 @@ const UserDashboard = () => {
                         </div>
                       </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -718,9 +795,9 @@ const UserDashboard = () => {
                     >
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">{task.task_title || task.title}</h3>
                           <div className="mt-1 flex items-center text-sm text-gray-500">
-                            <span className="mr-3">{task.startup_name}</span>
+                            <span className="mr-3">Task ID: {task.task_id || task.id}</span>
                             <span className="mr-3">•</span>
                             <span className="mr-3">Submitted: {formatDate(task.submitted_at)}</span>
                             <span className="mr-3">•</span>
@@ -728,6 +805,56 @@ const UserDashboard = () => {
                               <Clock className="h-4 w-4 mr-1" />
                               Pending Review
                             </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <button 
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTaskClick(task);
+                            }}
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'rejected' && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Rejected Tasks</h2>
+            
+            {loading ? (
+              <div className="bg-white p-8 rounded-lg shadow text-center">
+                <p className="text-gray-500">Loading rejected tasks...</p>
+              </div>
+            ) : rejectedTasks.length === 0 ? (
+              <div className="bg-white p-8 rounded-lg shadow text-center">
+                <p className="text-gray-500">No rejected tasks yet.</p>
+              </div>
+            ) : (
+              <div className="bg-white shadow rounded-lg overflow-hidden">
+                <ul className="divide-y divide-gray-200">
+                  {rejectedTasks.map(task => (
+                    <li 
+                      key={task.id} 
+                      className="p-4 hover:bg-gray-50 transition cursor-pointer"
+                      onClick={() => handleTaskClick(task)}
+                    >
+                      <div className="flex justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                          <div className="mt-1 flex items-center text-sm text-gray-500">
+                            <span className="mr-3">{task.startup_name}</span>
+                            <span className="mr-3">•</span>
+                            <span className="mr-3">Rejected: {formatDate(task.rejected_at)}</span>
                           </div>
                         </div>
                         <div className="flex items-center">
@@ -782,15 +909,15 @@ const UserDashboard = () => {
                     >
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">{task.title || 'Untitled Task'}</h3>
                           <div className="mt-1 flex items-center text-sm text-gray-500">
-                            <span className="mr-3">Status: {formatStatus(task.status)}</span>
+                            <span className="mr-3">Status: {formatStatus(task.status || 'open')}</span>
                             <span className="mr-3">•</span>
                             <span className="mr-3">Due: {formatDate(task.deadline)}</span>
                             {task.status !== 'completed' && (
                               <>
                                 <span className="mr-3">•</span>
-                                <span className="mr-3">{task.num_people_working} {task.num_people_working === 1 ? 'person' : 'people'} working</span>
+                                <span className="mr-3">{task.num_people_working || 0} {(task.num_people_working || 0) === 1 ? 'person' : 'people'} working</span>
                               </>
                             )}
                           </div>
@@ -831,7 +958,7 @@ const UserDashboard = () => {
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Summary</h2>
           <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{assignedTasks.length}</div>
                 <div className="mt-1 text-sm text-gray-500">Undertaking</div>
@@ -847,6 +974,10 @@ const UserDashboard = () => {
               <div className="p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{pendingReviewTasks.length}</div>
                 <div className="mt-1 text-sm text-gray-500">Pending Review</div>
+              </div>
+              <div className="p-6 text-center">
+                <div className="text-3xl font-bold text-red-600">{rejectedTasks.length}</div>
+                <div className="mt-1 text-sm text-gray-500">Rejected</div>
               </div>
             </div>
           </div>
@@ -865,6 +996,7 @@ const UserDashboard = () => {
         }}
         onUndertake={() => handleUndertakeTask(selectedTask)}
         isReviewTask={selectedTask?.assignment_type === 'review'}
+        onResubmit={handleResubmit}
       />
 
       {/* Task Action Modal */}
