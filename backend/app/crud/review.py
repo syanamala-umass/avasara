@@ -4,13 +4,15 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.task_assignment import TaskAssignment
 from app.models.task import Task
+from app.models.user import User
+from datetime import datetime
 
 
 def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensation_amount: float):
     db_review = Review(
         task_id=review.task_id,
         assignment_id=review.assignment_id,
-        contributor_id=review.contributor_id,
+        user_id=review.contributor_id,
         reviewer_id=reviewer_id,
         is_approved=review.is_approved,
         feedback=review.feedback,
@@ -22,6 +24,17 @@ def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensat
     assignment = db.query(TaskAssignment).filter(TaskAssignment.id == review.assignment_id).first()
     if assignment and assignment.status == "submitted_for_review":
         assignment.status = "reviewed"
+    
+    # Mark the review assignment as completed for the reviewer
+    review_assignment = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == review.task_id,
+        TaskAssignment.user_id == reviewer_id,
+        TaskAssignment.assignment_type == "review"
+    ).first()
+    
+    if review_assignment:
+        review_assignment.status = "completed"
+        review_assignment.completed_at = datetime.utcnow()
     
     # Check majority decision for task completion
     task = db.query(Task).filter(Task.id == review.task_id).first()
@@ -53,7 +66,37 @@ def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensat
     return db_review
 
 def get_review(db: Session, review_id: int):
-    return db.query(Review).filter(Review.id == review_id).first()
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        return None
+    
+    # Get task details
+    task = db.query(Task).filter(Task.id == review.task_id).first()
+    
+    # Get contributor details
+    contributor = db.query(User).filter(User.id == review.user_id).first()
+    
+    # Get reviewer details
+    reviewer = db.query(User).filter(User.id == review.reviewer_id).first()
+    
+    enhanced_review = {
+        "id": review.id,
+        "task_id": review.task_id,
+        "assignment_id": review.assignment_id,
+        "contributor_id": review.user_id,
+        "reviewer_id": review.reviewer_id,
+        "is_approved": review.is_approved,
+        "feedback": review.feedback,
+        "compensation_amount": review.compensation_amount,
+        "created_at": review.created_at,
+        "task_title": task.title if task else f"Task {review.task_id}",
+        "contributor_name": contributor.username if contributor else "Unknown User",
+        "contributor_avatar": None,
+        "reviewer_name": reviewer.username if reviewer else "Unknown Reviewer",
+        "reviewer_avatar": None
+    }
+    
+    return enhanced_review
 
 def get_reviews(db: Session, skip: int = 0, limit: int = 100, 
                 contributor_id: Optional[int] = None,
@@ -69,8 +112,40 @@ def get_reviews(db: Session, skip: int = 0, limit: int = 100,
         
     if task_id:
         query = query.filter(Review.task_id == task_id)
+    
+    reviews = query.offset(skip).limit(limit).all()
+    
+    # Enhance reviews with additional details
+    enhanced_reviews = []
+    for review in reviews:
+        # Get task details
+        task = db.query(Task).filter(Task.id == review.task_id).first()
         
-    return query.offset(skip).limit(limit).all()
+        # Get contributor details
+        contributor = db.query(User).filter(User.id == review.user_id).first()
+        
+        # Get reviewer details
+        reviewer = db.query(User).filter(User.id == review.reviewer_id).first()
+        
+        enhanced_review = {
+            "id": review.id,
+            "task_id": review.task_id,
+            "assignment_id": review.assignment_id,
+            "contributor_id": review.user_id,
+            "reviewer_id": review.reviewer_id,
+            "is_approved": review.is_approved,
+            "feedback": review.feedback,
+            "compensation_amount": review.compensation_amount,
+            "created_at": review.created_at,
+            "task_title": task.title if task else f"Task {review.task_id}",
+            "contributor_name": contributor.username if contributor else "Unknown User",
+            "contributor_avatar": None,
+            "reviewer_name": reviewer.username if reviewer else "Unknown Reviewer",
+            "reviewer_avatar": None
+        }
+        enhanced_reviews.append(enhanced_review)
+    
+    return enhanced_reviews
 
 def update_review(db: Session, review_id: int, review: ReviewUpdate, reviewer_id: int):
     db_review = db.query(Review).filter(
@@ -116,14 +191,15 @@ def update_contributor_rating(db: Session, contributor_id: int):
     """Update the average rating for a contributor based on all reviews."""
     from app.models.contributor import Contributor
     
-    # Calculate average rating
-    reviews = db.query(Review).filter(Review.contributor_id == contributor_id).all()
+    # Calculate approval rate instead of average rating
+    reviews = db.query(Review).filter(Review.user_id == contributor_id).all()
     if reviews:
-        avg_rating = sum(review.rating for review in reviews) / len(reviews)
+        approved_reviews = sum(1 for review in reviews if review.is_approved)
+        approval_rate = (approved_reviews / len(reviews)) * 100
         
-        # Update contributor's average_rating
+        # Update contributor's average_rating (using approval rate as rating)
         contributor = db.query(Contributor).filter(Contributor.id == contributor_id).first()
         if contributor:
-            contributor.average_rating = avg_rating
+            contributor.average_rating = approval_rate
             db.commit()
  

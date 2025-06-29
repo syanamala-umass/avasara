@@ -161,4 +161,9 @@ export const assignTask = (taskId) =>
     assignment_type: 'task'
   });
 
+// Review-related API functions
+export const fetchMyReviews = () => api.get('/reviews/my-reviews');
+export const fetchMyReceivedReviews = () => api.get('/reviews/my-received-reviews');
+export const fetchReviewSubmissions = (taskId) => api.get(`/tasks/${taskId}/review-submissions`);
+
 export default api;

@@ -32,8 +32,8 @@ class User(Base):
     startup = relationship("Startup", back_populates="user", uselist=False)
     reviews_received = relationship("Review", foreign_keys="Review.user_id", back_populates="user")
     reviews_given = relationship("Review", foreign_keys="Review.reviewer_id", back_populates="reviewer")
-    evaluations_given = relationship("PeerEvaluation", foreign_keys="[PeerEvaluation.evaluator_id]", back_populates="evaluator")
-    evaluations_received = relationship("PeerEvaluation", foreign_keys="[PeerEvaluation.evaluatee_id]", back_populates="evaluatee")
+    # evaluations_given = relationship("PeerEvaluation", foreign_keys="[PeerEvaluation.evaluator_id]", back_populates="evaluator")
+    # evaluations_received = relationship("PeerEvaluation", foreign_keys="[PeerEvaluation.evaluatee_id]", back_populates="evaluatee")
     tasks = relationship("Task", back_populates="user")
 
 

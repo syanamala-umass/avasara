@@ -639,6 +639,15 @@ def get_task_details(
     is_reviewer = user_assignment is not None
     logger.info(f"User is reviewer: {is_reviewer}")
     
+    # Check if current user is a contributor who submitted this task
+    contributor_assignment = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == task_id,
+        TaskAssignment.user_id == current_user.id,
+        TaskAssignment.assignment_type == 'task'
+    ).first()
+    is_contributor = contributor_assignment is not None
+    logger.info(f"User is contributor: {is_contributor}")
+    
     # Get task compensations
     task_compensations = {}
     for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == task_id).all():
@@ -685,9 +694,9 @@ def get_task_details(
         "has_assignment": check_existing_assignment(task_id=task_id, user_id=current_user.id)
     }
     
-    # If user is the dispatcher or a reviewer, add detailed information
-    if is_dispatcher or is_reviewer:
-        logger.info(f"User is dispatcher ({is_dispatcher}) or reviewer ({is_reviewer}) - adding detailed information")
+    # If user is the dispatcher, reviewer, or contributor, add detailed information
+    if is_dispatcher or is_reviewer or is_contributor:
+        logger.info(f"User is dispatcher ({is_dispatcher}), reviewer ({is_reviewer}), or contributor ({is_contributor}) - adding detailed information")
         
         # Get all assignments for this task (excluding review assignments)
         assignments = db.query(TaskAssignment).options(
@@ -731,7 +740,6 @@ def get_task_details(
                 "reviewer_name": review.reviewer.username if review.reviewer else "Unknown Reviewer",
                 "is_approved": review.is_approved,
                 "feedback": review.feedback,
-                "rating": review.rating,
                 "created_at": review.created_at
             })
         
@@ -740,26 +748,26 @@ def get_task_details(
         active_assignments = len([a for a in formatted_assignments if a["status"] == "in_progress"])
         total_reviews = len(formatted_reviews)
         
-        # Calculate average rating
-        ratings = [r["rating"] for r in formatted_reviews if r["rating"] is not None]
-        avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0
+        # Calculate approval rate instead of average rating
+        approved_reviews = len([r for r in formatted_reviews if r["is_approved"]])
+        approval_rate = round((approved_reviews / total_reviews) * 100, 1) if total_reviews > 0 else 0
         
-        # Add detailed information for dispatchers and reviewers
+        # Add detailed information for dispatchers, reviewers, and contributors
         task_details.update({
             "assignments": formatted_assignments,
             "reviews": formatted_reviews,
             "assignments_count": total_assignments,
             "active_assignments": active_assignments,
             "reviews_count": total_reviews,
-            "avg_rating": avg_rating,
+            "approval_rate": approval_rate,
             "num_people_working": active_assignments
         })
         
         logger.info(f"Returning detailed view with {len(formatted_assignments)} contributor assignments and {len(formatted_reviews)} reviews")
     else:
-        logger.info("User is contributor - returning basic information only")
+        logger.info("User is not dispatcher, reviewer, or contributor - returning basic information only")
         
-        # For contributors, only add basic statistics without sensitive details
+        # For other users, only add basic statistics without sensitive details
         # Count only contributor assignments (exclude review assignments)
         assignments_count = db.query(TaskAssignment).filter(
             TaskAssignment.task_id == task_id,
@@ -772,19 +780,82 @@ def get_task_details(
         ).count()
         
         task_details.update({
-            "assignments": [],  # Empty array for contributors
-            "reviews": [],      # Empty array for contributors
+            "assignments": [],  # Empty array for other users
+            "reviews": [],      # Empty array for other users
             "assignments_count": assignments_count,
             "active_assignments": active_assignments,
-            "reviews_count": 0,  # Don't reveal review count to contributors
-            "avg_rating": 0,     # Don't reveal ratings to contributors
+            "reviews_count": 0,  # Don't reveal review count to other users
+            "approval_rate": 0,   # Don't reveal approval rate to other users
             "num_people_working": active_assignments
         })
         
-        logger.info(f"Returning contributor view with basic stats only")
+        logger.info(f"Returning basic view for other users")
     
     logger.info(f"Task details keys: {list(task_details.keys())}")
     
     return task_details
+
+
+@router.get("/{task_id}/review-submissions")
+def get_review_submissions(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Get review submissions for a specific task"""
+    # Get the task
+    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get all assignments for this task that are submitted for review
+    assignments = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == task_id,
+        TaskAssignment.status == "submitted_for_review"
+    ).all()
+    
+    # Get all reviews for this task
+    reviews = db.query(models.Review).filter(
+        models.Review.task_id == task_id
+    ).all()
+    
+    # Format the response
+    submissions = []
+    for assignment in assignments:
+        # Get the user who submitted this assignment
+        user = db.query(models.User).filter(models.User.id == assignment.user_id).first()
+        
+        # Get reviews for this specific assignment
+        assignment_reviews = [r for r in reviews if r.assignment_id == assignment.id]
+        
+        submission = {
+            "assignment_id": assignment.id,
+            "user_id": assignment.user_id,
+            "user_name": user.username if user else "Unknown User",
+            "submitted_at": assignment.submitted_at,
+            "notes": assignment.notes,
+            "submission_files": assignment.submission_files,
+            "reviews": [
+                {
+                    "id": review.id,
+                    "reviewer_id": review.reviewer_id,
+                    "reviewer_name": db.query(models.User).filter(models.User.id == review.reviewer_id).first().username if db.query(models.User).filter(models.User.id == review.reviewer_id).first() else "Unknown Reviewer",
+                    "is_approved": review.is_approved,
+                    "feedback": review.feedback,
+                    "created_at": review.created_at
+                }
+                for review in assignment_reviews
+            ],
+            "review_count": len(assignment_reviews)
+        }
+        submissions.append(submission)
+    
+    return {
+        "task_id": task_id,
+        "task_title": task.title,
+        "submissions": submissions,
+        "total_submissions": len(submissions),
+        "total_reviews": len(reviews)
+    }
 
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
-import ReviewDetailModal from '../../ReviewDetailModal';
 import { fetchTasks, fetchSkills, assignTask, createTaskAssignment } from '../../api';
 
 const TaskBrowser = () => {
@@ -12,7 +11,6 @@ const TaskBrowser = () => {
   const [error, setError] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     status: 'open',
     compensationType: '',
@@ -105,11 +103,8 @@ const TaskBrowser = () => {
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
-    if (task.category === 'review') {
-      setIsReviewModalOpen(true);
-    } else {
-      setIsModalOpen(true);
-    }
+    // Always use TaskDetailModal for viewing task details
+    setIsModalOpen(true);
   };
 
   const handleUndertakeTask = async (task) => {
@@ -132,29 +127,9 @@ const TaskBrowser = () => {
       // Update the task status in the UI
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'in_progress' } : t));
       setIsModalOpen(false);
-      setIsReviewModalOpen(false);
     } catch (err) {
       console.error('Error undertaking task:', err);
       setError('Failed to undertake task. Please try again.');
-    }
-  };
-
-  const handleReviewSubmission = async (task, submission) => {
-    setError('');
-    setSuccess('');
-    try {
-      // Create a review assignment for this specific submission
-      await createTaskAssignment({
-        task_id: task.id,
-        assignment_type: 'review',
-        status: 'in_progress',
-        notes: `Reviewing submission from ${submission.contributor_name}`
-      });
-      setSuccess('You have been assigned to review this submission!');
-      setIsReviewModalOpen(false);
-    } catch (err) {
-      console.error('Error starting review:', err);
-      setError('Failed to start review. Please try again.');
     }
   };
 
@@ -372,7 +347,7 @@ const TaskBrowser = () => {
                       onClick={() => handleTaskClick(task)}
                       className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
-                      {task.category === 'review' ? 'Review Task' : 'Undertake Task'}
+                      View Details
                     </button>
                   </div>
                 </div>
@@ -389,15 +364,6 @@ const TaskBrowser = () => {
           onClose={() => setIsModalOpen(false)}
           onUndertake={() => handleUndertakeTask(selectedTask)}
           isReviewTask={selectedTask.category === 'review'}
-        />
-      )}
-
-      {isReviewModalOpen && selectedTask && (
-        <ReviewDetailModal
-          isOpen={isReviewModalOpen}
-          task={selectedTask}
-          onClose={() => setIsReviewModalOpen(false)}
-          onReview={handleReviewSubmission}
         />
       )}
     </div>

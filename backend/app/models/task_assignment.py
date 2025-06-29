@@ -22,4 +22,4 @@ class TaskAssignment(Base):
     task = relationship("Task", back_populates="assignments")
     user = relationship("User", back_populates="assignments")  # Changed
     reviews = relationship("Review", back_populates="assignment")
-    peer_evaluations = relationship("PeerEvaluation", back_populates="assignment")
+    # peer_evaluations = relationship("PeerEvaluation", back_populates="assignment")

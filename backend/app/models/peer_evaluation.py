@@ -33,7 +33,7 @@ class PeerEvaluation(Base):
     status = Column(String, default="pending")  # pending, completed
     
     # Relationships
-    task = relationship("Task", back_populates="peer_evaluations")
-    evaluator = relationship("User", foreign_keys=[evaluator_id], back_populates="evaluations_given")
-    evaluatee = relationship("User", foreign_keys=[evaluatee_id], back_populates="evaluations_received")
-    assignment = relationship("TaskAssignment", back_populates="peer_evaluations") 
+    # task = relationship("Task", back_populates="peer_evaluations")
+    # evaluator = relationship("User", foreign_keys=[evaluator_id], back_populates="evaluations_given")
+    # evaluatee = relationship("User", foreign_keys=[evaluatee_id], back_populates="evaluations_received")
+    # assignment = relationship("TaskAssignment", back_populates="peer_evaluations") 

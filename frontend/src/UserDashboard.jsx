@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
 import DispatchTaskModal from './DispatchTaskModal';
+import ReviewSubmissionsModal from './ReviewSubmissionsModal';
 import {
   fetchTasks,
   fetchTaskAssignments,
@@ -14,7 +15,8 @@ import {
   fetchTaskById,
   updateTaskAssignment,
   createTaskAssignment,
-  deleteTask
+  deleteTask,
+  fetchMyReviews
 } from './api'; // Adjust path as needed
 
 
@@ -26,6 +28,7 @@ const UserDashboard = () => {
   const [createdTasks, setCreatedTasks] = useState([]);
   const [assignedTasks, setAssignedTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
+  const [completedReviews, setCompletedReviews] = useState([]);
   const [reviewableTasks, setReviewableTasks] = useState([]);
   const [pendingReviewTasks, setPendingReviewTasks] = useState([]);
   const [rejectedTasks, setRejectedTasks] = useState([]);
@@ -43,6 +46,7 @@ const UserDashboard = () => {
   const [actionMode, setActionMode] = useState('submit');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [isReviewSubmissionsModalOpen, setIsReviewSubmissionsModalOpen] = useState(false);
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
@@ -72,6 +76,7 @@ const UserDashboard = () => {
           createdTasksResponse, 
           assignedTasksResponse, 
           completedTasksResponse, 
+          completedReviewsResponse,
           reviewableTasksResponse,
           pendingReviewResponse,
           rejectedTasksResponse
@@ -79,6 +84,7 @@ const UserDashboard = () => {
           fetchTasks({ creator_id: userData.id }),
           fetchMyAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
+          fetchMyReviews(),
           fetchTasks({ status: 'submitted' }),
           fetchMyAssignments('submitted_for_review'),
           fetchMyAssignments('rejected')
@@ -87,6 +93,7 @@ const UserDashboard = () => {
         setCreatedTasks(createdTasksResponse.data || []);
         setAssignedTasks(assignedTasksResponse.data || []);
         setCompletedTasks(completedTasksResponse.data || []);
+        setCompletedReviews(completedReviewsResponse.data || []);
         setReviewableTasks(reviewableTasksResponse.data || []);
         setPendingReviewTasks(pendingReviewResponse.data || []);
         setRejectedTasks(rejectedTasksResponse.data || []);
@@ -96,6 +103,7 @@ const UserDashboard = () => {
         console.log('Assigned tasks:', assignedTasksResponse.data?.length || 0);
         console.log('Assigned tasks data:', assignedTasksResponse.data);
         console.log('Completed tasks:', completedTasksResponse.data?.length || 0);
+        console.log('Completed reviews:', completedReviewsResponse.data?.length || 0);
         console.log('Reviewable tasks:', reviewableTasksResponse.data?.length || 0);
         console.log('Pending review tasks:', pendingReviewResponse.data?.length || 0);
         console.log('Rejected tasks:', rejectedTasksResponse.data?.length || 0);
@@ -223,12 +231,14 @@ const UserDashboard = () => {
       
       // Refresh task data to get updated lists
       const userData = JSON.parse(localStorage.getItem('userData'));
-      const [completedTasksResponse] = await Promise.all([
-        fetchTaskAssignments({ status: 'completed' })
+      const [completedTasksResponse, completedReviewsResponse] = await Promise.all([
+        fetchTaskAssignments({ status: 'completed' }),
+        fetchMyReviews()
       ]);
       
       // Update the lists with fresh data
       setCompletedTasks(completedTasksResponse.data || []);
+      setCompletedReviews(completedReviewsResponse.data || []);
       
       // Close the modal
       setIsTaskActionModalOpen(false);
@@ -718,55 +728,119 @@ const UserDashboard = () => {
 
         {activeTab === 'completed' && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Completed Tasks</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Completed Tasks & Reviews</h2>
             
             {loading ? (
               <div className="bg-white p-8 rounded-lg shadow text-center">
                 <p className="text-gray-500">Loading completed tasks...</p>
               </div>
-            ) : completedTasks.length === 0 ? (
+            ) : (completedTasks.length === 0 && completedReviews.length === 0) ? (
               <div className="bg-white p-8 rounded-lg shadow text-center">
-                <p className="text-gray-500">No completed tasks yet.</p>
+                <p className="text-gray-500">No completed tasks or reviews yet.</p>
               </div>
             ) : (
-              <div className="bg-white shadow rounded-lg overflow-hidden">
-                <ul className="divide-y divide-gray-200">
-                  {completedTasks.map(task => (
-                    <li 
-                      key={task.id} 
-                      className="p-4 hover:bg-gray-50 transition cursor-pointer"
-                      onClick={() => handleTaskClick(task)}
-                    >
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                          <div className="mt-1 flex items-center text-sm text-gray-500">
-                            <span className="mr-3">{task.startup_name}</span>
-                            <span className="mr-3">•</span>
-                            <span className="mr-3">Status: {formatStatus(task.status)}</span>
-                            <span className="mr-3">•</span>
-                            <span className="mr-3">Completed: {formatDate(task.completed_at)}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium mr-4">
-                            {formatCompensation(task.review_compensation, 'cash')}
-                          </span>
-                          <button 
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTaskClick(task);
-                            }}
+              <div className="space-y-6">
+                {/* Completed Tasks Section */}
+                {completedTasks.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Completed Tasks</h3>
+                    <div className="bg-white shadow rounded-lg overflow-hidden">
+                      <ul className="divide-y divide-gray-200">
+                        {completedTasks.map(task => (
+                          <li 
+                            key={task.id} 
+                            className="p-4 hover:bg-gray-50 transition cursor-pointer"
+                            onClick={() => handleTaskClick(task)}
                           >
-                            <Star className="h-4 w-4 mr-2" />
-                            Review
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                            <div className="flex justify-between">
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                                <div className="mt-1 flex items-center text-sm text-gray-500">
+                                  <span className="mr-3">{task.startup_name}</span>
+                                  <span className="mr-3">•</span>
+                                  <span className="mr-3">Status: {formatStatus(task.status)}</span>
+                                  <span className="mr-3">•</span>
+                                  <span className="mr-3">Completed: {formatDate(task.completed_at)}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium mr-4">
+                                  {formatCompensation(task.review_compensation, 'cash')}
+                                </span>
+                                <button 
+                                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTaskClick(task);
+                                  }}
+                                >
+                                  <Star className="h-4 w-4 mr-2" />
+                                  Review
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed Reviews Section */}
+                {completedReviews.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Completed Reviews</h3>
+                    <div className="bg-white shadow rounded-lg overflow-hidden">
+                      <ul className="divide-y divide-gray-200">
+                        {completedReviews.map(review => (
+                          <li 
+                            key={review.id} 
+                            className="p-4 hover:bg-gray-50 transition cursor-pointer"
+                            onClick={() => handleTaskClick({ id: review.task_id })}
+                          >
+                            <div className="flex justify-between">
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900">{review.task_title || `Task ${review.task_id}`}</h3>
+                                <div className="mt-1 flex items-center text-sm text-gray-500">
+                                  <span className="mr-3">Reviewed by: {review.reviewer_name}</span>
+                                  <span className="mr-3">•</span>
+                                  <span className={`mr-3 px-2 py-1 rounded-full text-xs font-medium ${
+                                    review.is_approved 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {review.is_approved ? 'Approved' : 'Rejected'}
+                                  </span>
+                                  <span className="mr-3">•</span>
+                                  <span className="mr-3">Reviewed: {formatDate(review.created_at)}</span>
+                                </div>
+                                {review.feedback && (
+                                  <div className="mt-2 text-sm text-gray-600">
+                                    <strong>Feedback:</strong> {review.feedback}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center">
+                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mr-4">
+                                  {formatCompensation(review.compensation_amount, 'cash')}
+                                </span>
+                                <button 
+                                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTaskClick({ id: review.task_id });
+                                  }}
+                                >
+                                  View Task
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -935,6 +1009,19 @@ const UserDashboard = () => {
                               <Trash2 className="h-5 w-5" />
                             </button>
                           )}
+                          {task.status === 'submitted_for_review' && (
+                            <button 
+                              className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm font-medium hover:bg-yellow-200 transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTask(task);
+                                setIsReviewSubmissionsModalOpen(true);
+                              }}
+                              title="View Review Submissions"
+                            >
+                              View Submissions
+                            </button>
+                          )}
                           <button 
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center"
                             onClick={(e) => {
@@ -958,7 +1045,7 @@ const UserDashboard = () => {
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Summary</h2>
           <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{assignedTasks.length}</div>
                 <div className="mt-1 text-sm text-gray-500">Undertaking</div>
@@ -969,7 +1056,11 @@ const UserDashboard = () => {
               </div>
               <div className="p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{completedTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Completed</div>
+                <div className="mt-1 text-sm text-gray-500">Completed Tasks</div>
+              </div>
+              <div className="p-6 text-center">
+                <div className="text-3xl font-bold text-blue-600">{completedReviews.length}</div>
+                <div className="mt-1 text-sm text-gray-500">Completed Reviews</div>
               </div>
               <div className="p-6 text-center">
                 <div className="text-3xl font-bold text-gray-900">{pendingReviewTasks.length}</div>
@@ -1013,6 +1104,13 @@ const UserDashboard = () => {
         isOpen={isDispatchModalOpen}
         onClose={() => setIsDispatchModalOpen(false)}
         onTaskCreated={handleTaskCreated}
+      />
+
+      {/* Review Submissions Modal */}
+      <ReviewSubmissionsModal
+        isOpen={isReviewSubmissionsModalOpen}
+        task={selectedTask}
+        onClose={() => setIsReviewSubmissionsModalOpen(false)}
       />
     </div>
   );

@@ -70,7 +70,7 @@ const TaskDetailModal = ({ isOpen, task = {
         assignments_count: 0,
         active_assignments: 0,
         reviews_count: 0,
-        avg_rating: 0
+        approval_rate: 0
       });
       
       setError('Failed to load detailed task information. Showing basic task data.');
@@ -390,7 +390,7 @@ const TaskDetailModal = ({ isOpen, task = {
                     ) : (
                       <XCircle className="h-4 w-4 text-red-500" />
                     )}
-                    <span className={`ml-1 text-xs font-medium ${
+                    <span className={`ml-1 text-sm font-medium ${
                       review.is_approved ? 'text-green-700' : 'text-red-700'
                     }`}>
                       {review.is_approved ? 'Approved' : 'Rejected'}
@@ -404,17 +404,18 @@ const TaskDetailModal = ({ isOpen, task = {
                     <p className="font-medium">{formatDate(review.created_at)}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Rating</p>
+                    <p className="text-gray-500">Decision</p>
                     <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${
-                            star <= (review.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                      <span className="ml-1 text-sm text-gray-600">({review.rating || 0}/5)</span>
+                      {review.is_approved ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      <span className={`ml-1 text-sm font-medium ${
+                        review.is_approved ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {review.is_approved ? 'Approved' : 'Rejected'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -458,8 +459,8 @@ const TaskDetailModal = ({ isOpen, task = {
           <div className="text-xs text-yellow-600">Reviews Received</div>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg text-center">
-          <div className="text-2xl font-bold text-purple-600">{taskDetails?.avg_rating || 0}</div>
-          <div className="text-xs text-purple-600">Avg Rating</div>
+          <div className="text-2xl font-bold text-purple-600">{taskDetails?.approval_rate || 0}%</div>
+          <div className="text-xs text-purple-600">Approval Rate</div>
         </div>
       </div>
 
@@ -619,8 +620,8 @@ const TaskDetailModal = ({ isOpen, task = {
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
-              {taskDetails?.assignments?.length > 0 || taskDetails?.reviews?.length > 0 ? (
-                // Dispatcher view: show all tabs
+              {taskDetails?.assignments?.length > 0 || taskDetails?.reviews?.length > 0 || task.category === 'review' ? (
+                // Show all tabs for tasks with data or review tasks
                 ['overview', 'submissions', 'reviews', 'stats'].map((tab) => (
                   <button
                     key={tab}

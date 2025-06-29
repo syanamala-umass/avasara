@@ -40,5 +40,5 @@ class Task(Base):
     resources = relationship("Resource", secondary=task_resource, back_populates="tasks")
     assignments = relationship("TaskAssignment", back_populates="task")
     reviews = relationship("Review", back_populates="task")
-    peer_evaluations = relationship("PeerEvaluation", back_populates="task")
+    # peer_evaluations = relationship("PeerEvaluation", back_populates="task")
     compensations = relationship("TaskCompensation", back_populates="task")
