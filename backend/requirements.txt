@@ -1,6 +1,7 @@
 # Core FastAPI Framework
 fastapi==0.115.11
 uvicorn[standard]==0.34.0
+gunicorn==21.2.0
 
 # Database
 psycopg2-binary==2.9.9
