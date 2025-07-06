@@ -3,10 +3,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 
 class PeerEvaluationBase(BaseModel):
-    technical_score: float = Field(..., ge=0, le=10)
-    collaboration_score: float = Field(..., ge=0, le=10)
-    innovation_score: float = Field(..., ge=0, le=10)
-    reliability_score: float = Field(..., ge=0, le=10)
+    overall_score: float = Field(..., ge=0, le=5, description="Overall evaluation score from 0-5")
     strengths: str
     areas_for_improvement: str
     additional_comments: Optional[str] = None
@@ -17,10 +14,7 @@ class PeerEvaluationCreate(PeerEvaluationBase):
     assignment_id: int
 
 class PeerEvaluationUpdate(BaseModel):
-    technical_score: Optional[float] = Field(None, ge=0, le=10)
-    collaboration_score: Optional[float] = Field(None, ge=0, le=10)
-    innovation_score: Optional[float] = Field(None, ge=0, le=10)
-    reliability_score: Optional[float] = Field(None, ge=0, le=10)
+    overall_score: Optional[float] = Field(None, ge=0, le=5)
     strengths: Optional[str] = None
     areas_for_improvement: Optional[str] = None
     additional_comments: Optional[str] = None

@@ -37,8 +37,6 @@ api.interceptors.response.use(
   }
 );
 
-export const fetchLandingStats = () => api.get('/landing/stats');
-
 // Auth services
 export const registerUser = (userData) => api.post('/auth/register', userData);
 export const loginUser = async (credentials) => {
@@ -60,6 +58,13 @@ export const loginUser = async (credentials) => {
 
   return response;
 };
+
+// OAuth services
+export const getOAuthUrl = (provider) => api.get(`/oauth/${provider}/authorize`);
+export const getOAuthToken = (provider, code) => api.post('/oauth/token', { provider, code });
+
+// Landing page stats
+export const fetchLandingStats = () => api.get('/landing/stats');
 
 // Task services
 export const fetchTasks = (filters) => api.get('/tasks', { params: filters });
@@ -105,6 +110,7 @@ export const fetchTaskAssignments = (filters) => {
 export const fetchTaskAssignmentById = (id) => api.get(`/task-assignments/${id}`);
 export const completeTask = (id, data) => api.put(`/task-assignments/${id}`, { ...data, status: 'completed' });
 export const pickUpReview = (taskId, data) => api.post('/task-assignments', { ...data, task_id: taskId, assignment_type: 'review' });
+export const canUndertakeTask = (taskId) => api.get(`/task-assignments/can-undertake/${taskId}`);
 
 // Peer Evaluation services
 export const createPeerEvaluation = (evaluationData) => api.post('/peer-evaluations', evaluationData);
@@ -154,16 +160,40 @@ export const deleteIdea = (id) => api.delete(`/ideas/${id}`);
 // General
 export const pingBackend = () => api.get('/health');
 
-// Assign (undertake) a task as a contributor
-export const assignTask = (taskId) =>
-  api.post('/task-assignments', {
-    task_id: taskId,
-    assignment_type: 'task'
-  });
-
 // Review-related API functions
 export const fetchMyReviews = () => api.get('/reviews/my-reviews');
 export const fetchMyReceivedReviews = () => api.get('/reviews/my-received-reviews');
 export const fetchReviewSubmissions = (taskId) => api.get(`/tasks/${taskId}/review-submissions`);
+
+// Assign (undertake) a task as a contributor with skill validation
+export const assignTask = async (taskId) => {
+  // First check if user can undertake this task
+  const capabilityCheck = await canUndertakeTask(taskId);
+  
+  if (!capabilityCheck.data.can_undertake) {
+    throw new Error(capabilityCheck.data.reason || 'You cannot undertake this task');
+  }
+  
+  // If they can undertake it, proceed with assignment
+  return api.post('/task-assignments', {
+    task_id: taskId,
+    assignment_type: 'task',
+    status: 'in_progress',
+    notes: 'Task undertaken'
+  });
+};
+
+export const resubmitTask = async (assignmentId, notes) => {
+  try {
+    const response = await api.post(`/task-assignments/${assignmentId}/resubmit`, {
+      notes: notes || 'Work resubmitted for review'
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error resubmitting task:', error);
+    throw error;
+  }
+};
 
 export default api;

@@ -1,0 +1,321 @@
+22:57:45 - INFO - 🚀 Starting Acceptance System Test
+22:57:45 - INFO - Step 1: Creating test users...
+22:57:45 - INFO - Creating test users for acceptance flow...
+22:57:45 - INFO - Connecting to database...
+22:57:45 - INFO - ✅ Database connection established
+22:57:45 - INFO - Processing user: accept_contributor
+22:57:45 - INFO -   Creating new user: accept_contributor
+22:57:45 - ERROR - ❌ Error creating test users: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+22:57:45 - ERROR - ❌ Test failed: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+22:58:27 - INFO - 🚀 Starting Acceptance System Test
+22:58:27 - INFO - Step 1: Creating test users...
+22:58:27 - INFO - Creating test users for acceptance flow...
+22:58:27 - INFO - Connecting to database...
+22:58:27 - INFO - ✅ Database connection established
+22:58:27 - INFO - Processing user: accept_contributor
+22:58:27 - INFO -   Creating new user: accept_contributor
+22:58:27 - ERROR - ❌ Error creating test users: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+22:58:27 - ERROR - ❌ Test failed: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+22:59:06 - INFO - 🚀 Starting Acceptance System Test
+22:59:06 - INFO - Step 1: Creating test users...
+22:59:06 - INFO - Creating test users for acceptance flow...
+22:59:06 - INFO - Connecting to database...
+22:59:06 - INFO - ✅ Database connection established
+22:59:06 - INFO - Processing user: accept_contributor
+22:59:06 - INFO -   Creating new user: accept_contributor
+22:59:06 - ERROR - ❌ Error creating test users: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+22:59:06 - ERROR - ❌ Test failed: column "is_verified" of relation "users" does not exist
+LINE 2: ...ers (username, email, hashed_password, is_active, is_verifie...
+                                                             ^
+
+12:10:22 - INFO - 🚀 Starting Acceptance System Test
+12:10:22 - INFO - Step 1: Creating test users...
+12:10:22 - INFO - Creating test users for acceptance flow...
+12:10:22 - INFO - Connecting to database...
+12:10:22 - INFO - ✅ Database connection established
+12:10:22 - INFO - Processing user: accept_contributor
+12:10:22 - INFO -   Creating new user: accept_contributor
+12:10:22 - INFO -   ✅ Created user accept_contributor with ID: 132
+12:10:22 - INFO - Processing user: accept_reviewer1
+12:10:22 - INFO -   Creating new user: accept_reviewer1
+12:10:22 - INFO -   ✅ Created user accept_reviewer1 with ID: 133
+12:10:22 - INFO - Processing user: accept_reviewer2
+12:10:22 - INFO -   Creating new user: accept_reviewer2
+12:10:22 - INFO -   ✅ Created user accept_reviewer2 with ID: 134
+12:10:22 - INFO - Processing user: accept_reviewer3
+12:10:22 - INFO -   Creating new user: accept_reviewer3
+12:10:22 - INFO -   ✅ Created user accept_reviewer3 with ID: 135
+12:10:22 - INFO - ✅ Successfully created/verified 4 test users
+12:10:22 - INFO -   Contributor: accept_contributor (ID: 132)
+12:10:22 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:10:22 - INFO - Step 2: Creating test task...
+12:10:22 - INFO - Creating test task for acceptance flow...
+12:10:22 - INFO - Connecting to database...
+12:10:22 - INFO - ✅ Database connection established
+12:10:22 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:10:22 - INFO -   Skill 'Python' already exists with ID: 2
+12:10:22 - INFO -   Creating new skill: JavaScript
+12:10:22 - ERROR - ❌ Error creating test task: column "description" of relation "skills" does not exist
+LINE 2:                     INSERT INTO skills (name, description)
+                                                      ^
+
+12:10:22 - ERROR - ❌ Test failed: column "description" of relation "skills" does not exist
+LINE 2:                     INSERT INTO skills (name, description)
+                                                      ^
+
+12:11:20 - INFO - 🚀 Starting Acceptance System Test
+12:11:20 - INFO - Step 1: Creating test users...
+12:11:20 - INFO - Creating test users for acceptance flow...
+12:11:20 - INFO - Connecting to database...
+12:11:20 - INFO - ✅ Database connection established
+12:11:20 - INFO - Processing user: accept_contributor
+12:11:20 - INFO -   User accept_contributor already exists with ID: 132
+12:11:20 - INFO - Processing user: accept_reviewer1
+12:11:20 - INFO -   User accept_reviewer1 already exists with ID: 133
+12:11:20 - INFO - Processing user: accept_reviewer2
+12:11:20 - INFO -   User accept_reviewer2 already exists with ID: 134
+12:11:20 - INFO - Processing user: accept_reviewer3
+12:11:20 - INFO -   User accept_reviewer3 already exists with ID: 135
+12:11:20 - INFO - ✅ Successfully created/verified 4 test users
+12:11:20 - INFO -   Contributor: accept_contributor (ID: 132)
+12:11:20 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:11:20 - INFO - Step 2: Creating test task...
+12:11:20 - INFO - Creating test task for acceptance flow...
+12:11:20 - INFO - Connecting to database...
+12:11:20 - INFO - ✅ Database connection established
+12:11:20 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:11:20 - INFO -   Skill 'Python' already exists with ID: 2
+12:11:20 - INFO -   Creating new skill: JavaScript
+12:11:20 - ERROR - ❌ Error creating test task: column "description" of relation "skills" does not exist
+LINE 2:                     INSERT INTO skills (name, description)
+                                                      ^
+
+12:11:20 - ERROR - ❌ Test failed: column "description" of relation "skills" does not exist
+LINE 2:                     INSERT INTO skills (name, description)
+                                                      ^
+
+12:12:00 - INFO - 🚀 Starting Acceptance System Test
+12:12:00 - INFO - Step 1: Creating test users...
+12:12:00 - INFO - Creating test users for acceptance flow...
+12:12:00 - INFO - Connecting to database...
+12:12:00 - INFO - ✅ Database connection established
+12:12:00 - INFO - Processing user: accept_contributor
+12:12:00 - INFO -   User accept_contributor already exists with ID: 132
+12:12:00 - INFO - Processing user: accept_reviewer1
+12:12:00 - INFO -   User accept_reviewer1 already exists with ID: 133
+12:12:00 - INFO - Processing user: accept_reviewer2
+12:12:00 - INFO -   User accept_reviewer2 already exists with ID: 134
+12:12:00 - INFO - Processing user: accept_reviewer3
+12:12:00 - INFO -   User accept_reviewer3 already exists with ID: 135
+12:12:00 - INFO - ✅ Successfully created/verified 4 test users
+12:12:00 - INFO -   Contributor: accept_contributor (ID: 132)
+12:12:00 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:12:00 - INFO - Step 2: Creating test task...
+12:12:00 - INFO - Creating test task for acceptance flow...
+12:12:00 - INFO - Connecting to database...
+12:12:00 - INFO - ✅ Database connection established
+12:12:00 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:12:00 - INFO -   Skill 'Python' already exists with ID: 2
+12:12:00 - INFO -   Creating new skill: JavaScript
+12:12:00 - ERROR - ❌ Error creating test task: not all arguments converted during string formatting
+12:12:00 - ERROR - ❌ Test failed: not all arguments converted during string formatting
+12:40:52 - INFO - 🚀 Starting Acceptance System Test
+12:40:52 - INFO - Step 1: Creating test users...
+12:40:52 - INFO - Creating test users for acceptance flow...
+12:40:52 - INFO - Connecting to database...
+12:40:52 - INFO - ✅ Database connection established
+12:40:52 - INFO - Processing user: accept_contributor
+12:40:53 - INFO -   User accept_contributor already exists with ID: 132
+12:40:53 - INFO - Processing user: accept_reviewer1
+12:40:53 - INFO -   User accept_reviewer1 already exists with ID: 133
+12:40:53 - INFO - Processing user: accept_reviewer2
+12:40:53 - INFO -   User accept_reviewer2 already exists with ID: 134
+12:40:53 - INFO - Processing user: accept_reviewer3
+12:40:53 - INFO -   User accept_reviewer3 already exists with ID: 135
+12:40:53 - INFO - ✅ Successfully created/verified 4 test users
+12:40:53 - INFO -   Contributor: accept_contributor (ID: 132)
+12:40:53 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:40:53 - INFO - Step 2: Creating test task...
+12:40:53 - INFO - Creating test task for acceptance flow...
+12:40:53 - INFO - Connecting to database...
+12:40:53 - INFO - ✅ Database connection established
+12:40:53 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:40:53 - INFO -   Skill 'Python' already exists with ID: 2
+12:40:53 - INFO -   Creating new skill: JavaScript
+12:40:53 - INFO -   ✅ Created skill 'JavaScript' with ID: 6
+12:40:53 - INFO - Creating test task...
+12:40:53 - INFO -   Skill requirements: {'Python': 3, 'JavaScript': 2}
+12:40:53 - ERROR - ❌ Error creating test task: column "compensation_type" of relation "tasks" does not exist
+LINE 4:                 num_reviewers, compensation_type, compensati...
+                                       ^
+
+12:40:53 - ERROR - ❌ Test failed: column "compensation_type" of relation "tasks" does not exist
+LINE 4:                 num_reviewers, compensation_type, compensati...
+                                       ^
+
+12:47:13 - INFO - 🚀 Starting Acceptance System Test
+12:47:13 - INFO - Step 1: Creating test users...
+12:47:13 - INFO - Creating test users for acceptance flow...
+12:47:13 - INFO - Connecting to database...
+12:47:13 - INFO - ✅ Database connection established
+12:47:13 - INFO - Processing user: accept_contributor
+12:47:13 - INFO -   User accept_contributor already exists with ID: 132
+12:47:13 - INFO - Processing user: accept_reviewer1
+12:47:13 - INFO -   User accept_reviewer1 already exists with ID: 133
+12:47:13 - INFO - Processing user: accept_reviewer2
+12:47:13 - INFO -   User accept_reviewer2 already exists with ID: 134
+12:47:13 - INFO - Processing user: accept_reviewer3
+12:47:13 - INFO -   User accept_reviewer3 already exists with ID: 135
+12:47:13 - INFO - ✅ Successfully created/verified 4 test users
+12:47:13 - INFO -   Contributor: accept_contributor (ID: 132)
+12:47:13 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:47:13 - INFO - Step 2: Creating test task...
+12:47:13 - INFO - Creating test task for acceptance flow...
+12:47:13 - INFO - Connecting to database...
+12:47:13 - INFO - ✅ Database connection established
+12:47:13 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:47:13 - INFO -   Skill 'Python' already exists with ID: 2
+12:47:13 - INFO -   Creating new skill: JavaScript
+12:47:13 - INFO -   ✅ Created skill 'JavaScript' with ID: 7
+12:47:13 - INFO - Creating test task...
+12:47:13 - INFO -   Skill requirements: {'Python': 3, 'JavaScript': 2}
+12:47:13 - INFO - ✅ Created test task with ID: 69
+12:47:13 - INFO -   Title: Test Acceptance Task
+12:47:13 - INFO -   Creating compensation records...
+12:47:13 - INFO -     ✅ Task compensation: $150 cash
+12:47:13 - INFO -     ✅ Review compensation: $25 cash
+12:47:13 - INFO -   Task ID: 69
+12:47:13 - INFO -   Skill IDs: [2, 7]
+12:47:13 - INFO - Step 3: Setting up contributor skills...
+12:47:13 - INFO - Setting up skills for user 132 with initial rating 3.0
+12:47:13 - INFO - Connecting to database...
+12:47:13 - INFO - ✅ Database connection established
+12:47:13 - INFO -   Setting up skill ID 2
+12:47:13 - ERROR - ❌ Error setting up user skills: column "rating_count" of relation "contributor_skill" does not exist
+LINE 2: ...NTO contributor_skill (user_id, skill_id, rating, rating_cou...
+                                                             ^
+
+12:47:13 - ERROR - ❌ Test failed: column "rating_count" of relation "contributor_skill" does not exist
+LINE 2: ...NTO contributor_skill (user_id, skill_id, rating, rating_cou...
+                                                             ^
+
+12:50:09 - INFO - 🚀 Starting Acceptance System Test
+12:50:09 - INFO - Step 1: Creating test users...
+12:50:09 - INFO - Creating test users for acceptance flow...
+12:50:09 - INFO - Connecting to database...
+12:50:09 - INFO - ✅ Database connection established
+12:50:09 - INFO - Processing user: accept_contributor
+12:50:09 - INFO -   User accept_contributor already exists with ID: 132
+12:50:09 - INFO - Processing user: accept_reviewer1
+12:50:09 - INFO -   User accept_reviewer1 already exists with ID: 133
+12:50:09 - INFO - Processing user: accept_reviewer2
+12:50:09 - INFO -   User accept_reviewer2 already exists with ID: 134
+12:50:09 - INFO - Processing user: accept_reviewer3
+12:50:09 - INFO -   User accept_reviewer3 already exists with ID: 135
+12:50:09 - INFO - ✅ Successfully created/verified 4 test users
+12:50:09 - INFO -   Contributor: accept_contributor (ID: 132)
+12:50:09 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+12:50:09 - INFO - Step 2: Creating test task...
+12:50:09 - INFO - Creating test task for acceptance flow...
+12:50:09 - INFO - Connecting to database...
+12:50:09 - INFO - ✅ Database connection established
+12:50:09 - INFO - Setting up skills: ['Python', 'JavaScript']
+12:50:09 - INFO -   Skill 'Python' already exists with ID: 2
+12:50:09 - INFO -   Skill 'JavaScript' already exists with ID: 7
+12:50:09 - INFO - Creating test task...
+12:50:09 - INFO -   Skill requirements: {'Python': 3, 'JavaScript': 2}
+12:50:09 - INFO - ✅ Created test task with ID: 70
+12:50:09 - INFO -   Title: Test Acceptance Task
+12:50:09 - INFO -   Creating compensation records...
+12:50:09 - INFO -     ✅ Task compensation: $150 cash
+12:50:09 - INFO -     ✅ Review compensation: $25 cash
+12:50:09 - INFO -   Task ID: 70
+12:50:09 - INFO -   Skill IDs: [2, 7]
+12:50:09 - INFO - Step 3: Setting up contributor skills...
+12:50:09 - INFO - Setting up skills for user 132 with initial rating 3.0
+12:50:09 - INFO - Connecting to database...
+12:50:09 - INFO - ✅ Database connection established
+12:50:09 - INFO -   Setting up skill ID 2
+12:50:09 - ERROR - ❌ Error setting up user skills: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+12:50:09 - ERROR - ❌ Test failed: there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+13:01:42 - INFO - 🚀 Starting Acceptance System Test
+13:01:42 - INFO - Step 1: Creating test users...
+13:01:42 - INFO - Creating test users for acceptance flow...
+13:01:42 - INFO - Connecting to database...
+13:01:42 - INFO - ✅ Database connection established
+13:01:42 - INFO - Processing user: accept_contributor
+13:01:42 - INFO -   User accept_contributor already exists with ID: 132
+13:01:42 - INFO - Processing user: accept_reviewer1
+13:01:42 - INFO -   User accept_reviewer1 already exists with ID: 133
+13:01:42 - INFO - Processing user: accept_reviewer2
+13:01:42 - INFO -   User accept_reviewer2 already exists with ID: 134
+13:01:42 - INFO - Processing user: accept_reviewer3
+13:01:42 - INFO -   User accept_reviewer3 already exists with ID: 135
+13:01:42 - INFO - ✅ Successfully created/verified 4 test users
+13:01:42 - INFO -   Contributor: accept_contributor (ID: 132)
+13:01:42 - INFO -   Reviewers: ['accept_reviewer1', 'accept_reviewer2', 'accept_reviewer3']
+13:01:42 - INFO - Step 2: Creating test task...
+13:01:42 - INFO - Creating test task for acceptance flow...
+13:01:42 - INFO - Connecting to database...
+13:01:42 - INFO - ✅ Database connection established
+13:01:42 - INFO - Setting up skills: ['Python', 'JavaScript']
+13:01:42 - INFO -   Skill 'Python' already exists with ID: 2
+13:01:42 - INFO -   Skill 'JavaScript' already exists with ID: 7
+13:01:42 - INFO - Creating test task...
+13:01:42 - INFO -   Skill requirements: {'Python': 3, 'JavaScript': 2}
+13:01:42 - INFO - ✅ Created test task with ID: 71
+13:01:42 - INFO -   Title: Test Acceptance Task
+13:01:42 - INFO -   Creating compensation records...
+13:01:42 - INFO -     ✅ Task compensation: $150 cash
+13:01:42 - INFO -     ✅ Review compensation: $25 cash
+13:01:42 - INFO -   Task ID: 71
+13:01:42 - INFO -   Skill IDs: [2, 7]
+13:01:42 - INFO - Step 3: Setting up contributor skills...
+13:01:42 - INFO - Setting up skills for user 132 with initial rating 3.0
+13:01:42 - INFO - Connecting to database...
+13:01:42 - INFO - ✅ Database connection established
+13:01:42 - INFO -   Setting up skill ID 2
+13:01:42 - INFO -   ✅ Skill 2 set to rating 3.0
+13:01:42 - INFO -   Setting up skill ID 7
+13:01:42 - INFO -   ✅ Skill 7 set to rating 3.0
+13:01:42 - INFO - ✅ Successfully set up 2 skills for user 132
+13:01:42 - INFO - Step 4: Simulating task assignment...
+13:01:42 - INFO - Simulating task assignment: Task 71 -> User 132
+13:01:42 - INFO - Connecting to database...
+13:01:42 - INFO - ✅ Database connection established
+13:01:42 - INFO -   Creating task assignment...
+13:01:42 - INFO -   ✅ Created task assignment with ID: 79
+13:01:42 - INFO -   Updating task status to 'in_progress'...
+13:01:42 - INFO -   ✅ Task status updated to 'in_progress'
+13:01:42 - INFO -   Assignment ID: 79
+13:01:42 - INFO - Step 5: Creating peer evaluations...
+13:01:42 - INFO - Creating peer evaluations (majority approve scenario)...
+13:01:42 - INFO - Connecting to database...
+13:01:42 - INFO - ✅ Database connection established
+13:01:42 - INFO -   Creating 3 peer evaluations:
+13:01:42 - INFO -     Evaluation 1: Reviewer 133, Score 4.5, Status completed
+13:01:42 - ERROR - ❌ Error creating peer evaluations: column "overall_score" of relation "peer_evaluations" does not exist
+LINE 4:                     overall_score, strengths, areas_for_impr...
+                            ^
+
+13:01:42 - ERROR - ❌ Test failed: column "overall_score" of relation "peer_evaluations" does not exist
+LINE 4:                     overall_score, strengths, areas_for_impr...
+                            ^
+

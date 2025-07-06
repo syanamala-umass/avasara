@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum, Table, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, Enum, Table, Float, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -33,6 +33,7 @@ class Task(Base):
     max_parallel_contributors = Column(Integer, nullable=True)
     contributor_time_limit_hours = Column(Integer, nullable=True)
     category = Column(String, default="task")  # Add category field with default value "task"
+    skill_review_requirements = Column(JSON, nullable=True)  # {"skill_name": min_skill_level_required}
 
     # Relationships
     user = relationship("User", back_populates="tasks")

@@ -35,14 +35,15 @@ import SignupPopup from './SignupPopup';
 import { fetchLandingStats } from './api';
 
 const LandingPage = () => {
-  const [stats, setStats] = useState({
-    total_tasks: 0,
-    total_startups: 0,
-    total_contributors: 0,
-    top_contributors: [],
-    recent_tasks: []
-  });
-  const [loading, setLoading] = useState(true);
+  // Commented out stats fetching for now
+  // const [stats, setStats] = useState({
+  //   total_tasks: 0,
+  //   total_startups: 0,
+  //   total_contributors: 0,
+  //   top_contributors: [],
+  //   recent_tasks: []
+  // });
+  // const [loading, setLoading] = useState(true);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showSignupPopup, setShowSignupPopup] = useState(false);
 
@@ -64,31 +65,31 @@ const LandingPage = () => {
     setShowSignupPopup(false);
   };
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchLandingStats();
-        console.log("API response:", response);
-        
-        if (response && response.data) {
-          setStats({
-            total_tasks: response.data.total_tasks || 0,
-            total_startups: response.data.total_startups || 0,
-            total_contributors: response.data.total_contributors || 0,
-            top_contributors: response.data.top_contributors || [],
-            recent_tasks: response.data.recent_tasks || []
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching landing page stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchStats();
-  }, []);
+  // useEffect(() => {
+  //   const fetchStats = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await fetchLandingStats();
+  //       console.log("API response:", response);
+  //       
+  //       if (response && response.data) {
+  //         setStats({
+  //           total_tasks: response.data.total_tasks || 0,
+  //           total_startups: response.data.total_startups || 0,
+  //           total_contributors: response.data.total_contributors || 0,
+  //           top_contributors: response.data.top_contributors || [],
+  //           recent_tasks: response.data.recent_tasks || []
+  //         });
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching landing page stats:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   
+  //   fetchStats();
+  // }, []);
 
   const features = [
     {
@@ -288,7 +289,7 @@ const LandingPage = () => {
                 <Users className="h-8 w-8" />
               </div>
               <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {loading ? '...' : stats.total_contributors}
+                {/* {loading ? '...' : stats.total_contributors} */}
               </h3>
               <p className="text-lg text-gray-600">Active Contributors</p>
               <p className="text-sm text-gray-500 mt-2">From 50+ countries</p>
@@ -299,7 +300,7 @@ const LandingPage = () => {
                 <CheckCircle className="h-8 w-8" />
               </div>
               <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {loading ? '...' : stats.total_tasks}
+                {/* {loading ? '...' : stats.total_tasks} */}
               </h3>
               <p className="text-lg text-gray-600">Tasks Completed</p>
               <p className="text-sm text-gray-500 mt-2">With 98% satisfaction</p>
@@ -310,7 +311,7 @@ const LandingPage = () => {
                 <TrendingUp className="h-8 w-8" />
               </div>
               <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {loading ? '...' : stats.total_startups}
+                {/* {loading ? '...' : stats.total_startups} */}
               </h3>
               <p className="text-lg text-gray-600">Projects Launched</p>
               <p className="text-sm text-gray-500 mt-2">Across all industries</p>
@@ -380,7 +381,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          {loading ? (
+          {/* {loading ? (
             <div className="text-center text-gray-500">Loading community champions...</div>
           ) : stats.top_contributors.length === 0 ? (
             <div className="text-center">
@@ -417,7 +418,7 @@ const LandingPage = () => {
                 </div>
               ))}
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
@@ -433,7 +434,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          {loading ? (
+          {/* {loading ? (
             <div className="text-center text-gray-500">Loading opportunities...</div>
           ) : stats.recent_tasks.length === 0 ? (
             <div className="text-center">
@@ -466,7 +467,7 @@ const LandingPage = () => {
                 </div>
               ))}
             </div>
-          )}
+          )} */}
         </div>
       </div>
 

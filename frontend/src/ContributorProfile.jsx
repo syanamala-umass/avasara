@@ -15,7 +15,6 @@ const ContributorProfile = () => {
   });
   const [availableSkills, setAvailableSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState('');
-  const [skillLevel, setSkillLevel] = useState('beginner');
   const [success, setSuccess] = useState(false);
   const [skillSearch, setSkillSearch] = useState('');
   const [addingSkill, setAddingSkill] = useState(false);
@@ -53,10 +52,7 @@ const ContributorProfile = () => {
           skills: userSkills.map(skill => ({
             id: skill.id,
             name: skill.name,
-            level: skill.rating ? 
-              skill.rating <= 2 ? 'beginner' :
-              skill.rating <= 4 ? 'intermediate' : 'advanced'
-            : 'beginner'
+            rating: skill.rating || 2.5
           }))
         });
 
@@ -92,8 +88,7 @@ const ContributorProfile = () => {
       }
 
       const response = await addNewUserSkill(userData.id, {
-        name: newSkill,
-        rating: 5
+        skill_name: newSkill
       });
 
       setFormData(prev => ({
@@ -136,25 +131,11 @@ const ContributorProfile = () => {
         portfolio_url: formData.portfolioUrl
       });
 
-      // First, remove all existing skills by sending an empty array
+      // Update skills (only skill IDs, ratings are managed by the system)
       await addUserSkills(userData.id, {
-        skill_ids: [],
-        ratings: []
+        skill_ids: formData.skills.map(skill => skill.id)
       });
 
-      // Then add the current skills
-      if (formData.skills.length > 0) {
-        const skillsData = formData.skills.map(skill => ({
-          skill_id: skill.id,
-          rating: skill.level === 'beginner' ? 1 :
-                  skill.level === 'intermediate' ? 3 : 5
-        }));
-
-        await addUserSkills(userData.id, {
-          skill_ids: skillsData.map(s => s.skill_id),
-          ratings: skillsData.map(s => s.rating)
-        });
-      }
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -299,6 +280,7 @@ const ContributorProfile = () => {
 
             <div className="sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700">Skills</label>
+              <p className="text-sm text-gray-500 mb-2">Your skill ratings are automatically managed based on your performance.</p>
               <div className="mt-2 flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
                 <div className="relative w-full sm:w-auto">
                   <input
@@ -343,15 +325,6 @@ const ContributorProfile = () => {
                     </div>
                   )}
                 </div>
-                <select
-                  value={skillLevel}
-                  onChange={e => setSkillLevel(e.target.value)}
-                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-auto sm:text-sm border-gray-300 rounded-md"
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
                 <button
                   type="button"
                   onClick={handleAddSkill}
@@ -366,7 +339,7 @@ const ContributorProfile = () => {
                     key={skill.id}
                     className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
                   >
-                    {skill.name} ({skill.level})
+                    {skill.name} (Rating: {skill.rating.toFixed(1)})
                     <button
                       type="button"
                       onClick={() => handleRemoveSkill(skill.id)}

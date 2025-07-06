@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { registerUser, fetchSkills, createSkill } from './api';
 import Select from 'react-select';
+import { 
+  X, 
+  User, 
+  AtSign, 
+  Mail, 
+  Lock, 
+  Shield, 
+  Plus, 
+  Sparkles,
+  ArrowRight,
+  Users,
+  CheckCircle
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const SignupPopup = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +29,7 @@ const SignupPopup = ({ isOpen, onClose }) => {
   const [error, setError] = useState('');
   const [availableSkills, setAvailableSkills] = useState([]);
   const [newSkillName, setNewSkillName] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch available skills using fetchSkills from api.js
@@ -97,12 +112,10 @@ const SignupPopup = ({ isOpen, onClose }) => {
       });
 
       if (response.data) {
-        // Store token if registration includes auto-login
-        if (response.data.access_token) {
-          localStorage.setItem('token', response.data.access_token);
-        }
+        // Redirect to check email page
         onClose();
-        window.location.href = '/dashboard';
+        navigate('/check-email');
+        return;
       }
     } catch (err) {
       // Handle validation errors from the backend
@@ -128,118 +141,151 @@ const SignupPopup = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50"
+        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={onClose}
       ></div>
       
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-10">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Create Your Account</h2>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 z-10 mx-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Join the Community
+              </h2>
+              <p className="text-sm text-gray-600">Start your journey with Avasara</p>
+            </div>
+          </div>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+            <div className="flex items-center">
+              <X className="w-4 h-4 mr-2" />
+              {error}
+            </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="full_name">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="full_name">
               Full Name
             </label>
-            <input
-              id="full_name"
-              name="full_name"
-              type="text"
-              value={formData.full_name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="John Doe"
-              required
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="full_name"
+                name="full_name"
+                type="text"
+                value={formData.full_name}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                placeholder="John Doe"
+                required
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="username">
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="username">
               Username
             </label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="johndoe"
-              required
-              pattern="[a-zA-Z0-9_]+"
-              title="Username can only contain letters, numbers, and underscores"
-            />
-            <p className="mt-1 text-sm text-gray-500">
+            <div className="relative">
+              <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="username"
+                name="username"
+                type="text"
+                value={formData.username}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                placeholder="johndoe"
+                required
+                pattern="[a-zA-Z0-9_]+"
+                title="Username can only contain letters, numbers, and underscores"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
               Only letters, numbers, and underscores allowed
             </p>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="email">
-              Email
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="email">
+              Email Address
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="your.email@example.com"
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                placeholder="your.email@example.com"
+                required
+              />
+            </div>
           </div>
           
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="password">
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                placeholder="••••••••"
+                required
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="confirmPassword">
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="confirmPassword">
               Confirm Password
             </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                placeholder="••••••••"
+                required
+              />
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Skills
+          {/* Skills */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Skills & Expertise
             </label>
             <Select
               isMulti
@@ -256,31 +302,55 @@ const SignupPopup = ({ isOpen, onClose }) => {
                   skills: selectedOptions.map(option => option.value)
                 }));
               }}
-              className="mb-2"
-              placeholder="Select skills..."
+              className="mb-3"
+              placeholder="Select your skills..."
+              styles={{
+                control: (provided) => ({
+                  ...provided,
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '4px',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    border: '1px solid #6366f1'
+                  }
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#f3f4f6' : 'white',
+                  color: state.isSelected ? 'white' : '#374151'
+                })
+              }}
             />
-            <div className="flex space-x-2 mt-2">
-              <input
-                type="text"
-                value={newSkillName}
-                onChange={e => setNewSkillName(e.target.value)}
-                placeholder="Add new skill"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            
+            {/* Add New Skill */}
+            <div className="flex space-x-2">
+              <div className="relative flex-1">
+                <Plus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  value={newSkillName}
+                  onChange={e => setNewSkillName(e.target.value)}
+                  placeholder="Add new skill"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleCreateSkill}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center"
               >
-                Create
+                <Plus className="w-4 h-4 mr-1" />
+                Add
               </button>
             </div>
           </div>
 
+          {/* Selected Skills Display */}
           {formData.skills.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Selected Skills
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Your Skills
               </label>
               <div className="flex flex-wrap gap-2">
                 {formData.skills.map(skillId => {
@@ -288,15 +358,16 @@ const SignupPopup = ({ isOpen, onClose }) => {
                   return skill ? (
                     <span
                       key={skillId}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200"
                     >
+                      <CheckCircle className="w-3 h-3 mr-1" />
                       {skill.name}
                       <button
                         type="button"
                         onClick={() => handleRemoveSkill(skillId)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        className="ml-2 text-indigo-600 hover:text-indigo-800 transition-colors"
                       >
-                        ×
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   ) : null;
@@ -305,29 +376,44 @@ const SignupPopup = ({ isOpen, onClose }) => {
             </div>
           )}
           
-          <div>
+          {/* Submit Button */}
+          <div className="pt-4">
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+              className={`w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white transition-all duration-200 ${
+                loading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl transform hover:scale-105'
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
             >
-              {loading ? 'Creating Account...' : 'Sign Up'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  Join the Community
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </button>
           </div>
         </form>
         
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>
-            Already have an account?{' '}
-            <button
-              onClick={onClose}
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Log in
-            </button>
-          </p>
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 mb-4">
+            <Users className="w-4 h-4" />
+            <span>Already part of our community?</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
+          >
+            Sign in to your account
+          </button>
         </div>
       </div>
     </div>

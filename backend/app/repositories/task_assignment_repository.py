@@ -251,15 +251,7 @@ class TaskAssignmentRepository:
             updated_assignment = cursor.fetchone()
             
             # Update task status based on assignment status
-            if assignment.status == "submitted_for_review":
-                # When an assignment is submitted for review, update task status
-                update_task_query = """
-                UPDATE tasks
-                SET status = 'submitted_for_review'
-                WHERE id = %s;
-                """
-                cursor.execute(update_task_query, (updated_assignment["task_id"],))
-            elif assignment.status == "completed":
+            if assignment.status == "completed":
                 # Check if all assignments for this task are completed
                 check_query = """
                 SELECT COUNT(*) as count

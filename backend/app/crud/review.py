@@ -20,11 +20,6 @@ def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensat
     )
     db.add(db_review)
     
-    # Update assignment status
-    assignment = db.query(TaskAssignment).filter(TaskAssignment.id == review.assignment_id).first()
-    if assignment and assignment.status == "submitted_for_review":
-        assignment.status = "reviewed"
-    
     # Mark the review assignment as completed for the reviewer
     review_assignment = db.query(TaskAssignment).filter(
         TaskAssignment.task_id == review.task_id,
@@ -35,30 +30,6 @@ def create_review(db: Session, review: ReviewCreate, reviewer_id: int, compensat
     if review_assignment:
         review_assignment.status = "completed"
         review_assignment.completed_at = datetime.utcnow()
-    
-    # Check majority decision for task completion
-    task = db.query(Task).filter(Task.id == review.task_id).first()
-    if task and task.status == "submitted_for_review":
-        # Get all reviews for this task
-        all_reviews = db.query(Review).filter(Review.task_id == review.task_id).all()
-        
-        if all_reviews:
-            # Count approvals vs rejections
-            approvals = sum(1 for r in all_reviews if r.is_approved)
-            rejections = len(all_reviews) - approvals
-            
-            # Check if we have enough reviews to make a decision
-            required_reviews = task.num_reviewers or 1
-            
-            if len(all_reviews) >= required_reviews:
-                # Majority decision
-                if approvals > rejections:
-                    task.status = "completed"
-                else:
-                    task.status = "rejected"
-                    # Reset assignment status for resubmission
-                    if assignment:
-                        assignment.status = "in_progress"
     
     db.commit()
     db.refresh(db_review)
@@ -112,7 +83,7 @@ def get_reviews(db: Session, skip: int = 0, limit: int = 100,
         
     if task_id:
         query = query.filter(Review.task_id == task_id)
-    
+        
     reviews = query.offset(skip).limit(limit).all()
     
     # Enhance reviews with additional details

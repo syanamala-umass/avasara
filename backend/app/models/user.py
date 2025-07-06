@@ -1,6 +1,7 @@
-from sqlalchemy import Boolean, Column, String, Integer, ForeignKey, Table, Float
+from sqlalchemy import Boolean, Column, String, Integer, ForeignKey, Table, Float, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
+from datetime import datetime
 
 # Join table (many-to-many)
 contributor_skill = Table(
@@ -16,9 +17,20 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)
+    hashed_password = Column(String, nullable=True)  # Nullable for OAuth users
+    is_active = Column(Boolean, default=False)  # Changed to False - requires email verification
     username = Column(String, unique=True, index=True)
+    
+    # OAuth fields
+    oauth_provider = Column(String, nullable=True)  # 'google', 'linkedin', 'github'
+    oauth_id = Column(String, nullable=True)  # Provider's user ID
+
+    
+    # Email verification fields
+    email_verified = Column(Boolean, default=False)
+    email_verification_token = Column(String, nullable=True)
+    email_verification_expires = Column(DateTime, nullable=True)
+    email_verification_sent_at = Column(DateTime, nullable=True)
 
     # Contributor fields
     # name = Column(String, index=True)

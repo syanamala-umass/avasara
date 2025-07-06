@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, Trash2, XCircle } from 'lucide-react';
+import { Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, Trash2, XCircle, Sparkles, ArrowRight, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
 import DispatchTaskModal from './DispatchTaskModal';
 import ReviewSubmissionsModal from './ReviewSubmissionsModal';
+import FindTasksModal from './FindTasksModal';
 import {
   fetchTasks,
   fetchTaskAssignments,
@@ -48,6 +49,7 @@ const UserDashboard = () => {
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [isReviewSubmissionsModalOpen, setIsReviewSubmissionsModalOpen] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [isFindTasksModalOpen, setIsFindTasksModalOpen] = useState(false);
 
   useEffect(() => {
     // Check for authentication
@@ -430,82 +432,42 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          
-          {/* Search Form */}
-          <form onSubmit={handleSearch} className="w-full max-w-md">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-12 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search for tasks or startups..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center">
-                <button
-                  type="submit"
-                  className="h-full px-4 border-l border-gray-300 text-blue-600 font-medium hover:text-blue-800 focus:outline-none"
-                >
-                  Search
-                </button>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      {/* Gradient Header */}
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg rounded-b-3xl mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-white" />
             </div>
-          </form>
-          
-          {/* User Menu */}
-          <div className="ml-4 relative">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">Welcome to Your Dashboard</h1>
+              <p className="text-indigo-100 text-sm md:text-base mt-1">Track your tasks, reviews, and progress in the Avasara community</p>
+            </div>
+          </div>
+          <div className="mt-6 md:mt-0 flex items-center space-x-4">
+            {/* Find Tasks Button */}
             <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 focus:outline-none"
+              onClick={() => setIsFindTasksModalOpen(true)}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-white/30 hover:bg-white/50 shadow transition-all duration-200 border-2 border-white/40 focus:outline-none mr-2"
+              title="Find Tasks"
             >
-              U
+              <Search className="h-7 w-7 text-indigo-100" />
             </button>
-            
-            {/* Dropdown Menu */}
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-                <div className="py-1" role="menu" aria-orientation="vertical">
-                  <button
-                    onClick={() => {
-                      navigate('/profile');
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    role="menuitem"
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Profile
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate('/contributor/tasks');
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    role="menuitem"
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" />
-                    Find Tasks
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                    role="menuitem"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Profile Button */}
+            <button
+              onClick={() => navigate('/profile')}
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-white/30 hover:bg-white/50 shadow transition-all duration-200 border-2 border-white/40 focus:outline-none mr-2"
+              title="Profile"
+            >
+              <UserCircle className="h-7 w-7 text-white" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold shadow hover:from-indigo-600 hover:to-purple-600 transition-all duration-200"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -514,7 +476,7 @@ const UserDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error Message if present */}
         {error && (
-          <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow">
             <p className="font-bold">Error</p>
             <p>{error}</p>
           </div>
@@ -522,12 +484,62 @@ const UserDashboard = () => {
 
         {/* Success Message if present */}
         {success && (
-          <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl shadow">
             <p className="font-bold">Success</p>
             <p>{success}</p>
           </div>
         )}
-        
+
+        {/* Top Tab Navigation */}
+        <div className="mb-10 flex flex-wrap gap-2 justify-center">
+          {[
+            { key: 'undertaking', label: 'Undertaking', icon: <Clipboard className="h-5 w-5 mr-2" /> },
+            { key: 'completed', label: 'Completed', icon: <CheckCircle className="h-5 w-5 mr-2" /> },
+            { key: 'pending_review', label: 'Pending Review', icon: <Clock className="h-5 w-5 mr-2" /> },
+            { key: 'rejected', label: 'Rejected', icon: <XCircle className="h-5 w-5 mr-2" /> },
+            { key: 'dispatched', label: 'Dispatched', icon: <Lightbulb className="h-5 w-5 mr-2" /> },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center px-6 py-3 rounded-full font-semibold text-sm shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400
+                ${activeTab === tab.key
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white scale-105 shadow-xl'
+                  : 'bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100'}
+              `}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-8 flex justify-center">
+          <form onSubmit={handleSearch} className="w-full max-w-2xl">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-indigo-400" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-12 py-3 border border-indigo-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-base"
+                placeholder="Search for tasks or startups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center">
+                <button
+                  type="submit"
+                  className="h-full px-6 border-l border-indigo-200 text-indigo-600 font-semibold hover:text-indigo-800 focus:outline-none"
+                >
+                  Search
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
         {/* Search Results (Conditional) */}
         {showSearchResults && (
           <div className="mb-8">
@@ -535,38 +547,37 @@ const UserDashboard = () => {
               <h2 className="text-xl font-semibold text-gray-900">Search Results</h2>
               <button 
                 onClick={() => setShowSearchResults(false)}
-                className="text-blue-600 hover:text-blue-800"
+                className="text-indigo-600 hover:text-indigo-800 font-semibold"
               >
                 Close
               </button>
             </div>
-            
             {searchResults.length === 0 ? (
-              <div className="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+              <div className="bg-white shadow rounded-2xl p-8 text-center text-gray-500">
                 No results found for "{searchQuery}"
               </div>
             ) : (
-              <div className="bg-white shadow rounded-lg overflow-hidden">
-                <ul className="divide-y divide-gray-200">
+              <div className="bg-white shadow rounded-2xl overflow-hidden">
+                <ul className="divide-y divide-indigo-100">
                   {searchResults.map(task => (
                     <li 
                       key={task.id} 
-                      className="p-4 hover:bg-gray-50 transition cursor-pointer"
+                      className="p-6 hover:bg-indigo-50 transition cursor-pointer"
                       onClick={() => handleTaskClick(task)}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-center">
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
                           <div className="mt-1 flex items-center text-sm text-gray-500">
                             <span className="mr-3">{task.startup_name}</span>
                             <span className="mr-3">•</span>
                             <span className="mr-3">Due: {formatDate(task.deadline)}</span>
                             <span className="mr-3">•</span>
-                            <span className="font-medium text-blue-600">{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                            <span className="font-medium text-indigo-600">{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
                           </div>
                         </div>
                         <button 
-                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                          className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow hover:from-indigo-700 hover:to-purple-700 transition"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleTaskClick(task);
@@ -582,77 +593,6 @@ const UserDashboard = () => {
             )}
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('undertaking')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'undertaking'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <Clipboard className="h-5 w-5 mr-2" />
-                Undertaking
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'completed'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2" />
-                Completed
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('pending_review')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'pending_review'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 mr-2" />
-                Pending Review
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('rejected')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'rejected'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <XCircle className="h-5 w-5 mr-2" />
-                Rejected
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('dispatched')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'dispatched'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <Lightbulb className="h-5 w-5 mr-2" />
-                Dispatched
-              </div>
-            </button>
-          </nav>
-        </div>
 
         {/* Tab Content */}
         {activeTab === 'undertaking' && (
@@ -1042,33 +982,48 @@ const UserDashboard = () => {
         )}
 
         {/* Summary Widget */}
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Summary</h2>
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-6 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-gray-900">{assignedTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Undertaking</div>
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-indigo-500 animate-pulse" />
+            Your Summary
+          </h2>
+          <div className="bg-gradient-to-r from-indigo-100/80 via-white/80 to-purple-100/80 backdrop-blur-md shadow-2xl rounded-3xl overflow-hidden p-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+              {/* Undertaking */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <Clipboard className="h-8 w-8 text-indigo-500 group-hover:text-indigo-700 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-gray-900 group-hover:text-indigo-700 transition">{assignedTasks.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-indigo-700 transition">Undertaking</div>
               </div>
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-gray-900">{createdTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Dispatched</div>
+              {/* Dispatched */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <Lightbulb className="h-8 w-8 text-yellow-500 group-hover:text-yellow-700 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-gray-900 group-hover:text-yellow-700 transition">{createdTasks.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-yellow-700 transition">Dispatched</div>
               </div>
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-gray-900">{completedTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Completed Tasks</div>
+              {/* Completed Tasks */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <CheckCircle className="h-8 w-8 text-green-500 group-hover:text-green-700 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-gray-900 group-hover:text-green-700 transition">{completedTasks.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-green-700 transition">Completed</div>
               </div>
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-blue-600">{completedReviews.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Completed Reviews</div>
+              {/* Completed Reviews */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <Star className="h-8 w-8 text-blue-500 group-hover:text-blue-700 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-blue-600 group-hover:text-blue-800 transition">{completedReviews.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-blue-700 transition">Reviews</div>
               </div>
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-gray-900">{pendingReviewTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Pending Review</div>
+              {/* Pending Review */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <Clock className="h-8 w-8 text-yellow-600 group-hover:text-yellow-800 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-gray-900 group-hover:text-yellow-800 transition">{pendingReviewTasks.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-yellow-800 transition">Pending Review</div>
               </div>
-              <div className="p-6 text-center">
-                <div className="text-3xl font-bold text-red-600">{rejectedTasks.length}</div>
-                <div className="mt-1 text-sm text-gray-500">Rejected</div>
+              {/* Rejected */}
+              <div className="group flex flex-col items-center justify-center p-8 transition-all duration-200 hover:scale-105 cursor-pointer rounded-2xl bg-white/60 shadow-md m-2">
+                <XCircle className="h-8 w-8 text-red-500 group-hover:text-red-700 mb-2 transition" />
+                <div className="text-4xl font-extrabold text-red-600 group-hover:text-red-800 transition">{rejectedTasks.length}</div>
+                <div className="mt-1 text-base font-medium text-gray-600 group-hover:text-red-700 transition">Rejected</div>
               </div>
             </div>
           </div>
@@ -1111,6 +1066,14 @@ const UserDashboard = () => {
         isOpen={isReviewSubmissionsModalOpen}
         task={selectedTask}
         onClose={() => setIsReviewSubmissionsModalOpen(false)}
+      />
+
+      {/* Find Tasks Modal */}
+      <FindTasksModal
+        isOpen={isFindTasksModalOpen}
+        onClose={() => setIsFindTasksModalOpen(false)}
+        onTaskClick={handleTaskClick}
+        onUndertakeTask={handleUndertakeTask}
       />
     </div>
   );

@@ -6,18 +6,12 @@ from app.schemas.skill import Skill
 class TaskBase(BaseModel):
     title: str
     description: str
-    detailed_instructions: Optional[str] = None
-    evaluation_criteria: Optional[str] = None
-    quality_guidelines: Optional[str] = None
-    common_mistakes: Optional[str] = None
-    expected_output_format: Optional[str] = None
-    reference_materials: Optional[Dict[str, Any]] = None
     deadline: Optional[datetime] = None
     category: str = "task"  # Add category field with default value "task"
+    skill_review_requirements: Optional[Dict[str, int]] = None  # {"skill_name": min_reviews_required}
 
 class TaskCreate(TaskBase):
     skills: List[int] = []  # List of skill IDs
-    resources: List[int] = []  # List of resource IDs
     compensation_type: str  # "cash" or "equity"
     compensation_amount: float
     review_compensation_type: str  # "cash" or "equity"
@@ -27,16 +21,10 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    detailed_instructions: Optional[str] = None
-    evaluation_criteria: Optional[str] = None
-    quality_guidelines: Optional[str] = None
-    common_mistakes: Optional[str] = None
-    expected_output_format: Optional[str] = None
-    reference_materials: Optional[Dict[str, Any]] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = None
     skills: Optional[List[int]] = None
-    resources: Optional[List[int]] = None
+    skill_review_requirements: Optional[Dict[str, int]] = None
 
 class Task(TaskBase):
     id: int

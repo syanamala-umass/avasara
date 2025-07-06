@@ -138,13 +138,145 @@ async def update_evaluation(
     ai_analysis = await run_ai_analysis(evaluation_update.dict(exclude_unset=True))
     algorithm_metrics = await run_custom_algorithms(evaluation_update.dict(exclude_unset=True))
     
-    return update_peer_evaluation(
+    updated_evaluation = update_peer_evaluation(
         db=db,
         evaluation_id=evaluation_id,
         evaluation_update=evaluation_update,
         ai_analysis=ai_analysis,
         algorithm_metrics=algorithm_metrics
     )
+
+    # Check if all evaluations for this task assignment are completed
+    if evaluation_update.status == "completed":
+        check_and_complete_task_assignment(db, updated_evaluation.assignment_id)
+
+    return updated_evaluation
+
+def check_and_complete_task_assignment(db: Session, assignment_id: int):
+    """
+    Check if all peer evaluations for a task assignment are completed.
+    Determine if work is approved or rejected based on majority vote.
+    If rejected, reset task to open and block original contributor for grace period.
+    """
+    try:
+        from app.database.connection import get_db_cursor
+        from app.routers.task_assignment import update_user_skill_ratings_from_task_completion
+        from datetime import datetime, timedelta
+        
+        with get_db_cursor() as cursor:
+            # Get the task assignment details
+            cursor.execute("""
+                SELECT ta.id, ta.task_id, ta.user_id, ta.status
+                FROM task_assignments ta
+                WHERE ta.id = %s
+            """, (assignment_id,))
+            
+            assignment = cursor.fetchone()
+            if not assignment or assignment['status'] != 'submitted':
+                return
+            
+            # Get all evaluations for this assignment
+            cursor.execute("""
+                SELECT pe.id, pe.overall_score, pe.status, pe.evaluator_id
+                FROM peer_evaluations pe
+                WHERE pe.assignment_id = %s
+            """, (assignment_id,))
+            
+            evaluations = cursor.fetchall()
+            
+            if not evaluations:
+                return
+            
+            # Check if all evaluations are completed
+            completed_evaluations = [e for e in evaluations if e['status'] == 'completed']
+            if len(completed_evaluations) != len(evaluations):
+                return  # Not all evaluations are done yet
+            
+            # Determine approval/rejection based on majority vote
+            # Calculate average score and count approvals/rejections
+            total_score = sum(e['overall_score'] for e in completed_evaluations)
+            average_score = total_score / len(completed_evaluations)
+            
+            # Count approvals vs rejections (score >= 3.0 is approval, < 3.0 is rejection)
+            approvals = sum(1 for e in completed_evaluations if e['overall_score'] >= 3.0)
+            rejections = len(completed_evaluations) - approvals
+            
+            # Determine final status based on majority
+            if approvals > rejections:
+                # Majority approved - work is completed
+                final_status = 'completed'
+                
+                # Update evaluation statuses to 'approved'
+                for evaluation in completed_evaluations:
+                    cursor.execute("""
+                        UPDATE peer_evaluations
+                        SET status = 'approved'
+                        WHERE id = %s
+                    """, (evaluation['id'],))
+                
+                # Update assignment status to completed
+                cursor.execute("""
+                    UPDATE task_assignments
+                    SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (assignment_id,))
+                
+                # Trigger positive rating updates
+                update_user_skill_ratings_from_task_completion(
+                    task_id=assignment['task_id'],
+                    user_id=assignment['user_id'],
+                    success=True,
+                    average_score=average_score
+                )
+                
+            else:
+                # Majority rejected - work is rejected
+                final_status = 'rejected'
+                
+                # Update evaluation statuses to 'rejected'
+                for evaluation in completed_evaluations:
+                    cursor.execute("""
+                        UPDATE peer_evaluations
+                        SET status = 'rejected'
+                        WHERE id = %s
+                    """, (evaluation['id'],))
+                
+                # Update assignment status to rejected
+                cursor.execute("""
+                    UPDATE task_assignments
+                    SET status = 'rejected', completed_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (assignment_id,))
+                
+                # Reset task status to open so others can pick it up
+                cursor.execute("""
+                    UPDATE tasks
+                    SET status = 'open'
+                    WHERE id = %s
+                """, (assignment['task_id'],))
+                
+                # Block the original contributor from picking up this task for grace period (30 days)
+                grace_period_days = 30
+                blocked_until = datetime.utcnow() + timedelta(days=grace_period_days)
+                
+                cursor.execute("""
+                    INSERT INTO task_blocks (task_id, user_id, blocked_until, reason)
+                    VALUES (%s, %s, %s, 'Work rejected by majority of reviewers')
+                    ON CONFLICT (task_id, user_id) 
+                    DO UPDATE SET blocked_until = EXCLUDED.blocked_until, reason = EXCLUDED.reason
+                """, (assignment['task_id'], assignment['user_id'], blocked_until))
+                
+                # Trigger negative rating updates
+                update_user_skill_ratings_from_task_completion(
+                    task_id=assignment['task_id'],
+                    user_id=assignment['user_id'],
+                    success=False,
+                    average_score=average_score
+                )
+                
+    except Exception as e:
+        # Log error but don't fail the evaluation update
+        print(f"Error checking task completion: {str(e)}")
 
 @router.delete("/{evaluation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_evaluation(

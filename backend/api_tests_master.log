@@ -1,0 +1,201 @@
+15:23:04 - INFO - 🚀 Starting API-Based Test Suite
+15:23:04 - INFO - 🔍 Checking if backend server is running...
+15:23:05 - INFO - ✅ Backend server is running
+15:23:05 - INFO - 🔄 Running API-Based Acceptance Test...
+15:23:05 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:23:05 - INFO - 🔄 STEP: Creating test users
+15:23:05 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:23:05 - ERROR - ❌ ERROR: Failed to create user api_accept_contributor: {"detail":"Not Found"}
+15:23:05 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:23:05 - ERROR - ❌ ERROR: Failed to create user api_accept_reviewer1: {"detail":"Not Found"}
+15:23:05 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:23:05 - ERROR - ❌ ERROR: Failed to create user api_accept_reviewer2: {"detail":"Not Found"}
+15:23:05 - ERROR - ❌ ERROR: Failed to create test users. Aborting test.
+15:23:05 - ERROR - ❌ API acceptance test failed in 0.01 seconds
+15:23:07 - INFO - 🔄 Running API-Based Rejection Test...
+15:23:07 - INFO - 🚀 Starting API-Based Rejection System Test
+15:23:07 - INFO - 🔄 STEP: Creating test users
+15:23:07 - INFO - 🔄 STEP: Creating user: api_reject_contributor
+15:23:07 - ERROR - ❌ ERROR: Failed to create user api_reject_contributor: {"detail":"Not Found"}
+15:23:07 - INFO - 🔄 STEP: Creating user: api_reject_reviewer1
+15:23:07 - ERROR - ❌ ERROR: Failed to create user api_reject_reviewer1: {"detail":"Not Found"}
+15:23:07 - INFO - 🔄 STEP: Creating user: api_reject_reviewer2
+15:23:07 - ERROR - ❌ ERROR: Failed to create user api_reject_reviewer2: {"detail":"Not Found"}
+15:23:07 - ERROR - ❌ ERROR: Failed to create test users. Aborting test.
+15:23:07 - ERROR - ❌ API rejection test failed in 0.02 seconds
+15:23:07 - ERROR - ❌ Some API tests failed!
+15:23:07 - ERROR - ❌ API test suite failed
+15:23:48 - INFO - 🔍 Checking if backend server is running...
+15:23:48 - INFO - ✅ Backend server is running
+15:23:48 - INFO - 🔄 Running API-Based Acceptance Test...
+15:23:48 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:23:48 - INFO - 🔄 STEP: Creating test users
+15:23:48 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:23:49 - ERROR - ❌ ERROR: Failed to create user api_accept_contributor: {"message":"Registration successful. Please check your email to verify your account."}
+15:23:49 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:23:49 - ERROR - ❌ ERROR: Failed to create user api_accept_reviewer1: {"message":"Registration successful. Please check your email to verify your account."}
+15:23:49 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:23:49 - ERROR - ❌ ERROR: Failed to create user api_accept_reviewer2: {"message":"Registration successful. Please check your email to verify your account."}
+15:23:49 - ERROR - ❌ ERROR: Failed to create test users. Aborting test.
+15:23:49 - ERROR - ❌ API acceptance test failed in 0.72 seconds
+15:23:49 - ERROR - ❌ API test suite failed
+15:24:11 - INFO - 🔍 Checking if backend server is running...
+15:24:11 - INFO - ✅ Backend server is running
+15:24:11 - INFO - 🔄 Running API-Based Acceptance Test...
+15:24:11 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:24:11 - INFO - 🔄 STEP: Creating test users
+15:24:11 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:24:11 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+15:24:11 - ERROR - ❌ ERROR: Failed to login user api_accept_contributor after registration: {"detail":"Incorrect username or password"}
+15:24:11 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:24:11 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+15:24:11 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer1 after registration: {"detail":"Incorrect username or password"}
+15:24:11 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:24:11 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+15:24:11 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer2 after registration: {"detail":"Incorrect username or password"}
+15:24:11 - ERROR - ❌ ERROR: Failed to create test users. Aborting test.
+15:24:11 - ERROR - ❌ API acceptance test failed in 0.03 seconds
+15:24:11 - ERROR - ❌ API test suite failed
+15:43:36 - INFO - 🔍 Checking if backend server is running...
+15:43:36 - INFO - ✅ Backend server is running
+15:43:36 - INFO - 🔄 Running API-Based Acceptance Test...
+15:43:37 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:43:37 - INFO - 🔄 STEP: Creating test users
+15:43:37 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:43:37 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+15:43:37 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+15:43:37 - ERROR - ❌ ERROR: Failed to login user api_accept_contributor after registration: {"detail":"Incorrect username or password"}
+15:43:37 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:43:37 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+15:43:37 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+15:43:37 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer1 after registration: {"detail":"Incorrect username or password"}
+15:43:37 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:43:37 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+15:43:37 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+15:43:37 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer2 after registration: {"detail":"Incorrect username or password"}
+15:43:37 - ERROR - ❌ ERROR: Failed to create test users. Aborting test.
+15:43:37 - ERROR - ❌ API acceptance test failed in 0.64 seconds
+15:43:37 - ERROR - ❌ API test suite failed
+15:44:10 - INFO - 🔍 Checking if backend server is running...
+15:44:10 - INFO - ✅ Backend server is running
+15:44:10 - INFO - 🔄 Running API-Based Acceptance Test...
+15:44:10 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:44:10 - INFO - 🔄 STEP: Creating test users
+15:44:10 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:44:10 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+15:44:10 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+15:44:11 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+15:44:11 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:44:11 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+15:44:11 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+15:44:11 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+15:44:11 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:44:11 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+15:44:11 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+15:44:11 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+15:44:11 - INFO - 🔄 STEP: Logging in test users
+15:44:11 - INFO - 🔄 STEP: Logging in user: api_accept_contributor
+15:44:11 - ERROR - ❌ ERROR: Failed to login user api_accept_contributor: {"detail":"Incorrect username or password"}
+15:44:11 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1
+15:44:11 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer1: {"detail":"Incorrect username or password"}
+15:44:11 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2
+15:44:11 - ERROR - ❌ ERROR: Failed to login user api_accept_reviewer2: {"detail":"Incorrect username or password"}
+15:44:11 - ERROR - ❌ ERROR: Failed to login users. Aborting test.
+15:44:11 - ERROR - ❌ API acceptance test failed in 0.72 seconds
+15:44:11 - ERROR - ❌ API test suite failed
+15:45:02 - INFO - 🔍 Checking if backend server is running...
+15:45:02 - INFO - ✅ Backend server is running
+15:45:02 - INFO - 🔄 Running API-Based Acceptance Test...
+15:45:02 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:45:02 - INFO - 🔄 STEP: Creating test users
+15:45:02 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:45:02 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+15:45:02 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+15:45:02 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+15:45:02 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:45:02 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+15:45:02 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+15:45:02 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+15:45:02 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:45:02 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+15:45:02 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+15:45:03 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+15:45:03 - INFO - 🔄 STEP: Logging in test users
+15:45:03 - INFO - 🔄 STEP: Logging in user: api_accept_contributor@test.com
+15:45:03 - INFO - ✅ SUCCESS: User api_accept_contributor@test.com logged in successfully
+15:45:03 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1@test.com
+15:45:04 - INFO - ✅ SUCCESS: User api_accept_reviewer1@test.com logged in successfully
+15:45:04 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2@test.com
+15:45:04 - INFO - ✅ SUCCESS: User api_accept_reviewer2@test.com logged in successfully
+15:45:04 - INFO - 🔄 STEP: Creating test task
+15:45:04 - INFO - 🔄 STEP: Creating task: API Test Acceptance Task
+15:45:04 - ERROR - ❌ ERROR: Failed to create task: {"detail":[{"type":"missing","loc":["body","review_compensation_type"],"msg":"Field required","input":{"title":"API Test Acceptance Task","description":"This is a test task for API acceptance flow","category":"development","compensation_amount":150,"compensation_type":"cash","deadline":"2024-12-31","num_reviewers":2,"skill_review_requirements":{"Python":3,"JavaScript":2}}},{"type":"missing","loc":["body","review_compensation_amount"],"msg":"Field required","input":{"title":"API Test Acceptance Task","description":"This is a test task for API acceptance flow","category":"development","compensation_amount":150,"compensation_type":"cash","deadline":"2024-12-31","num_reviewers":2,"skill_review_requirements":{"Python":3,"JavaScript":2}}}]}
+15:45:04 - ERROR - ❌ ERROR: Failed to create test task. Aborting test.
+15:45:04 - ERROR - ❌ API acceptance test failed in 1.90 seconds
+15:45:04 - ERROR - ❌ API test suite failed
+15:46:18 - INFO - 🔍 Checking if backend server is running...
+15:46:18 - INFO - ✅ Backend server is running
+15:46:18 - INFO - 🔄 Running API-Based Acceptance Test...
+15:46:18 - INFO - 🚀 Starting API-Based Acceptance System Test
+15:46:18 - INFO - 🔄 STEP: Creating test users
+15:46:18 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+15:46:18 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+15:46:18 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+15:46:18 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+15:46:18 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+15:46:18 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+15:46:18 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+15:46:18 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+15:46:18 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+15:46:18 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+15:46:18 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+15:46:19 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+15:46:19 - INFO - 🔄 STEP: Logging in test users
+15:46:19 - INFO - 🔄 STEP: Logging in user: api_accept_contributor@test.com
+15:46:19 - INFO - ✅ SUCCESS: User api_accept_contributor@test.com logged in successfully
+15:46:19 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1@test.com
+15:46:19 - INFO - ✅ SUCCESS: User api_accept_reviewer1@test.com logged in successfully
+15:46:19 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2@test.com
+15:46:19 - INFO - ✅ SUCCESS: User api_accept_reviewer2@test.com logged in successfully
+15:46:19 - INFO - 🔄 STEP: Creating test task
+15:46:19 - INFO - 🔄 STEP: Creating task: API Test Acceptance Task
+15:46:19 - INFO - ✅ SUCCESS: Task 'API Test Acceptance Task' created with ID: 72
+15:46:19 - INFO - 🔄 STEP: Assigning task to user1
+15:46:19 - INFO - 🔄 STEP: Assigning task to user for task 72
+15:46:19 - ERROR - ❌ ERROR: Failed to assign task: {"detail":"Your skill levels do not meet the minimum requirements for this task. You can view all tasks but can only undertake tasks where you meet the minimum skill level requirements."}
+15:46:19 - ERROR - ❌ ERROR: Failed to assign task. Aborting test.
+15:46:19 - ERROR - ❌ API acceptance test failed in 1.37 seconds
+15:46:19 - ERROR - ❌ API test suite failed
+16:16:42 - INFO - 🔍 Checking if backend server is running...
+16:16:43 - INFO - ✅ Backend server is running
+16:16:43 - INFO - 🔄 Running API-Based Acceptance Test...
+16:16:43 - INFO - 🚀 Starting API-Based Acceptance System Test
+16:16:43 - INFO - 🔄 STEP: Creating test users
+16:16:43 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+16:16:43 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+16:16:43 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+16:16:43 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+16:16:43 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+16:16:43 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+16:16:43 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+16:16:43 - INFO - 🔄 STEP: Logging in test users
+16:16:43 - INFO - 🔄 STEP: Logging in user: api_accept_contributor@test.com
+16:16:44 - INFO - ✅ SUCCESS: User api_accept_contributor@test.com logged in successfully
+16:16:44 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1@test.com
+16:16:44 - INFO - ✅ SUCCESS: User api_accept_reviewer1@test.com logged in successfully
+16:16:44 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2@test.com
+16:16:44 - INFO - ✅ SUCCESS: User api_accept_reviewer2@test.com logged in successfully
+16:16:44 - INFO - 🔄 STEP: Creating test task
+16:16:44 - INFO - 🔄 STEP: Creating task: API Test Acceptance Task
+16:16:44 - INFO - ✅ SUCCESS: Task 'API Test Acceptance Task' created with ID: 73
+16:16:44 - INFO - 🔄 STEP: Assigning task to user1
+16:16:44 - INFO - 🔄 STEP: Assigning task to user for task 73
+16:16:44 - ERROR - ❌ ERROR: Failed to assign task: {"detail":"Your skill levels do not meet the minimum requirements for this task. You can view all tasks but can only undertake tasks where you meet the minimum skill level requirements."}
+16:16:44 - ERROR - ❌ ERROR: Failed to assign task. Aborting test.
+16:16:44 - ERROR - ❌ API acceptance test failed in 1.36 seconds
+16:16:44 - ERROR - ❌ API test suite failed

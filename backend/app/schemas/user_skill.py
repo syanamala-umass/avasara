@@ -1,6 +1,5 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel
 
 class UserSkillsUpdate(BaseModel):
-    skill_ids: List[int]
-    ratings: Optional[List[int]] = None 
+    skill_ids: List[int] 

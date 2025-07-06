@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
-import { fetchTasks, fetchSkills, assignTask, createTaskAssignment } from '../../api';
+import { fetchTasks, fetchSkills, createTaskAssignment, assignTask } from '../../api';
 
 const TaskBrowser = () => {
   const navigate = useNavigate();
@@ -121,6 +121,7 @@ const TaskBrowser = () => {
         });
         setSuccess('You have been assigned to review this task!');
       } else {
+        // For regular tasks, use the assignTask function
         await assignTask(task.id);
         setSuccess('You have undertaken this task!');
       }
