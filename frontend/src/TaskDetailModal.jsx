@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, CheckCircle, XCircle, User, FileText, Star, MessageSquare, Calendar, DollarSign } from 'lucide-react';
-import { fetchTaskDetails } from './api';
+import { X, Clock, CheckCircle, XCircle, User, FileText, Star, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { fetchTaskDetails, canUndertakeTask } from './api';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -20,6 +20,8 @@ const TaskDetailModal = ({ isOpen, task = {
   const [taskDetails, setTaskDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [canUndertake, setCanUndertake] = useState(null);
+  const [capabilityLoading, setCapabilityLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && task?.id) {
@@ -34,8 +36,27 @@ const TaskDetailModal = ({ isOpen, task = {
         setActiveTab('overview');
       }
       loadTaskDetails();
+      checkTaskCapability();
     }
   }, [isOpen, task?.id]);
+
+  const checkTaskCapability = async () => {
+    if (!task?.id) return;
+    
+    setCapabilityLoading(true);
+    try {
+      const response = await canUndertakeTask(task.id);
+      setCanUndertake(response.data);
+    } catch (err) {
+      console.error('Error checking task capability:', err);
+      setCanUndertake({
+        can_undertake: false,
+        reason: 'Unable to check capabilities'
+      });
+    } finally {
+      setCapabilityLoading(false);
+    }
+  };
 
   const loadTaskDetails = async () => {
     if (!task?.id) return;
@@ -100,12 +121,18 @@ const TaskDetailModal = ({ isOpen, task = {
         return `${baseClasses} bg-green-100 text-green-800`;
       case 'in_progress':
         return `${baseClasses} bg-blue-100 text-blue-800`;
+      case 'submitted':
+        return `${baseClasses} bg-yellow-100 text-yellow-800`;
       case 'submitted_for_review':
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
       case 'completed':
         return `${baseClasses} bg-purple-100 text-purple-800`;
       case 'rejected':
         return `${baseClasses} bg-red-100 text-red-800`;
+      case 'resubmitted':
+        return `${baseClasses} bg-orange-100 text-orange-800`;
+      case 'needs_review':
+        return `${baseClasses} bg-pink-100 text-pink-800`;
       default:
         return `${baseClasses} bg-gray-100 text-gray-800`;
     }
@@ -133,19 +160,80 @@ const TaskDetailModal = ({ isOpen, task = {
         return 'This task is available for contributors to undertake.';
       case 'in_progress':
         return 'One or more contributors are currently working on this task.';
+      case 'submitted':
+        return 'Work has been submitted and is awaiting review from reviewers.';
       case 'submitted_for_review':
         return 'Work has been submitted and is awaiting review by assigned reviewers.';
       case 'completed':
         return 'This task has been successfully completed and approved.';
       case 'rejected':
-        return 'The submitted work was rejected and needs to be resubmitted.';
+        return 'The submitted work was rejected by majority of reviewers. Task is now open for other contributors. Task will be available for you after a grace period based on task status.';
+      case 'resubmitted':
+        return 'Work has been resubmitted and is awaiting review.';
+      case 'needs_review':
+        return 'The work is borderline and needs additional review.';
       default:
         return 'Status information not available.';
     }
   };
 
+  const renderCapabilityIndicator = () => {
+    if (capabilityLoading) {
+      return (
+        <div className="flex items-center gap-2 text-gray-500">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+          <span className="text-sm">Checking availability...</span>
+        </div>
+      );
+    }
+
+    if (!canUndertake) return null;
+
+    if (canUndertake.can_undertake) {
+      return (
+        <div className="flex items-center gap-2 text-green-600">
+          <CheckCircle className="h-5 w-5" />
+          <span className="text-sm font-medium">You can undertake this task</span>
+        </div>
+      );
+    } else {
+      // Check if user is blocked due to previous rejection
+      if (canUndertake.block_details) {
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-red-600">
+              <XCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">You are blocked from this task</span>
+            </div>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-red-700 mb-1">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Block Details</span>
+              </div>
+              <p className="text-xs text-red-600 mb-2">{canUndertake.block_details.reason}</p>
+              <div className="flex items-center justify-between text-xs text-red-600">
+                <span>Days remaining: {canUndertake.block_details.days_remaining}</span>
+                <span>Blocked until: {new Date(canUndertake.block_details.blocked_until).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="flex items-center gap-2 text-red-600">
+          <XCircle className="h-5 w-5" />
+          <span className="text-sm font-medium">{canUndertake.reason}</span>
+        </div>
+      );
+    }
+  };
+
   const renderOverviewTab = () => (
     <div className="space-y-6">
+      {/* Capability Indicator */}
+      {renderCapabilityIndicator()}
+
       {/* Basic Information */}
       <div className="bg-gray-50 p-4 rounded-lg">
         <h4 className="text-sm font-medium text-gray-700 mb-3">Basic Information</h4>
@@ -265,14 +353,34 @@ const TaskDetailModal = ({ isOpen, task = {
       {/* Skills */}
       {task.skills && task.skills.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
-          <div className="flex flex-wrap gap-2">
-            {task.skills.map((skill, index) => (
-              <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {skill.name}
-              </span>
-            ))}
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills & Minimum Levels</h4>
+          <div className="space-y-3">
+            {task.skills.map((skill, index) => {
+              const minLevel = task.skill_review_requirements?.[skill.name] || 1;
+              return (
+                <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="text-sm font-medium text-blue-800">{skill.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-600">Min Level:</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-3 h-3 ${
+                            star <= minLevel ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          }`}
+                        />
+                      ))}
+                      <span className="text-xs text-blue-600 ml-1">({minLevel})</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          <p className="text-xs text-gray-500 mt-2">
+            You need to meet or exceed these minimum skill levels to undertake this task.
+          </p>
         </div>
       )}
 
@@ -349,6 +457,48 @@ const TaskDetailModal = ({ isOpen, task = {
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Show evaluation results if available */}
+                {assignment.status === 'completed' && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Work Approved</span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      This work was approved by peer reviewers.
+                    </p>
+                  </div>
+                )}
+                
+                {assignment.status === 'rejected' && (
+                  <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <XCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Work Rejected</span>
+                    </div>
+                    <p className="text-xs text-red-600 mt-1">
+                      This work was rejected by majority of peer reviewers. The task is now open for other contributors.
+                    </p>
+                    <div className="mt-2 p-2 bg-red-100 rounded border border-red-300">
+                      <p className="text-xs text-red-700">
+                        <strong>Note:</strong> The original contributor is blocked from this task for 30 days due to the rejection.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {assignment.status === 'needs_review' && (
+                  <div className="mt-3 p-3 bg-pink-50 rounded-lg border border-pink-200">
+                    <div className="flex items-center gap-2 text-pink-700">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">Needs Additional Review</span>
+                    </div>
+                    <p className="text-xs text-pink-600 mt-1">
+                      This work received mixed reviews and needs additional evaluation.
+                    </p>
                   </div>
                 )}
               </div>
@@ -679,13 +829,14 @@ const TaskDetailModal = ({ isOpen, task = {
               console.log('Footer rendering - task status:', task.status);
               console.log('Footer rendering - task category:', task.category);
               console.log('Footer rendering - onUndertake exists:', !!onUndertake);
-              console.log('Footer rendering - should show button:', onUndertake && (task.status === 'open' || task.status === 'available'));
+              console.log('Footer rendering - canUndertake:', canUndertake);
               return null;
             })()}
-            {onUndertake && (
-              (task.status === 'open' || task.status === 'available' || !task.status) || 
-              (task.category === 'review' && task.status === 'submitted_for_review')
-            ) && (
+            {onUndertake && 
+              canUndertake?.can_undertake && 
+              ((task.status === 'open' || task.status === 'available' || !task.status) || 
+              (task.category === 'review' && task.status === 'submitted_for_review'))
+            && (
               <button
                 onClick={() => onUndertake(task)}
                 className={`px-4 py-2 text-white rounded-md text-sm font-medium hover:bg-opacity-90 ${
@@ -695,6 +846,19 @@ const TaskDetailModal = ({ isOpen, task = {
                 }`}
               >
                 {task.category === 'review' ? 'Review Task' : 'Undertake Task'}
+              </button>
+            )}
+            {onUndertake && 
+              canUndertake && 
+              !canUndertake.can_undertake && 
+              (task.status === 'open' || task.status === 'available' || !task.status)
+            && (
+              <button
+                disabled
+                className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm font-medium cursor-not-allowed"
+                title={canUndertake.reason}
+              >
+                Cannot Undertake
               </button>
             )}
             {onResubmit && task.status === 'rejected' && (

@@ -63,7 +63,7 @@ def add_user_skills(
     current_user = Depends(get_current_user)
 ):
     """
-    Add or update skills for a user with optional ratings.
+    Add or update skills for a user. All new skills start with a 2.5 rating.
     Also removes any skills not in the new list.
     """
     # Verify user exists
@@ -100,32 +100,22 @@ def add_user_skills(
     if len(skills) != len(skills_update.skill_ids):
         raise HTTPException(status_code=404, detail="One or more skills not found")
     
-    # If ratings are provided, verify they match the number of skills
-    if skills_update.ratings and len(skills_update.ratings) != len(skills_update.skill_ids):
-        raise HTTPException(status_code=400, detail="Number of ratings must match number of skills")
-    
-    # Add skills with optional ratings
-    for i, skill_id in enumerate(skills_update.skill_ids):
-        rating = skills_update.ratings[i] if skills_update.ratings else None
-        
+    # Add skills with 2.5 rating for new skills, keep existing ratings for existing skills
+    for skill_id in skills_update.skill_ids:
         # Check if skill already exists for user
         existing = db.execute(
-            text("SELECT 1 FROM contributor_skill WHERE user_id = :user_id AND skill_id = :skill_id"),
+            text("SELECT rating FROM contributor_skill WHERE user_id = :user_id AND skill_id = :skill_id"),
             {"user_id": user_id, "skill_id": skill_id}
         ).first()
         
         if existing:
-            if rating is not None:
-                # Update existing skill rating
-                db.execute(
-                    text("UPDATE contributor_skill SET rating = :rating WHERE user_id = :user_id AND skill_id = :skill_id"),
-                    {"user_id": user_id, "skill_id": skill_id, "rating": rating}
-                )
+            # Keep existing rating, don't change it
+            continue
         else:
-            # Add new skill with optional rating
+            # New skill gets 2.5 rating
             db.execute(
                 text("INSERT INTO contributor_skill (user_id, skill_id, rating) VALUES (:user_id, :skill_id, :rating)"),
-                {"user_id": user_id, "skill_id": skill_id, "rating": rating}
+                {"user_id": user_id, "skill_id": skill_id, "rating": 2.5}
             )
     
     db.commit()
@@ -223,6 +213,7 @@ def add_new_user_skill(
     """
     Add a new skill by name and associate it with the user.
     If the skill already exists, associate the existing skill with the user.
+    All new skills start with a 2.5 rating.
     """
     # Verify user exists
     user = db.query(User).filter(User.id == user_id).first()
@@ -234,7 +225,6 @@ def add_new_user_skill(
         raise HTTPException(status_code=403, detail="Not authorized to modify this user's skills")
     
     skill_name = skill_data.get("skill_name")
-    rating = skill_data.get("rating")
     
     if not skill_name:
         raise HTTPException(status_code=400, detail="Skill name is required")
@@ -254,25 +244,21 @@ def add_new_user_skill(
     
     # Associate skill with user
     existing = db.execute(
-        text("SELECT 1 FROM contributor_skill WHERE user_id = :user_id AND skill_id = :skill_id"),
+        text("SELECT rating FROM contributor_skill WHERE user_id = :user_id AND skill_id = :skill_id"),
         {"user_id": user_id, "skill_id": skill_id}
     ).first()
     
     if existing:
-        if rating is not None:
-            # Update existing skill rating
-            db.execute(
-                text("UPDATE contributor_skill SET rating = :rating WHERE user_id = :user_id AND skill_id = :skill_id"),
-                {"user_id": user_id, "skill_id": skill_id, "rating": rating}
-            )
+        # Skill already exists for user, return existing rating
+        rating = existing.rating
     else:
-        # Add new skill with optional rating
+        # New skill gets 2.5 rating
+        rating = 2.5
         db.execute(
             text("INSERT INTO contributor_skill (user_id, skill_id, rating) VALUES (:user_id, :skill_id, :rating)"),
             {"user_id": user_id, "skill_id": skill_id, "rating": rating}
         )
-    
-    db.commit()
+        db.commit()
     
     # Return the skill with rating
     return {

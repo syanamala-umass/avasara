@@ -4,6 +4,7 @@ from typing import List, Optional
 import logging
 import traceback
 import sys
+from datetime import datetime
 
 from app.models.task_assignment import TaskAssignment
 from app.models.review import Review
@@ -87,8 +88,6 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
         for task in matched_tasks
     ]
 
-
-
 @router.post("/", response_model=TaskWithDetails, status_code=status.HTTP_201_CREATED)
 def create_new_task(
     task: TaskCreate,
@@ -148,6 +147,7 @@ def create_new_task(
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
+        "skill_review_requirements": db_task.skill_review_requirements,
         "category": "task",  # Default category for newly created tasks
         
         # Additional fields required by TaskWithDetails
@@ -161,7 +161,6 @@ def create_new_task(
     }
     
     return task_response
-
 
 @router.get("/", response_model=List[TaskWithDetails])
 def read_tasks(
@@ -194,7 +193,7 @@ def read_tasks(
             # For review tasks, we want tasks that have submitted assignments
             # BUT exclude tasks where the current user is the original task completer
             query = query.join(models.TaskAssignment).filter(
-                models.TaskAssignment.status == 'submitted_for_review',
+                models.TaskAssignment.status == 'submitted',
                 models.TaskAssignment.user_id != current_user.id  # Exclude tasks completed by current user
             ).distinct()
             
@@ -256,6 +255,7 @@ def read_tasks(
                     "created_at": task.created_at,
                     "status": task.status,
                     "category": category or "task",  # Add category field
+                    "skill_review_requirements": task.skill_review_requirements,
                     
                     # Additional fields required by TaskWithDetails
                     "skills": skills,
@@ -348,6 +348,7 @@ def read_task(
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
+        "skill_review_requirements": db_task.skill_review_requirements,
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
@@ -361,13 +362,9 @@ def read_task(
     
     return task_response
 
-
 @router.put("/{task_id}", response_model=Task)
 def update_task_details(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     return update_task(db=db, task_id=task_id, task=task, user_id=current_user.id)
-
-
-
 
 def assign_reviewers_randomly(db: Session, task_id: int, num_reviewers: int = 2):
     # 1. Fetch the completed task
@@ -399,7 +396,6 @@ def assign_reviewers_randomly(db: Session, task_id: int, num_reviewers: int = 2)
     # 5. Optionally return selected reviewer IDs
     return [reviewer.id for reviewer in selected_reviewers]
 
-
 @router.post("/{task_id}/complete")
 def complete_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
@@ -413,7 +409,6 @@ def complete_task(task_id: int, db: Session = Depends(get_db)):
     # 🔥 DO NOT assign reviewers here anymore
 
     return {"message": "Task marked as completed."}
-
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
@@ -444,7 +439,6 @@ def delete_task(
     
     return None
 
-
 @router.post("/{task_id}/submit")
 async def submit_task(
     task_id: int,
@@ -469,12 +463,10 @@ async def submit_task(
         raise HTTPException(status_code=404, detail="No active assignment found for this task")
 
     try:
-        # Update assignment status
-        assignment.status = 'submitted_for_review'
+        # Update assignment status to submitted
+        assignment.status = 'submitted'
         assignment.notes = notes or 'Task submitted for review'
-        
-        # Update task status
-        task.status = 'submitted_for_review'
+        assignment.submitted_at = datetime.utcnow()
         
         # Save files if provided
         if files:
@@ -485,122 +477,12 @@ async def submit_task(
         db.commit()
         
         return {
-            "message": "Task submitted successfully",
-            "status": "submitted_for_review"
+            "message": "Task submitted successfully. Peer evaluations will be created automatically.",
+            "status": "submitted"
         }
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/{task_id}/review")
-async def review_task(
-    task_id: int,
-    review_data: dict,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    logger.info(f"=== Starting review submission for task {task_id} ===")
-    logger.info(f"Current user: {current_user.id} ({current_user.username})")
-    logger.info(f"Review data received: {review_data}")
-    
-    # Get the task
-    task = db.query(models.Task).filter(models.Task.id == task_id).first()
-    if not task:
-        logger.error(f"Task {task_id} not found in database")
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    logger.info(f"Task found: {task.title} (ID: {task.id})")
-    logger.info(f"Task current status: {task.status}")
-
-    # Get the task assignment for the specific user
-    assignment = db.query(TaskAssignment).filter(
-        TaskAssignment.task_id == task_id,
-        TaskAssignment.user_id == current_user.id
-    ).first()
-
-    if not assignment:
-        logger.error(f"No assignment found for task {task_id} and user {current_user.id}")
-        raise HTTPException(status_code=404, detail="No assignment found for this task and user")
-    
-    logger.info(f"Assignment found: ID {assignment.id}")
-    logger.info(f"Assignment current status: {assignment.status}")
-
-    # Check if user has already reviewed this task
-    existing_review = db.query(models.Review).filter(
-        models.Review.task_id == task_id,
-        models.Review.reviewer_id == current_user.id
-    ).first()
-    
-    if existing_review:
-        logger.error(f"User {current_user.id} has already reviewed task {task_id}")
-        raise HTTPException(status_code=400, detail="You have already reviewed this task")
-
-    try:
-        # Extract review data
-        is_approved = review_data.get('status') == 'accepted'  # Convert accept/reject to boolean
-        feedback = review_data.get('feedback', '')
-        
-        # Create review
-        review = models.Review(
-            task_id=task_id,
-            assignment_id=assignment.id,
-            user_id=assignment.user_id,
-            reviewer_id=current_user.id,
-            is_approved=is_approved,
-            feedback=feedback if not is_approved else None  # Only store feedback for rejections
-        )
-        db.add(review)
-        logger.info(f"New review created: is_approved={is_approved}, feedback_length={len(feedback) if feedback else 0}")
-
-        # Update assignment status
-        assignment.status = 'reviewed'
-        logger.info(f"Assignment status updated to: {assignment.status}")
-        
-        # Check majority decision
-        all_reviews = db.query(models.Review).filter(
-            models.Review.task_id == task_id
-        ).all()
-        
-        logger.info(f"Total reviews for task: {len(all_reviews)}")
-        logger.info(f"Required reviews: {task.num_reviewers or 1}")
-        
-        if len(all_reviews) >= (task.num_reviewers or 1):
-            # Count approvals vs rejections
-            approvals = sum(1 for r in all_reviews if r.is_approved)
-            rejections = len(all_reviews) - approvals
-            
-            logger.info(f"Approvals: {approvals}, Rejections: {rejections}")
-            
-            # Majority decision
-            if approvals > rejections:
-                task.status = 'completed'
-                logger.info(f"Task approved by majority. Status: {task.status}")
-            else:
-                task.status = 'rejected'
-                # Reset assignment for resubmission
-                assignment.status = 'in_progress'
-                logger.info(f"Task rejected by majority. Status: {task.status}, Assignment reset to: {assignment.status}")
-        else:
-            task.status = 'submitted_for_review'
-            logger.info(f"More reviews needed. Status: {task.status}")
-
-        db.commit()
-        logger.info("Database changes committed successfully")
-        
-        return {
-            "message": "Review submitted successfully",
-            "status": task.status,
-            "reviews_submitted": len(all_reviews),
-            "reviews_required": task.num_reviewers or 1,
-            "approvals": sum(1 for r in all_reviews if r.is_approved),
-            "rejections": sum(1 for r in all_reviews if not r.is_approved)
-        }
-    except Exception as e:
-        logger.error(f"Error during review submission: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/{task_id}/details")
 def get_task_details(
@@ -687,8 +569,9 @@ def get_task_details(
         "max_parallel_contributors": db_task.max_parallel_contributors,
         "contributor_time_limit_hours": db_task.contributor_time_limit_hours,
         
-        # Skills
+        # Skills and skill requirements
         "skills": skills,
+        "skill_review_requirements": db_task.skill_review_requirements,
         
         # Additional metadata
         "has_assignment": check_existing_assignment(task_id=task_id, user_id=current_user.id)
@@ -795,7 +678,6 @@ def get_task_details(
     
     return task_details
 
-
 @router.get("/{task_id}/review-submissions")
 def get_review_submissions(
     task_id: int,
@@ -811,7 +693,7 @@ def get_review_submissions(
     # Get all assignments for this task that are submitted for review
     assignments = db.query(TaskAssignment).filter(
         TaskAssignment.task_id == task_id,
-        TaskAssignment.status == "submitted_for_review"
+        TaskAssignment.status == "submitted"
     ).all()
     
     # Get all reviews for this task

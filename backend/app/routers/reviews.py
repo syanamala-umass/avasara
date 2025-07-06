@@ -19,14 +19,11 @@ def create_new_review(
     db: Session = Depends(get_db), 
     current_user = Depends(get_current_user)
 ):
-    # Verify the task exists and is submitted for review
+    # Verify the task exists
     from app.crud.task import get_task
     task = get_task(db, task_id=review.task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    if task.status != "submitted_for_review":
-        raise HTTPException(status_code=400, detail="Only tasks submitted for review can be reviewed")
     
     # Verify the assignment exists and is submitted for review
     from app.crud.task_assignment import get_task_assignment
@@ -34,7 +31,7 @@ def create_new_review(
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
-    if assignment.status != "submitted_for_review":
+    if assignment.status != "submitted":
         raise HTTPException(status_code=400, detail="Only assignments submitted for review can be reviewed")
     
     # Verify the contributor is the one who completed the task
