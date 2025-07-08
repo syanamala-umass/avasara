@@ -135,7 +135,7 @@ def create_test_task():
         
         # Create test task
         logger.info("Creating test task...")
-        skill_requirements = {'Python': 3, 'JavaScript': 2}
+        skill_requirements = {'Python': 2, 'JavaScript': 2}
         logger.info(f"  Skill requirements: {skill_requirements}")
         
         cursor.execute("""

@@ -5,6 +5,9 @@ from app.models.task_assignment import TaskAssignment
 from app.models.review import Review
 from app.models.skill import Skill
 from app.models.task_compensation import TaskCompensation
+from app.models.review_task import ReviewTask, ReviewTaskAssignment
+from app.models.task_block import TaskBlock
+from app.models.task_reviewer import TaskReviewer
 
 # Add Resource model
 from sqlalchemy import Column, Integer, String

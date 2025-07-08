@@ -152,7 +152,7 @@ def create_new_assignment(
             raise HTTPException(
                 status_code=403,
                 detail=f"Your skill levels do not meet the minimum requirements for this task. You can view all tasks but can only {assignment_type_text} tasks where you meet the minimum skill level requirements."
-            )
+        )
     
     return crud.create_task_assignment(assignment, current_user.id)
 
@@ -235,7 +235,7 @@ def read_assignment(
     assignment = crud.get_task_assignment(assignment_id)
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
-    if assignment.user_id != current_user.id:
+    if assignment['user_id'] != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to view this assignment")
     return assignment
 
@@ -310,59 +310,65 @@ async def update_assignment_status(
     
     # If the assignment is being marked as submitted, trigger peer evaluation process
     if assignment.status == "submitted":
-        # Get task details for peer evaluation
-        with get_db_cursor() as cursor:
+        print(f"DEBUG: Creating review tasks for assignment {assignment_id}")
+        # Get task details for peer evaluation and create review tasks
+        with get_db_cursor(commit=True) as cursor:
             cursor.execute(
                 "SELECT num_reviewers, title, description FROM tasks WHERE id = %s",
                 (db_assignment['task_id'],)
             )
             task = cursor.fetchone()
+            print(f"DEBUG: Task data: {task}")
         
-        # Create new review tasks for peer evaluation
-        # These will be picked up by any qualified contributors
-        num_reviewers = task["num_reviewers"] or 2
-        
-        for i in range(num_reviewers):
-            # Create a new review task
-            review_task_title = f"Review: {task['title']} (Submission #{assignment_id})"
-            review_task_description = f"""
-            Review the submitted work for task: {task['title']}
+            # Create new review tasks for peer evaluation
+            # These will be picked up by any qualified contributors
+            num_reviewers = task["num_reviewers"] or 2
+            print(f"DEBUG: Creating {num_reviewers} review tasks")
             
-            Submission Details:
-            - Assignment ID: {assignment_id}
-            - Original Task: {task['title']}
+            for i in range(num_reviewers):
+                # Create a new review task
+                review_task_title = f"Review: {task['title']} (Submission #{assignment_id})"
+                review_task_description = f"""
+                Review the submitted work for task: {task['title']}
+                
+                Submission Details:
+                - Assignment ID: {assignment_id}
+                - Original Task: {task['title']}
+                
+                Provide constructive feedback.
+                """
+                
+                print(f"DEBUG: Inserting review task with title: {review_task_title}")
+                
+                # Insert the review task into review_tasks table
+                cursor.execute("""
+                    INSERT INTO review_tasks (
+                        title, description, status, skill_requirements, 
+                        parent_task_id, assignment_being_reviewed_id,
+                        compensation_amount, compensation_type
+                    ) VALUES (
+                        %s, %s, 'open', %s, %s, %s, %s, %s
+                    ) RETURNING id
+                """, (
+                    review_task_title,
+                    review_task_description,
+                    task.get('skill_review_requirements', '{}'),  # Same skill requirements as original task
+                    db_assignment['task_id'],  # Link to parent task
+                    assignment_id,  # Link to the assignment being reviewed
+                    25,  # Review compensation amount
+                    'cash'  # Review compensation type
+                ))
+                
+                review_task_id = cursor.fetchone()['id']
+                print(f"Created review task {review_task_id} for assignment {assignment_id}")
             
-            Provide constructive feedback.
-            """
-            
-            # Insert the review task into review_tasks table
+            # Update the original task status to indicate it's under review
             cursor.execute("""
-                INSERT INTO review_tasks (
-                    title, description, status, skill_requirements, 
-                    parent_task_id, assignment_being_reviewed_id,
-                    compensation_amount, compensation_type
-                ) VALUES (
-                    %s, %s, 'open', %s, %s, %s, %s, %s
-                ) RETURNING id
-            """, (
-                review_task_title,
-                review_task_description,
-                task.get('skill_review_requirements', '{}'),  # Same skill requirements as original task
-                db_assignment['task_id'],  # Link to parent task
-                assignment_id,  # Link to the assignment being reviewed
-                25,  # Review compensation amount
-                'cash'  # Review compensation type
-            ))
-            
-            review_task_id = cursor.fetchone()[0]
-            print(f"Created review task {review_task_id} for assignment {assignment_id}")
-        
-        # Update the original task status to indicate it's under review
-        cursor.execute("""
-            UPDATE tasks 
-            SET status = 'under_review' 
-            WHERE id = %s
-        """, (db_assignment['task_id'],))
+                UPDATE tasks 
+                SET status = 'under_review' 
+                WHERE id = %s
+            """, (db_assignment['task_id'],))
+            print(f"DEBUG: Updated task {db_assignment['task_id']} status to 'under_review'")
     
     # If the assignment is being marked as completed (after reviews), update skill ratings
     elif assignment.status == "completed":

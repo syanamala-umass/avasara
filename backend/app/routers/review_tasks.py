@@ -245,7 +245,7 @@ def update_review_assignment(
         HTTPException 400: If invalid data provided
         HTTPException 500: If database operation fails
     """
-    with get_db_cursor() as cursor:
+    with get_db_cursor(commit=True) as cursor:
         # Check if assignment exists and belongs to user
         cursor.execute("""
             SELECT rta.*, rt.parent_task_id, rt.assignment_being_reviewed_id
@@ -321,24 +321,31 @@ def check_and_aggregate_reviews(cursor, assignment_id: int):
     total_reviews = 0
     
     for review_task in review_tasks:
+        # Get ALL assignments for this review task, not just the first one
         cursor.execute("""
             SELECT rta.status, rta.accept_reject
             FROM review_task_assignments rta
             WHERE rta.review_task_id = %s
         """, (review_task['id'],))
         
-        review_assignment = cursor.fetchone()
-        if not review_assignment or review_assignment['status'] != 'completed':
+        review_assignments = cursor.fetchall()  # Get all assignments, not just one
+        
+        # Check if any assignment for this review task is not completed
+        task_completed = False
+        for review_assignment in review_assignments:
+            if review_assignment['status'] == 'completed':
+                task_completed = True
+                # Count accept/reject decisions
+                if review_assignment['accept_reject'] is True:
+                    accept_count += 1
+                elif review_assignment['accept_reject'] is False:
+                    reject_count += 1
+                total_reviews += 1
+                break  # Only count one completed review per review task
+        
+        if not task_completed:
             all_completed = False
             break
-        
-        # Count accept/reject decisions
-        if review_assignment['accept_reject'] is True:
-            accept_count += 1
-        elif review_assignment['accept_reject'] is False:
-            reject_count += 1
-        
-        total_reviews += 1
     
     if all_completed and total_reviews > 0:
         # Determine approval/rejection based on majority of accept/reject decisions

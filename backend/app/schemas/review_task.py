@@ -6,7 +6,7 @@ from decimal import Decimal
 class ReviewTaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    status: str = Field(default="open", regex="^(open|in_progress|completed|cancelled)$")
+    status: str = Field(default="open", pattern="^(open|in_progress|completed|cancelled)$")
     skill_requirements: Dict[str, Any] = Field(default_factory=dict)
     compensation_amount: Decimal = Field(default=0, ge=0)
     compensation_type: str = Field(default="cash")
@@ -18,7 +18,7 @@ class ReviewTaskCreate(ReviewTaskBase):
 class ReviewTaskUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    status: Optional[str] = Field(None, regex="^(open|in_progress|completed|cancelled)$")
+    status: Optional[str] = Field(None, pattern="^(open|in_progress|completed|cancelled)$")
     skill_requirements: Optional[Dict[str, Any]] = None
     compensation_amount: Optional[Decimal] = Field(None, ge=0)
     compensation_type: Optional[str] = None
@@ -32,11 +32,11 @@ class ReviewTask(ReviewTaskBase):
     completed_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Review Task Assignment Schemas
 class ReviewAssignmentBase(BaseModel):
-    status: str = Field(default="assigned", regex="^(assigned|in_progress|completed|cancelled)$")
+    status: str = Field(default="assigned", pattern="^(assigned|in_progress|completed|cancelled)$")
     accept_reject: Optional[bool] = None  # TRUE = accept, FALSE = reject, NULL = not decided
     technical_score: Optional[Decimal] = Field(None, ge=0, le=5)
     collaboration_score: Optional[Decimal] = Field(None, ge=0, le=5)
@@ -50,7 +50,7 @@ class ReviewAssignmentCreate(ReviewAssignmentBase):
     review_task_id: int
 
 class ReviewAssignmentUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(assigned|in_progress|completed|cancelled)$")
+    status: Optional[str] = Field(None, pattern="^(assigned|in_progress|completed|cancelled)$")
     accept_reject: Optional[bool] = None  # TRUE = accept, FALSE = reject, NULL = not decided
     technical_score: Optional[Decimal] = Field(None, ge=0, le=5)
     collaboration_score: Optional[Decimal] = Field(None, ge=0, le=5)
@@ -69,7 +69,7 @@ class ReviewAssignment(ReviewAssignmentBase):
     completed_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Combined schemas for API responses
 class ReviewTaskWithDetails(ReviewTask):
