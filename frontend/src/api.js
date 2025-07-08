@@ -1,7 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/';
+const API_URL = process.env.REACT_APP_API_URL || 'https://avasara-backend.onrender.com/';
 
 // Create axios instance with auth header
 const api = axios.create({
