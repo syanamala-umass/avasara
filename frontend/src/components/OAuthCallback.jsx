@@ -28,7 +28,8 @@ const OAuthCallback = () => {
           
           // Fetch user data
           try {
-            const response = await fetch('http://localhost:8000/auth/me', {
+            const API_URL = process.env.REACT_APP_API_URL || 'https://avasara-backend.onrender.com';
+            const response = await fetch(`${API_URL}/auth/me`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
