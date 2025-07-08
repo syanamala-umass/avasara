@@ -14,4 +14,4 @@ class Skill(SkillBase):
         orm_mode = True
 
 class SkillWithRating(Skill):
-    rating: Optional[int] = None
+    rating: Optional[float] = None

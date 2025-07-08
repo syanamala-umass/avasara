@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react';
+import { X, Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Star, Users } from 'lucide-react';
 import { fetchTasks, canUndertakeTask } from './api';
 
 const categories = [
@@ -11,14 +11,18 @@ const categories = [
   'Operations',
   'Other',
 ];
+
 const compensationTypes = ['All', 'cash', 'equity'];
+const taskTypes = ['All', 'task', 'review'];
 
 const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
   const [filters, setFilters] = useState({
-    keyword: '',
+    title: '',
     category: 'All',
-    compensation: 'All',
-    deadline: '',
+    compensationType: 'All',
+    minCompensation: '',
+    maxCompensation: '',
+    taskType: 'All',
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,13 +63,27 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
     setLoading(true);
     setError('');
     try {
+      // Send all parameters to backend since it now supports all filters
       const params = {};
-      if (filters.keyword) params.search = filters.keyword;
+      
+      // 1. Title search
+      if (filters.title) params.title = filters.title;
+      
+      // 2. Skill set/category filtering
       if (filters.category !== 'All') params.category = filters.category;
-      if (filters.compensation !== 'All') params.compensation_type = filters.compensation;
-      if (filters.deadline) params.deadline = filters.deadline;
+      
+      // 3. Task type filtering
+      if (filters.taskType !== 'All') params.task_type = filters.taskType;
+      
+      // 4. Compensation type and range
+      if (filters.compensationType !== 'All') params.compensation_type = filters.compensationType;
+      if (filters.minCompensation) params.min_compensation = parseFloat(filters.minCompensation);
+      if (filters.maxCompensation) params.max_compensation = parseFloat(filters.maxCompensation);
+      
+      // Fetch tasks from backend with all filters
       const response = await fetchTasks(params);
       const tasks = response.data || [];
+      
       setResults(tasks);
       
       // Check capabilities for all tasks
@@ -140,6 +158,16 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
     );
   };
 
+  const formatCompensation = (task) => {
+    if (!task.compensation_amount || !task.compensation_type) return 'Not specified';
+    if (task.compensation_type === 'cash') {
+      return `$${task.compensation_amount}`;
+    } else if (task.compensation_type === 'equity') {
+      return `${task.compensation_amount}% equity`;
+    }
+    return `${task.compensation_amount} ${task.compensation_type}`;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-8 relative animate-fadeIn">
@@ -164,17 +192,20 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
           </p>
         </div>
         <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* 1. Title Search */}
           <div className="flex items-center bg-indigo-50 rounded-xl px-3">
             <Search className="h-5 w-5 text-indigo-400 mr-2" />
             <input
               type="text"
-              name="keyword"
-              value={filters.keyword}
+              name="title"
+              value={filters.title}
               onChange={handleChange}
-              placeholder="Keyword..."
+              placeholder="Search by title..."
               className="w-full bg-transparent border-none focus:ring-0 py-3"
             />
           </div>
+          
+          {/* 2. Skill Set/Category */}
           <div className="flex items-center bg-indigo-50 rounded-xl px-3">
             <Tag className="h-5 w-5 text-indigo-400 mr-2" />
             <select
@@ -188,29 +219,79 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
               ))}
             </select>
           </div>
+          
+          {/* 3. Task Type */}
+          <div className="flex items-center bg-indigo-50 rounded-xl px-3">
+            <Users className="h-5 w-5 text-indigo-400 mr-2" />
+            <select
+              name="taskType"
+              value={filters.taskType}
+              onChange={handleChange}
+              className="w-full bg-transparent border-none focus:ring-0 py-3"
+            >
+              {taskTypes.map(type => (
+                <option key={type} value={type}>
+                  {type === 'All' ? 'All Task Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* 4. Compensation Type */}
           <div className="flex items-center bg-indigo-50 rounded-xl px-3">
             <DollarSign className="h-5 w-5 text-indigo-400 mr-2" />
             <select
-              name="compensation"
-              value={filters.compensation}
+              name="compensationType"
+              value={filters.compensationType}
               onChange={handleChange}
               className="w-full bg-transparent border-none focus:ring-0 py-3"
             >
               {compensationTypes.map(type => (
-                <option key={type} value={type}>{type === 'All' ? 'Any Compensation' : type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                <option key={type} value={type}>
+                  {type === 'All' ? 'Any Compensation' : type.charAt(0).toUpperCase() + type.slice(1)}
+                </option>
               ))}
             </select>
           </div>
-          <div className="flex items-center bg-indigo-50 rounded-xl px-3">
-            <Calendar className="h-5 w-5 text-indigo-400 mr-2" />
-            <input
-              type="date"
-              name="deadline"
-              value={filters.deadline}
-              onChange={handleChange}
-              className="w-full bg-transparent border-none focus:ring-0 py-3"
-            />
-          </div>
+          
+          {/* 5. Compensation Range - Only show when cash is selected */}
+          {filters.compensationType === 'cash' && (
+            <div className="col-span-1 md:col-span-2">
+              <div className="bg-indigo-50 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="h-5 w-5 text-indigo-400" />
+                  <span className="text-sm font-medium text-indigo-700">Compensation Range</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-indigo-600 mb-1">Minimum</label>
+                    <input
+                      type="number"
+                      name="minCompensation"
+                      value={filters.minCompensation}
+                      onChange={handleChange}
+                      placeholder="0"
+                      min="0"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-indigo-600 mb-1">Maximum</label>
+                    <input
+                      type="number"
+                      name="maxCompensation"
+                      value={filters.maxCompensation}
+                      onChange={handleChange}
+                      placeholder="1000"
+                      min="0"
+                      className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="col-span-1 md:col-span-2 flex justify-end">
             <button
               type="submit"
@@ -238,12 +319,17 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-bold text-indigo-800">{task.title}</h3>
                         {getCapabilityIcon(task.id)}
+                        {task.category === 'review' && (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                            Review Task
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 mb-2">{task.startup_name}</div>
                       <div className="flex items-center text-xs text-gray-400 gap-2 mb-2">
                         <Tag className="h-4 w-4" /> {task.category}
-                        <DollarSign className="h-4 w-4 ml-4" /> {task.compensation_amount} {task.compensation_type}
-                        <Calendar className="h-4 w-4 ml-4" /> {task.deadline}
+                        <DollarSign className="h-4 w-4 ml-4" /> {formatCompensation(task)}
+                        <Calendar className="h-4 w-4 ml-4" /> {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}
                       </div>
                       {renderSkillRequirements(task)}
                       <div className={`text-sm font-medium ${getCapabilityClass(task.id)}`}>

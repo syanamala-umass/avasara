@@ -1,0 +1,152 @@
+21:25:15 - INFO - 🚀 Starting API-Based Acceptance System Test
+21:25:15 - INFO - 🔄 STEP: Creating test users
+21:25:15 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+21:25:15 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+21:25:15 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+21:25:16 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+21:25:16 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+21:25:16 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+21:25:16 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+21:25:16 - INFO - 🔄 STEP: Logging in test users
+21:25:16 - INFO - 🔄 STEP: Logging in user: api_accept_contributor@test.com
+21:25:16 - INFO - ✅ SUCCESS: User api_accept_contributor@test.com logged in successfully
+21:25:16 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1@test.com
+21:25:17 - INFO - ✅ SUCCESS: User api_accept_reviewer1@test.com logged in successfully
+21:25:17 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2@test.com
+21:25:17 - INFO - ✅ SUCCESS: User api_accept_reviewer2@test.com logged in successfully
+21:25:17 - INFO - 🔄 STEP: Adding skills to users
+21:25:17 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:25:17 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:25:17 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:25:17 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:25:17 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:25:17 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:25:17 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:25:17 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:25:17 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:25:17 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:25:17 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:25:17 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:25:17 - INFO - 🔄 STEP: Creating test task
+21:25:17 - INFO - 🔄 STEP: Creating task: API Test Acceptance Task
+21:25:17 - INFO - ✅ SUCCESS: Task 'API Test Acceptance Task' created with ID: 84
+21:25:17 - INFO - 🔄 STEP: Assigning task to user1
+21:25:17 - INFO - 🔄 STEP: Assigning task to user for task 84
+21:25:17 - INFO - ✅ SUCCESS: Task 84 assigned successfully. Assignment ID: 90
+21:25:17 - INFO - 🔄 STEP: Submitting work for review
+21:25:17 - INFO - 🔄 STEP: Submitting work for assignment 90
+21:25:17 - INFO - ✅ SUCCESS: Work submitted successfully for assignment 90
+21:25:17 - INFO - 🔄 STEP: Waiting for review tasks to be created
+21:25:20 - INFO - 🔄 STEP: Collecting review tasks from database
+21:25:20 - INFO - 🔄 STEP: Collecting review tasks from database for assignment 90
+21:25:20 - INFO - ✅ SUCCESS: Found 2 review tasks in database for assignment 90
+21:25:20 - INFO - ℹ️  INFO:   Review task 18: Review: API Test Acceptance Task (Submission #90) (status: open)
+21:25:20 - INFO - ℹ️  INFO:   Review task 19: Review: API Test Acceptance Task (Submission #90) (status: open)
+21:25:20 - INFO - 🔄 STEP: Assigning review task to user2
+21:25:20 - INFO - 🔄 STEP: Assigning review task 18 directly
+21:25:20 - INFO - ✅ SUCCESS: Review task 18 assigned successfully. Assignment ID: 7
+21:25:20 - INFO - 🔄 STEP: Assigning review task to user3
+21:25:20 - INFO - 🔄 STEP: Assigning review task 19 directly
+21:25:20 - INFO - ✅ SUCCESS: Review task 19 assigned successfully. Assignment ID: 8
+21:25:20 - INFO - 🔄 STEP: Submitting positive review from user2
+21:25:20 - INFO - 🔄 STEP: Submitting review for assignment 7 directly (Accept: True)
+21:25:20 - INFO - ✅ SUCCESS: Review submitted successfully for assignment 7
+21:25:20 - INFO - 🔄 STEP: Submitting positive review from user3
+21:25:20 - INFO - 🔄 STEP: Submitting review for assignment 8 directly (Accept: True)
+21:25:20 - INFO - ✅ SUCCESS: Review submitted successfully for assignment 8
+21:25:20 - INFO - 🔄 STEP: Triggering review aggregation
+21:25:20 - INFO - 🔄 STEP: Triggering review aggregation for assignment 90
+21:25:20 - INFO - ✅ SUCCESS: Assignment 90 approved: 2 accept, 0 reject
+21:25:20 - INFO - 🔄 STEP: Checking final assignment status
+21:25:20 - INFO - 🔄 STEP: Checking status of assignment 90
+21:25:20 - ERROR - ❌ ERROR: Failed to check assignment status: Internal Server Error
+21:25:20 - INFO - 🔄 STEP: Checking final task status
+21:25:20 - INFO - 🔄 STEP: Checking status of task 84
+21:25:20 - INFO - ℹ️  INFO: Task 84 status: completed
+21:25:20 - INFO - 🔄 STEP: Checking user skills
+21:25:20 - INFO - 🔄 STEP: Checking user skills
+21:25:20 - ERROR - ❌ ERROR: Failed to get user skills: {"detail":"Failed to get your skill ratings: column cs.num_tasks does not exist\nLINE 2:                 SELECT cs.skill_id, cs.rating, cs.num_tasks,...\n                                                       ^\n"}
+21:25:20 - ERROR - ❌ ERROR: ❌ API ACCEPTANCE TEST FAILED!
+21:25:20 - ERROR - ❌ API acceptance test failed!
+21:38:09 - INFO - 🚀 Starting API-Based Acceptance System Test
+21:38:09 - INFO - 🔄 STEP: Creating test users
+21:38:09 - INFO - 🔄 STEP: Creating user: api_accept_contributor
+21:38:09 - INFO - ✅ SUCCESS: User api_accept_contributor registered successfully
+21:38:09 - INFO - Set email_verified and is_active to TRUE for api_accept_contributor@test.com
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_contributor login successful, ID: 136
+21:38:10 - INFO - 🔄 STEP: Creating user: api_accept_reviewer1
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_reviewer1 registered successfully
+21:38:10 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer1@test.com
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_reviewer1 login successful, ID: 137
+21:38:10 - INFO - 🔄 STEP: Creating user: api_accept_reviewer2
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_reviewer2 registered successfully
+21:38:10 - INFO - Set email_verified and is_active to TRUE for api_accept_reviewer2@test.com
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_reviewer2 login successful, ID: 138
+21:38:10 - INFO - 🔄 STEP: Logging in test users
+21:38:10 - INFO - 🔄 STEP: Logging in user: api_accept_contributor@test.com
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_contributor@test.com logged in successfully
+21:38:10 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer1@test.com
+21:38:10 - INFO - ✅ SUCCESS: User api_accept_reviewer1@test.com logged in successfully
+21:38:10 - INFO - 🔄 STEP: Logging in user: api_accept_reviewer2@test.com
+21:38:11 - INFO - ✅ SUCCESS: User api_accept_reviewer2@test.com logged in successfully
+21:38:11 - INFO - 🔄 STEP: Adding skills to users
+21:38:11 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:38:11 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:38:11 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:38:11 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:38:11 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:38:11 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:38:11 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:38:11 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:38:11 - INFO - 🔄 STEP: Adding skills to user: ['Python', 'JavaScript']
+21:38:11 - INFO - ℹ️  INFO: Found skill 'Python' with ID: 2
+21:38:11 - INFO - ℹ️  INFO: Found skill 'JavaScript' with ID: 7
+21:38:11 - INFO - ✅ SUCCESS: Added 2 skills to user
+21:38:11 - INFO - 🔄 STEP: Creating test task
+21:38:11 - INFO - 🔄 STEP: Creating task: API Test Acceptance Task
+21:38:11 - INFO - ✅ SUCCESS: Task 'API Test Acceptance Task' created with ID: 85
+21:38:11 - INFO - 🔄 STEP: Assigning task to user1
+21:38:11 - INFO - 🔄 STEP: Assigning task to user for task 85
+21:38:11 - INFO - ✅ SUCCESS: Task 85 assigned successfully. Assignment ID: 91
+21:38:11 - INFO - 🔄 STEP: Submitting work for review
+21:38:11 - INFO - 🔄 STEP: Submitting work for assignment 91
+21:38:11 - INFO - ✅ SUCCESS: Work submitted successfully for assignment 91
+21:38:11 - INFO - 🔄 STEP: Waiting for review tasks to be created
+21:38:14 - INFO - 🔄 STEP: Collecting review tasks from database
+21:38:14 - INFO - 🔄 STEP: Collecting review tasks from database for assignment 91
+21:38:14 - INFO - ✅ SUCCESS: Found 2 review tasks in database for assignment 91
+21:38:14 - INFO - ℹ️  INFO:   Review task 20: Review: API Test Acceptance Task (Submission #91) (status: open)
+21:38:14 - INFO - ℹ️  INFO:   Review task 21: Review: API Test Acceptance Task (Submission #91) (status: open)
+21:38:14 - INFO - 🔄 STEP: Assigning review task to user2
+21:38:14 - INFO - 🔄 STEP: Assigning review task 20 directly
+21:38:14 - INFO - ✅ SUCCESS: Review task 20 assigned successfully. Assignment ID: 9
+21:38:14 - INFO - 🔄 STEP: Assigning review task to user3
+21:38:14 - INFO - 🔄 STEP: Assigning review task 21 directly
+21:38:14 - INFO - ✅ SUCCESS: Review task 21 assigned successfully. Assignment ID: 10
+21:38:14 - INFO - 🔄 STEP: Submitting positive review from user2
+21:38:14 - INFO - 🔄 STEP: Submitting review for assignment 9 directly (Accept: True)
+21:38:14 - INFO - ✅ SUCCESS: Review submitted successfully for assignment 9
+21:38:14 - INFO - 🔄 STEP: Submitting positive review from user3
+21:38:14 - INFO - 🔄 STEP: Submitting review for assignment 10 directly (Accept: True)
+21:38:14 - INFO - ✅ SUCCESS: Review submitted successfully for assignment 10
+21:38:14 - INFO - 🔄 STEP: Triggering review aggregation
+21:38:14 - INFO - 🔄 STEP: Triggering review aggregation for assignment 91
+21:38:14 - INFO - ✅ SUCCESS: Assignment 91 approved: 2 accept, 0 reject
+21:38:14 - INFO - 🔄 STEP: Checking final assignment status
+21:38:14 - INFO - 🔄 STEP: Checking status of assignment 91
+21:38:14 - INFO - ℹ️  INFO: Assignment 91 status: completed
+21:38:14 - INFO - 🔄 STEP: Checking final task status
+21:38:14 - INFO - 🔄 STEP: Checking status of task 85
+21:38:14 - INFO - ℹ️  INFO: Task 85 status: completed
+21:38:14 - INFO - 🔄 STEP: Checking user skills
+21:38:14 - INFO - 🔄 STEP: Checking user skills
+21:38:14 - INFO - ✅ SUCCESS: Found 2 skills for user
+21:38:14 - INFO - ℹ️  INFO:   JavaScript: 2.5
+21:38:14 - INFO - ℹ️  INFO:   Python: 2.5
+21:38:14 - INFO - ✅ SUCCESS: 🎉 API ACCEPTANCE TEST PASSED!
+21:38:14 - INFO - ✅ API acceptance test completed successfully!

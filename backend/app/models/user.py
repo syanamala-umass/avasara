@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, String, Integer, ForeignKey, Table, Float, DateTime
+from sqlalchemy import Boolean, Column, String, Integer, ForeignKey, Table, Float, DateTime, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
@@ -9,7 +9,12 @@ contributor_skill = Table(
     Base.metadata,
     Column('user_id', Integer, ForeignKey('users.id')),
     Column('skill_id', Integer, ForeignKey('skills.id')),
-    Column('rating', Integer, nullable=True)
+    Column('rating', Float, default=2.5),
+    Column('num_tasks', Integer, default=0),
+    Column('total_score', Float, default=0.0),
+    Column('confidence_constant', Integer, default=20),
+    Column('baseline_rating', Float, default=2.5),
+    PrimaryKeyConstraint('user_id', 'skill_id')
 )
 
 class User(Base):

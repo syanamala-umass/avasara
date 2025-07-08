@@ -265,4 +265,17 @@ def add_new_user_skill(
         "id": skill_id,
         "name": skill_name,
         "rating": rating
+    }
+
+@router.get("/me")
+def get_current_user_info(current_user = Depends(get_current_user)):
+    """
+    Get the current user's information (id, username, email, etc).
+    """
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "is_active": current_user.is_active,
+        "email_verified": getattr(current_user, "email_verified", None)
     } 

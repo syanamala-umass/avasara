@@ -33,6 +33,23 @@ router = APIRouter(
 
 @router.get("/reviewable", response_model=List[TaskWithDetails])
 def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """
+    Retrieve tasks that are available for review by the current user.
+    
+    This endpoint filters completed tasks based on the user's skills and returns
+    tasks that match the user's skill set. Only tasks with status 'completed'
+    are considered for review.
+    
+    Args:
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        List[TaskWithDetails]: List of tasks available for review, filtered by user skills
+        
+    Raises:
+        HTTPException: If database query fails or user skills are invalid
+    """
     print("please ikkadiki anna ra")
     from app.models.task import Task
     # Fetch all completed tasks
@@ -94,6 +111,26 @@ def create_new_task(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    """
+    Create a new task in the system.
+    
+    This endpoint allows authenticated users to create new tasks with specified
+    requirements, compensation, and skill requirements. The task is automatically
+    associated with the current user as the creator.
+    
+    Args:
+        task (TaskCreate): Task creation data including title, description, 
+                          compensation, deadline, and skill requirements
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user (task creator)
+        
+    Returns:
+        TaskWithDetails: Complete task information including all relationships
+                        and computed fields like assignment counts
+        
+    Raises:
+        HTTPException: If task creation fails or validation errors occur
+    """
     print("=== Task Creation Debug ===")
     print(f"Current user: {current_user}")
     print(f"Task data: {task}")
@@ -152,7 +189,7 @@ def create_new_task(
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
-        "creator_name": db_task.user.username,
+        "creator_name": db_task.user.username if db_task.user else "Unknown User",
         "creator_avatar": None,
         "assignments_count": assignments_count,
         "reviews_count": reviews_count,
@@ -170,13 +207,48 @@ def read_tasks(
     status: str = None, 
     creator_id: int = None,
     category: str = None,
+    title: str = None,
+    compensation_type: str = None,
+    min_compensation: float = None,
+    max_compensation: float = None,
+    task_type: str = None,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    """
+    Retrieve a paginated list of tasks with optional filtering.
+    
+    This endpoint provides comprehensive task listing with support for filtering
+    by status, creator, category, title search, compensation type and range,
+    and task type. For review category, it automatically excludes tasks where 
+    the current user is the original task completer.
+    
+    Args:
+        request (Request): FastAPI request object for logging
+        skip (int): Number of records to skip for pagination (default: 0)
+        limit (int): Maximum number of records to return (default: 100)
+        status (str, optional): Filter tasks by status (e.g., 'open', 'in_progress', 'completed')
+        creator_id (int, optional): Filter tasks by specific creator ID
+        category (str, optional): Filter by skill category ('Development', 'Design', 'Marketing', etc.)
+        title (str, optional): Search in task title
+        compensation_type (str, optional): Filter by compensation type ('cash', 'equity')
+        min_compensation (float, optional): Minimum compensation amount
+        max_compensation (float, optional): Maximum compensation amount
+        task_type (str, optional): Filter by task type ('task' or 'review')
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        List[TaskWithDetails]: List of tasks with complete details including
+                              relationships, compensation, and statistics
+        
+    Raises:
+        HTTPException: If database query fails or processing errors occur
+    """
     try:
         # Log the full URL and query parameters
         logger.info(f"Request URL: {request.url}")
-        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}")
+        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}")
         logger.info(f"Current user: {current_user.id}")
         
         # Get tasks with skills and user relationships loaded
@@ -185,11 +257,45 @@ def read_tasks(
             joinedload(models.Task.user)
         )
         
+        # Apply filters
         if status:
             query = query.filter(models.Task.status == status)
         if creator_id:
             query = query.filter(models.Task.user_id == creator_id)
-        if category == 'review':
+        if title:
+            # Search in task title
+            search_term = f"%{title}%"
+            query = query.filter(models.Task.title.ilike(search_term))
+            logger.info(f"Filtering tasks by title: {title}")
+        if task_type and task_type != 'All':
+            # Filter by task type (task or review)
+            query = query.filter(models.Task.category == task_type)
+            logger.info(f"Filtering tasks by task type: {task_type}")
+        if category and category != 'All':
+            # Filter by skill category
+            category_skills = {
+                'Development': ['programming', 'coding', 'software', 'development', 'frontend', 'backend', 'fullstack', 'react', 'python', 'javascript', 'java', 'node.js', 'database', 'api'],
+                'Design': ['design', 'ui', 'ux', 'graphic', 'visual', 'illustration', 'photoshop', 'figma', 'sketch', 'prototyping', 'wireframing'],
+                'Marketing': ['marketing', 'social media', 'content', 'seo', 'advertising', 'branding', 'campaign', 'analytics', 'growth'],
+                'Research': ['research', 'analysis', 'data', 'survey', 'interview', 'market research', 'competitive analysis', 'user research'],
+                'Operations': ['operations', 'management', 'coordination', 'planning', 'strategy', 'process', 'optimization', 'efficiency'],
+                'Other': []
+            }
+            
+            skill_names = category_skills.get(category, [])
+            if skill_names:
+                # Create OR conditions for skill names
+                from sqlalchemy import or_
+                skill_conditions = []
+                for skill_name in skill_names:
+                    skill_conditions.append(models.Skill.name.ilike(f"%{skill_name}%"))
+                
+                if skill_conditions:
+                    query = query.join(models.Task.skills).filter(or_(*skill_conditions))
+                    logger.info(f"Filtering tasks by skill category: {category}")
+            
+        # Handle review tasks special case
+        if task_type == 'review':
             # For review tasks, we want tasks that have submitted assignments
             # BUT exclude tasks where the current user is the original task completer
             query = query.join(models.TaskAssignment).filter(
@@ -242,6 +348,24 @@ def read_tasks(
                 # Get compensation data
                 compensation = task_compensations.get(task.id, {}).get('task')
                 
+                # Apply compensation filters
+                if compensation_type and compensation_type != 'All':
+                    if not compensation or compensation.compensation_type != compensation_type:
+                        logger.info(f"Skipping task {task.id} - compensation type mismatch")
+                        continue
+                
+                # Only apply min/max compensation filters for cash compensation
+                if compensation_type == 'cash':
+                    if min_compensation is not None:
+                        if not compensation or compensation.amount < min_compensation:
+                            logger.info(f"Skipping task {task.id} - below minimum compensation")
+                            continue
+                    
+                    if max_compensation is not None:
+                        if not compensation or compensation.amount > max_compensation:
+                            logger.info(f"Skipping task {task.id} - above maximum compensation")
+                            continue
+                
                 # Create a dictionary for this task with all required fields
                 task_dict = {
                     # Basic task fields
@@ -254,12 +378,11 @@ def read_tasks(
                     "deadline": task.deadline,
                     "created_at": task.created_at,
                     "status": task.status,
-                    "category": category or "task",  # Add category field
+                    "category": task.category,  # Use actual database value
                     "skill_review_requirements": task.skill_review_requirements,
                     
                     # Additional fields required by TaskWithDetails
                     "skills": skills,
-                    "creator_name": task.user.username,  # Using username since name field doesn't exist
                     "creator_avatar": None,  # Avatar field doesn't exist
                     "assignments_count": assignments_count,
                     "reviews_count": reviews_count,
@@ -288,6 +411,25 @@ def read_task(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    """
+    Retrieve detailed information about a specific task.
+    
+    This endpoint returns comprehensive information about a single task including
+    all relationships, compensation details, skill requirements, and whether
+    the current user has an assignment for this task.
+    
+    Args:
+        task_id (int): Unique identifier of the task to retrieve
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        TaskWithDetails: Complete task information with all relationships
+                        and computed fields
+        
+    Raises:
+        HTTPException: If task is not found (404) or database errors occur
+    """
     # Get the task with skills relationship loaded
     db_task = db.query(models.Task).options(
         joinedload(models.Task.skills)
@@ -352,7 +494,7 @@ def read_task(
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
-        "creator_name": db_task.user.username,
+        "creator_name": db_task.user.username if db_task.user else "Unknown User",
         "creator_avatar": None,
         "assignments_count": assignments_count,
         "reviews_count": reviews_count,
@@ -364,9 +506,44 @@ def read_task(
 
 @router.put("/{task_id}", response_model=Task)
 def update_task_details(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Update an existing task's details.
+    
+    This endpoint allows task creators to modify their tasks. Only the original
+    task creator can update task details.
+    
+    Args:
+        task_id (int): Unique identifier of the task to update
+        task (TaskUpdate): Updated task data
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        Task: Updated task information
+        
+    Raises:
+        HTTPException: If task not found, user not authorized, or update fails
+    """
     return update_task(db=db, task_id=task_id, task=task, user_id=current_user.id)
 
 def assign_reviewers_randomly(db: Session, task_id: int, num_reviewers: int = 2):
+    """
+    Randomly assign reviewers to a completed task.
+    
+    This helper function selects random reviewers from eligible users
+    (excluding the task completer) and creates Review records for them.
+    
+    Args:
+        db (Session): Database session
+        task_id (int): ID of the completed task
+        num_reviewers (int): Number of reviewers to assign (default: 2)
+        
+    Returns:
+        List[int]: List of assigned reviewer user IDs
+        
+    Raises:
+        Exception: If task not found or no eligible reviewers available
+    """
     # 1. Fetch the completed task
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
@@ -398,6 +575,23 @@ def assign_reviewers_randomly(db: Session, task_id: int, num_reviewers: int = 2)
 
 @router.post("/{task_id}/complete")
 def complete_task(task_id: int, db: Session = Depends(get_db)):
+    """
+    Mark a task as completed.
+    
+    This endpoint changes the task status to 'completed'. Note that this
+    function no longer automatically assigns reviewers - that is handled
+    by the peer evaluation system.
+    
+    Args:
+        task_id (int): Unique identifier of the task to complete
+        db (Session): Database session dependency
+        
+    Returns:
+        dict: Success message confirming task completion
+        
+    Raises:
+        HTTPException: If task not found or completion fails
+    """
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found.")
@@ -416,6 +610,23 @@ def delete_task(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    """
+    Delete a task from the system.
+    
+    This endpoint allows task creators to delete their tasks, but only if
+    the task is still in 'open' status (not assigned or completed).
+    
+    Args:
+        task_id (int): Unique identifier of the task to delete
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        None: 204 No Content on successful deletion
+        
+    Raises:
+        HTTPException: If task not found, user not authorized, or task cannot be deleted
+    """
     # Get the task
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     
@@ -447,6 +658,26 @@ async def submit_task(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    """
+    Submit a completed task for peer review.
+    
+    This endpoint allows contributors to submit their completed work for review.
+    The task assignment status changes from 'in_progress' to 'submitted', and
+    peer evaluations are automatically created for review.
+    
+    Args:
+        task_id (int): Unique identifier of the task being submitted
+        files (List[UploadFile], optional): Files submitted with the task
+        notes (str, optional): Additional notes about the submission
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user (task contributor)
+        
+    Returns:
+        dict: Success message and submission status
+        
+    Raises:
+        HTTPException: If task not found, no active assignment, or submission fails
+    """
     # Get the task
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
@@ -490,8 +721,31 @@ def get_task_details(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Get comprehensive task details including assignments, reviews, and statistics"""
+    """
+    Get comprehensive task details with role-based access control.
     
+    This endpoint provides detailed task information with different levels of
+    detail based on the user's role:
+    - Dispatchers (task creators): Full access to all assignments and reviews
+    - Reviewers: Access to assignments and reviews for tasks they're reviewing
+    - Contributors: Access to their own assignments and related reviews
+    - Other users: Basic task information only
+    
+    Args:
+        task_id (int): Unique identifier of the task
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        dict: Task details with role-appropriate information including:
+              - Basic task info (all users)
+              - Assignments and reviews (role-based)
+              - Statistics and metrics (role-based)
+              - User relationship indicators
+        
+    Raises:
+        HTTPException: If task not found or database errors occur
+    """
     logger.info(f"=== Task Details Request ===")
     logger.info(f"Task ID: {task_id}")
     logger.info(f"Current user: {current_user.id}")
@@ -684,7 +938,25 @@ def get_review_submissions(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Get review submissions for a specific task"""
+    """
+    Get all review submissions for a specific task.
+    
+    This endpoint retrieves all submitted assignments for a task along with
+    their associated reviews. This is useful for dispatchers and reviewers
+    to see the complete review status of all submissions.
+    
+    Args:
+        task_id (int): Unique identifier of the task
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        dict: Task information and list of submissions with their reviews,
+              including submission metadata and review details
+        
+    Raises:
+        HTTPException: If task not found or database errors occur
+    """
     # Get the task
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
