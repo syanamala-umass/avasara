@@ -19,12 +19,21 @@ router = APIRouter(
 
 @router.post("/register", response_model=RegistrationResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    email_service = EmailService()
-    db_user = create_user(db=db, user=user, email_service=email_service)
-    # Send verification email
-    
-    email_service.send_verification_email(db_user["email"], db_user["username"], db_user["email_verification_token"])
-    return {"message": "Registration successful. Please check your email to verify your account."}
+    try:
+        email_service = EmailService()
+        db_user = create_user(db=db, user=user, email_service=email_service)
+        # Send verification email
+        email_service.send_verification_email(db_user["email"], db_user["username"], db_user["email_verification_token"])
+        return {"message": "Registration successful. Please check your email to verify your account."}
+    except HTTPException:
+        # Re-raise HTTPExceptions (like duplicate email/username errors)
+        raise
+    except Exception as e:
+        # Handle any other unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed. Please try again."
+        )
 
 @router.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
