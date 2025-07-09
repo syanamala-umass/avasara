@@ -5,6 +5,7 @@ from app.database import get_db
 from app.services.oauth import oauth_service
 from app.core.security import create_access_token
 from app.config import settings
+from app.services.login_logger import LoginLogger
 from typing import Optional
 
 router = APIRouter(
@@ -50,9 +51,13 @@ async def github_authorize():
     return {"auth_url": auth_url}
 
 @router.get("/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
+async def google_callback(code: str, db: Session = Depends(get_db), request: Request = None):
     """Handle Google OAuth callback"""
     try:
+        # Get client IP and user agent
+        client_ip = request.client.host if request else None
+        user_agent = request.headers.get("user-agent") if request else None
+        
         # Exchange code for access token
         access_token = await oauth_service.exchange_google_code(code)
         if not access_token:
@@ -71,6 +76,16 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         
         # Process user (create or get existing)
         user = oauth_service.process_oauth_user(db, user_info, "Google")
+        
+        # Log successful OAuth login
+        LoginLogger.log_login(
+            db=db,
+            user_id=user["id"],
+            login_method="oauth_google",
+            ip_address=client_ip,
+            user_agent=user_agent,
+            success="success"
+        )
         
         # Create JWT token
         jwt_token = create_access_token(data={"sub": user["email"]})

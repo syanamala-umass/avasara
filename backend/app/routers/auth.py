@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
@@ -10,6 +10,7 @@ from app.crud.user import create_user, authenticate_user
 from app.core.security import create_access_token
 from app.dependencies import get_current_user
 from app.services.email_service import EmailService
+from app.services.login_logger import LoginLogger
 
 router = APIRouter(
     prefix="/auth",
@@ -36,14 +37,43 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         )
 
 @router.post("/token", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db: Session = Depends(get_db),
+    request: Request = None
+):
+    # Get client IP and user agent
+    client_ip = request.client.host if request else None
+    user_agent = request.headers.get("user-agent") if request else None
+    
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
+        # Log failed login attempt
+        if request:
+            LoginLogger.log_login(
+                db=db,
+                user_id=0,  # No user ID for failed login
+                login_method="email",
+                ip_address=client_ip,
+                user_agent=user_agent,
+                success="failed"
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Log successful login
+    LoginLogger.log_login(
+        db=db,
+        user_id=user["id"],
+        login_method="email",
+        ip_address=client_ip,
+        user_agent=user_agent,
+        success="success"
+    )
+    
     access_token = create_access_token(data={"sub": user["email"]})
     
     return {
