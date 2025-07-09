@@ -123,7 +123,17 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
                     text("INSERT INTO contributor_skill (user_id, skill_id) VALUES (:user_id, :skill_id)"),
                     {"user_id": result.id, "skill_id": skill_id}
                 )
+        
+        # Commit the transaction
         db.commit()
+        print("Database transaction committed")
+        
+        # Verify the token was actually stored by querying the database
+        verify_query = text("""
+            SELECT email_verification_token FROM users WHERE id = :user_id
+        """)
+        verify_result = db.execute(verify_query, {"user_id": result.id}).fetchone()
+        print(f"Token verification after commit: {verify_result.email_verification_token if verify_result else 'NOT FOUND'}")
         
         print("User registration completed successfully")
         
