@@ -71,6 +71,9 @@ def get_user_by_username(db: Session, username: str):
 
 def create_user(db: Session, user: UserCreate, email_service: EmailService):
     """Create a new user with hashed password and skills"""
+    print(f"=== USER REGISTRATION DEBUG ===")
+    print(f"Creating user: {user.email}")
+    
     # Check for existing email
     existing_user = get_user_by_email(db, user.email)
     if existing_user:
@@ -93,6 +96,9 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
     verification_expires = email_service.get_verification_expiry()
     verification_sent_at = datetime.utcnow()
     
+    print(f"Generated token: {verification_token}")
+    print(f"Token expires: {verification_expires}")
+    
     try:
         query = text("""
             INSERT INTO users (email, username, hashed_password, is_active, email_verified, email_verification_token, email_verification_expires, email_verification_sent_at)
@@ -108,6 +114,9 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
             "sent_at": verification_sent_at
         }).fetchone()
         
+        print(f"User created with ID: {result.id}")
+        print(f"Stored token: {result.email_verification_token}")
+        
         if user.skills:
             for skill_id in user.skills:
                 db.execute(
@@ -115,6 +124,8 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
                     {"user_id": result.id, "skill_id": skill_id}
                 )
         db.commit()
+        
+        print("User registration completed successfully")
         
         return {
             "id": result.id,
@@ -130,6 +141,7 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
         
     except Exception as e:
         db.rollback()
+        print(f"Error creating user: {e}")
         # Handle specific database constraint errors
         error_message = str(e).lower()
         if "unique constraint" in error_message:

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
@@ -7,6 +7,7 @@ const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
   const [message, setMessage] = useState('');
+  const hasVerified = useRef(false); // Prevent double verification
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -15,10 +16,25 @@ const VerifyEmail = () => {
       setMessage('Invalid verification link.');
       return;
     }
+
+    // Prevent double verification
+    if (hasVerified.current) {
+      return;
+    }
+
     const verify = async () => {
       try {
         setStatus('loading');
-        const response = await axios.get(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+        hasVerified.current = true; // Mark as verified to prevent double execution
+        
+        // Use localhost for local development, production URL for production
+        const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://avasara-backend.onrender.com');
+        console.log(`[${new Date().toISOString()}] Verifying email with API URL:`, API_URL);
+        console.log(`[${new Date().toISOString()}] Token:`, token);
+        
+        const response = await axios.get(`${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`);
+        console.log(`[${new Date().toISOString()}] Verification response:`, response.data);
+        
         if (response.data.success) {
           setStatus('success');
           setMessage(response.data.message || 'Email verified successfully!');
@@ -27,12 +43,15 @@ const VerifyEmail = () => {
           setMessage(response.data.message || 'Verification failed.');
         }
       } catch (err) {
+        console.error('Verification error:', err);
+        console.error('Error response:', err.response?.data);
         setStatus('error');
-        setMessage('Verification failed. Please try again or request a new verification email.');
+        setMessage(err.response?.data?.message || 'Verification failed. Please try again or request a new verification email.');
       }
     };
+
     verify();
-  }, [searchParams]);
+  }, [searchParams]); // Only depend on searchParams
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 px-4">
