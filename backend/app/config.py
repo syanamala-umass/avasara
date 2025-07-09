@@ -1,15 +1,23 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 import secrets
+import os
 
 
 class Settings(BaseSettings):
-    # Connect to PostgreSQL instead of SQLite
-    DATABASE_URL: str = "postgresql://avasara_user:yourpassword@localhost:5432/startup_platform"
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://avasara_user:yourpassword@localhost:5432/startup_platform")
 
     SECRET_KEY: str = "your-strong-static-secret-key"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     ALGORITHM: str = "HS256"
+
+    # Email Configuration
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    FROM_EMAIL: str = ""
 
     # OAuth Configuration
     # Google OAuth
