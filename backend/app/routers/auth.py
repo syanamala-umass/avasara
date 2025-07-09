@@ -59,26 +59,40 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.get("/verify-email")
 def verify_email(token: str = Query(...), db: Session = Depends(get_db)):
+    print(f"=== EMAIL VERIFICATION DEBUG ===")
+    print(f"Token received: {token}")
+    
     # Find user by token
-    query = """
+    query = text("""
         SELECT id, email_verification_expires, email_verified
         FROM users
         WHERE email_verification_token = :token
         LIMIT 1
-    """
-    result = db.execute(text(query), {"token": token}).fetchone()
+    """)
+    result = db.execute(query, {"token": token}).fetchone()
+    
     if not result:
+        print("No user found with this token")
         return {"success": False, "message": "Invalid or expired verification link."}
+    
+    print(f"User found: ID={result.id}, verified={result.email_verified}, expires={result.email_verification_expires}")
+    
     if result.email_verified:
+        print("Email already verified")
         return {"success": True, "message": "Email already verified."}
+    
     if result.email_verification_expires and datetime.utcnow() > result.email_verification_expires:
+        print("Token expired")
         return {"success": False, "message": "Verification link has expired."}
+    
     # Mark email as verified and activate user
-    update_query = """
+    update_query = text("""
         UPDATE users
         SET email_verified = TRUE, is_active = TRUE, email_verification_token = NULL, email_verification_expires = NULL
         WHERE id = :id
-    """
-    db.execute(text(update_query), {"id": result.id})
+    """)
+    db.execute(update_query, {"id": result.id})
     db.commit()
+    
+    print("Email verification successful")
     return {"success": True, "message": "Email verified successfully! You can now log in."}
