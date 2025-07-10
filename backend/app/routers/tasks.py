@@ -212,6 +212,7 @@ def read_tasks(
     min_compensation: float = None,
     max_compensation: float = None,
     task_type: str = None,
+    skill_id: int = None,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -220,8 +221,8 @@ def read_tasks(
     
     This endpoint provides comprehensive task listing with support for filtering
     by status, creator, category, title search, compensation type and range,
-    and task type. For review category, it automatically excludes tasks where 
-    the current user is the original task completer.
+    task type, and skill requirements. For review category, it automatically 
+    excludes tasks where the current user is the original task completer.
     
     Args:
         request (Request): FastAPI request object for logging
@@ -235,6 +236,7 @@ def read_tasks(
         min_compensation (float, optional): Minimum compensation amount
         max_compensation (float, optional): Maximum compensation amount
         task_type (str, optional): Filter by task type ('task' or 'review')
+        skill_id (int, optional): Filter tasks by specific skill ID
         db (Session): Database session dependency
         current_user (User): Currently authenticated user
         
@@ -248,7 +250,7 @@ def read_tasks(
     try:
         # Log the full URL and query parameters
         logger.info(f"Request URL: {request.url}")
-        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}")
+        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}")
         logger.info(f"Current user: {current_user.id}")
         
         # Get tasks with skills and user relationships loaded
@@ -284,15 +286,28 @@ def read_tasks(
             
             skill_names = category_skills.get(category, [])
             if skill_names:
-                # Create OR conditions for skill names
-                from sqlalchemy import or_
+                # Create OR conditions for skill names using subquery
+                from sqlalchemy import exists, or_
                 skill_conditions = []
                 for skill_name in skill_names:
                     skill_conditions.append(models.Skill.name.ilike(f"%{skill_name}%"))
                 
                 if skill_conditions:
-                    query = query.join(models.Task.skills).filter(or_(*skill_conditions))
+                    category_subquery = db.query(models.Task.id).join(
+                        models.Task.skills
+                    ).filter(or_(*skill_conditions)).subquery()
+                    query = query.filter(exists().where(models.Task.id == category_subquery.c.id))
                     logger.info(f"Filtering tasks by skill category: {category}")
+        
+        # Handle skill_id filtering
+        if skill_id:
+            # Use a subquery to avoid multiple JOINs with the same table
+            from sqlalchemy import exists
+            skill_subquery = db.query(models.Task.id).join(
+                models.Task.skills
+            ).filter(models.Skill.id == skill_id).subquery()
+            query = query.filter(exists().where(models.Task.id == skill_subquery.c.id))
+            logger.info(f"Filtering tasks by skill ID: {skill_id}")
             
         # Handle review tasks special case
         if task_type == 'review':
@@ -324,6 +339,12 @@ def read_tasks(
         for task in tasks:
             try:
                 logger.info(f"Processing task {task.id}")
+                
+                # Skip tasks with null user_id or created_at
+                if task.user_id is None or task.created_at is None:
+                    logger.warning(f"Skipping task {task.id} - missing user_id or created_at")
+                    continue
+                
                 # Get assignments and reviews count
                 assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
                 reviews_count = db.query(Review).filter(Review.task_id == task.id).count()
@@ -383,6 +404,7 @@ def read_tasks(
                     
                     # Additional fields required by TaskWithDetails
                     "skills": skills,
+                    "creator_name": task.user.username if task.user else "Unknown User",
                     "creator_avatar": None,  # Avatar field doesn't exist
                     "assignments_count": assignments_count,
                     "reviews_count": reviews_count,
