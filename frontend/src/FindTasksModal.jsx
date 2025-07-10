@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Star, Users } from 'lucide-react';
-import { fetchTasks, canUndertakeTask } from './api';
+import { fetchTasks, canUndertakeTask, fetchSkills } from './api';
 
 const categories = [
   'All',
@@ -21,13 +21,29 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
     category: 'All',
     compensationType: 'All',
     minCompensation: '',
-    maxCompensation: '',
+    skillId: '',
     taskType: 'All',
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [taskCapabilities, setTaskCapabilities] = useState({});
+  const [availableSkills, setAvailableSkills] = useState([]);
+
+  useEffect(() => {
+    const loadSkills = async () => {
+      try {
+        const response = await fetchSkills();
+        setAvailableSkills(response.data || []);
+      } catch (err) {
+        console.error('Error loading skills:', err);
+      }
+    };
+    
+    if (isOpen) {
+      loadSkills();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -78,7 +94,9 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
       // 4. Compensation type and range
       if (filters.compensationType !== 'All') params.compensation_type = filters.compensationType;
       if (filters.minCompensation) params.min_compensation = parseFloat(filters.minCompensation);
-      if (filters.maxCompensation) params.max_compensation = parseFloat(filters.maxCompensation);
+      
+      // 5. Skill filtering
+      if (filters.skillId) params.skill_id = parseInt(filters.skillId);
       
       // Fetch tasks from backend with all filters
       const response = await fetchTasks(params);
@@ -254,35 +272,39 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
             </select>
           </div>
           
-          {/* 5. Compensation Range - Only show when cash is selected */}
+          {/* 5. Skill Filter */}
+          <div className="flex items-center bg-indigo-50 rounded-xl px-3">
+            <Star className="h-5 w-5 text-indigo-400 mr-2" />
+            <select
+              name="skillId"
+              value={filters.skillId}
+              onChange={handleChange}
+              className="w-full bg-transparent border-none focus:ring-0 py-3"
+            >
+              <option value="">All Skills</option>
+              {availableSkills.map(skill => (
+                <option key={skill.id} value={skill.id}>{skill.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* 6. Compensation Range - Only show when cash is selected */}
           {filters.compensationType === 'cash' && (
             <div className="col-span-1 md:col-span-2">
               <div className="bg-indigo-50 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <DollarSign className="h-5 w-5 text-indigo-400" />
-                  <span className="text-sm font-medium text-indigo-700">Compensation Range</span>
+                  <span className="text-sm font-medium text-indigo-700">Minimum Compensation</span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="block text-xs text-indigo-600 mb-1">Minimum</label>
+                    <label className="block text-xs text-indigo-600 mb-1">Minimum Amount</label>
                     <input
                       type="number"
                       name="minCompensation"
                       value={filters.minCompensation}
                       onChange={handleChange}
                       placeholder="0"
-                      min="0"
-                      className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-indigo-600 mb-1">Maximum</label>
-                    <input
-                      type="number"
-                      name="maxCompensation"
-                      value={filters.maxCompensation}
-                      onChange={handleChange}
-                      placeholder="1000"
                       min="0"
                       className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
@@ -325,7 +347,7 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 mb-2">{task.startup_name}</div>
+                      <div className="text-sm text-gray-500 mb-2">{task.creator_name || 'Unknown Creator'}</div>
                       <div className="flex items-center text-xs text-gray-400 gap-2 mb-2">
                         <Tag className="h-4 w-4" /> {task.category}
                         <DollarSign className="h-4 w-4 ml-4" /> {formatCompensation(task)}
