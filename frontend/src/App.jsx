@@ -5,6 +5,7 @@ import ProfessionalDashboard from './ProfessionalDashboard';
 import IdeaDetailPage from './IdeaDetailPage';
 import ContributorProfile from './ContributorProfile';
 import TaskBrowser from './pages/contributor/TaskBrowser';
+import TasksPage from './pages/TasksPage';
 import OAuthCallback from './components/OAuthCallback';
 import VerifyEmail from './VerifyEmail';
 import OnboardingFlow from './OnboardingFlow';
@@ -34,6 +35,7 @@ function App() {
       <Route path="/ideas/:id" element={<IdeaDetailPage />} />
       <Route path="/profile" element={<ContributorProfile />} />
       <Route path="/contributor/tasks" element={<TaskBrowser />} />
+      <Route path="/tasks" element={<TasksPage />} />
       <Route path="/auth/callback" element={<OAuthCallback />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/check-email" element={<CheckEmail />} />

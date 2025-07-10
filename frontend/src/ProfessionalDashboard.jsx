@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, 
   Trash2, XCircle, Sparkles, ArrowRight, UserCircle, Filter, MapPin, 
@@ -10,7 +10,6 @@ import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
 import DispatchTaskModal from './DispatchTaskModal';
 import ReviewSubmissionsModal from './ReviewSubmissionsModal';
-import FindTasksModal from './FindTasksModal';
 import {
   fetchTasks,
   fetchTaskAssignments,
@@ -51,7 +50,6 @@ const ProfessionalDashboard = () => {
   const [actionMode, setActionMode] = useState('submit');
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [isReviewSubmissionsModalOpen, setIsReviewSubmissionsModalOpen] = useState(false);
-  const [isFindTasksModalOpen, setIsFindTasksModalOpen] = useState(false);
   const [success, setSuccess] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
@@ -355,7 +353,7 @@ const ProfessionalDashboard = () => {
             {/* Right Side Actions */}
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => setIsFindTasksModalOpen(true)}
+                onClick={() => navigate('/tasks')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center space-x-2"
               >
                 <Briefcase className="h-4 w-4" />
@@ -567,7 +565,7 @@ const ProfessionalDashboard = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
-                  onClick={() => setIsFindTasksModalOpen(true)}
+                  onClick={() => navigate('/tasks')}
                   className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
                 >
                   <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
@@ -674,7 +672,7 @@ const ProfessionalDashboard = () => {
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-gray-900">Active Tasks</h2>
               <button
-                onClick={() => setIsFindTasksModalOpen(true)}
+                onClick={() => navigate('/tasks')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
               >
                 Find More Work
@@ -692,7 +690,7 @@ const ProfessionalDashboard = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Tasks</h3>
                 <p className="text-gray-500 mb-6">You're not currently working on any tasks.</p>
                 <button
-                  onClick={() => setIsFindTasksModalOpen(true)}
+                  onClick={() => navigate('/tasks')}
                   className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                 >
                   Find Work That Matches Your Skills
@@ -765,7 +763,7 @@ const ProfessionalDashboard = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Work</h3>
                 <p className="text-gray-500 mb-6">Complete your first task to see it here.</p>
                 <button
-                  onClick={() => setIsFindTasksModalOpen(true)}
+                  onClick={() => navigate('/tasks')}
                   className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                 >
                   Find Work to Complete
@@ -1040,17 +1038,6 @@ const ProfessionalDashboard = () => {
             setCreatedTasks(prev => [newTask, ...prev]);
             setSuccess('Task created successfully!');
             setIsDispatchModalOpen(false);
-          }}
-        />
-      )}
-
-      {isFindTasksModalOpen && (
-        <FindTasksModal
-          isOpen={isFindTasksModalOpen}
-          onClose={() => setIsFindTasksModalOpen(false)}
-          onTaskSelected={(task) => {
-            handleTaskClick(task);
-            setIsFindTasksModalOpen(false);
           }}
         />
       )}
