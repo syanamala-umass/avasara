@@ -153,24 +153,16 @@ const FindTasksModal = ({ isOpen, onClose, onTaskClick, onUndertakeTask }) => {
 
     return (
       <div className="mt-2">
-        <div className="text-xs text-gray-500 mb-1">Required Skills:</div>
         <div className="flex flex-wrap gap-1">
-          {Object.entries(task.skill_review_requirements).map(([skillName, minLevel]) => (
-            <div key={skillName} className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded text-xs">
-              <span className="text-blue-800 font-medium">{skillName}</span>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-2 h-2 ${
-                      star <= minLevel ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                    }`}
-                  />
-                ))}
-                <span className="text-blue-600 ml-0.5">({minLevel})</span>
+          {Object.entries(task.skill_review_requirements).map(([skillName, minLevel]) => {
+            const numLevel = parseFloat(minLevel);
+            return (
+              <div key={skillName} className="flex items-center gap-1 px-2 py-1 bg-blue-100 rounded text-xs">
+                <span className="text-blue-800 font-medium">{skillName}</span>
+                <span className="text-blue-600">({numLevel.toFixed(1)})</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

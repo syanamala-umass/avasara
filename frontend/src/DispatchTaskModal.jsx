@@ -83,7 +83,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         // Initialize skill level requirement for this skill
         skill_review_requirements: {
           ...prev.skill_review_requirements,
-          [skill.name]: 1  // Default to level 1 required
+          [skill.name]: 0  // Default to level 0 required
         }
       }));
     }
@@ -109,23 +109,24 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       ...prev,
       skill_review_requirements: {
         ...prev.skill_review_requirements,
-        [skillName]: Math.max(1, Math.min(5, parseInt(value) || 1))  // Between 1-5
+        [skillName]: Math.max(0, Math.min(5, parseFloat(value) || 0))  // Between 0-5
       }
     }));
   };
 
   const renderSkillLevelStars = (level) => {
+    const numLevel = parseFloat(level);
     return (
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={`w-3 h-3 ${
-              star <= level ? 'text-yellow-400 fill-current' : 'text-gray-300'
+              star <= numLevel ? 'text-yellow-400 fill-current' : 'text-gray-300'
             }`}
           />
         ))}
-        <span className="text-xs text-gray-600 ml-1">({level})</span>
+        <span className="text-xs text-gray-600 ml-1">({numLevel.toFixed(1)})</span>
       </div>
     );
   };
@@ -281,7 +282,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           Required Skills & Minimum Levels
         </label>
         <p className="text-xs text-gray-600 mb-3">
-          Select skills and set the minimum skill level required (1-5 stars) for contributors to undertake this task.
+          Select skills and set the minimum skill level required (0.0-5.0) for contributors to undertake this task. Use 0.0 for no requirement or enter precise values like 2.7, 3.2, etc.
         </p>
         <div className="relative">
           <input
@@ -313,20 +314,18 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs text-gray-600">Min Level:</label>
-                  <select
-                    value={formData.skill_review_requirements[skill.name] || 1}
-                    onChange={(e) => updateSkillLevelRequirement(skill.name, e.target.value)}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value={1}>1 ⭐</option>
-                    <option value={2}>2 ⭐⭐</option>
-                    <option value={3}>3 ⭐⭐⭐</option>
-                    <option value={4}>4 ⭐⭐⭐⭐</option>
-                    <option value={5}>5 ⭐⭐⭐⭐⭐</option>
-                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    max="5"
+                    value={formData.skill_review_requirements[skill.name] || 0.0}
+                    onChange={(e) => updateSkillLevelRequirement(skill.name, parseFloat(e.target.value) || 0)}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500 w-16"
+                    placeholder="0.0"
+                  />
                 </div>
                 <div className="text-xs text-gray-500">
-                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1)}
+                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 0.0)}
                 </div>
                 <button
                   type="button"
@@ -379,7 +378,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Min Level:</span>
-                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1)}
+                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 0.0)}
                 </div>
               </div>
             ))}
