@@ -8,7 +8,7 @@ class TaskBase(BaseModel):
     description: str
     deadline: Optional[datetime] = None
     category: str = "task"  # Add category field with default value "task"
-    skill_review_requirements: Optional[Dict[str, int]] = None  # {"skill_name": min_reviews_required}
+    skill_review_requirements: Optional[Dict[str, float]] = None  # {"skill_name": min_skill_level_required}
 
 class TaskCreate(TaskBase):
     skills: List[int] = []  # List of skill IDs
@@ -24,7 +24,7 @@ class TaskUpdate(BaseModel):
     deadline: Optional[datetime] = None
     status: Optional[str] = None
     skills: Optional[List[int]] = None
-    skill_review_requirements: Optional[Dict[str, int]] = None
+    skill_review_requirements: Optional[Dict[str, float]] = None
 
 class Task(TaskBase):
     id: int

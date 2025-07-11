@@ -5,7 +5,7 @@ import ProfessionalDashboard from './ProfessionalDashboard';
 import IdeaDetailPage from './IdeaDetailPage';
 import ContributorProfile from './ContributorProfile';
 import TaskBrowser from './pages/contributor/TaskBrowser';
-import TasksPage from './pages/TasksPage';
+import TasksPage from './TasksPage';
 import OAuthCallback from './components/OAuthCallback';
 import VerifyEmail from './VerifyEmail';
 import OnboardingFlow from './OnboardingFlow';

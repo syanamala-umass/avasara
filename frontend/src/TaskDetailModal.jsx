@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, CheckCircle, XCircle, User, FileText, Star, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 import { fetchTaskDetails, canUndertakeTask } from './api';
 
 const TaskDetailModal = ({ isOpen, task = {
@@ -353,27 +353,16 @@ const TaskDetailModal = ({ isOpen, task = {
       {/* Skills */}
       {task.skills && task.skills.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills & Minimum Levels</h4>
-          <div className="space-y-3">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
+          <div className="flex flex-wrap gap-2">
             {task.skills.map((skill, index) => {
-              const minLevel = task.skill_review_requirements?.[skill.name] || 1;
+              const minLevel = task.skill_review_requirements?.[skill.name] || 0.0;
               return (
-                <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div key={index} className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
                   <span className="text-sm font-medium text-blue-800">{skill.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-blue-600">Min Level:</span>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-3 h-3 ${
-                            star <= minLevel ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                      <span className="text-xs text-blue-600 ml-1">({minLevel})</span>
-                    </div>
-                  </div>
+                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    {typeof minLevel === 'number' ? minLevel.toFixed(1) : minLevel}
+                  </span>
                 </div>
               );
             })}
@@ -513,7 +502,7 @@ const TaskDetailModal = ({ isOpen, task = {
     if (!taskDetails?.reviews || taskDetails.reviews.length === 0) {
       return (
         <div className="text-center py-8">
-          <Star className="mx-auto h-12 w-12 text-gray-400" />
+          <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
           <p className="mt-2 text-sm text-gray-500">No reviews found</p>
         </div>
       );
