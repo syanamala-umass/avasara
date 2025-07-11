@@ -5,8 +5,8 @@ import { createTask, fetchSkills } from './api';
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    title: 'Untitled Task',
-    description: 'No description provided',
+    title: '',
+    description: '',
     compensation_type: 'cash',
     compensation_amount: '0',
     review_compensation_type: 'cash',
