@@ -213,6 +213,7 @@ def read_tasks(
     max_compensation: float = None,
     task_type: str = None,
     skill_id: int = None,
+    min_skill_rating: float = None,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -250,7 +251,7 @@ def read_tasks(
     try:
         # Log the full URL and query parameters
         logger.info(f"Request URL: {request.url}")
-        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}")
+        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
         logger.info(f"Current user: {current_user.id}")
         
         # Get tasks with skills and user relationships loaded
@@ -301,13 +302,31 @@ def read_tasks(
         
         # Handle skill_id filtering
         if skill_id:
-            # Use a subquery to avoid multiple JOINs with the same table
-            from sqlalchemy import exists
-            skill_subquery = db.query(models.Task.id).join(
-                models.Task.skills
-            ).filter(models.Skill.id == skill_id).subquery()
-            query = query.filter(exists().where(models.Task.id == skill_subquery.c.id))
-            logger.info(f"Filtering tasks by skill ID: {skill_id}")
+            # Get the skill name for the selected skill_id
+            selected_skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
+            if selected_skill:
+                # Use a subquery to check both skills relationship and skill_review_requirements
+                from sqlalchemy import exists, or_, and_
+                
+                # Check if task has the skill in its skills relationship OR in skill_review_requirements
+                skill_subquery = db.query(models.Task.id).outerjoin(
+                    models.Task.skills
+                ).filter(
+                    or_(
+                        models.Skill.id == skill_id,  # Skill in skills relationship
+                        models.Task.skill_review_requirements[selected_skill.name].isnot(None)  # Skill in requirements
+                    )
+                ).subquery()
+                query = query.filter(exists().where(models.Task.id == skill_subquery.c.id))
+                logger.info(f"Filtering tasks by skill ID: {skill_id} (skill name: {selected_skill.name})")
+            else:
+                logger.warning(f"Skill with ID {skill_id} not found")
+            
+        # Handle min_skill_rating filtering
+        if min_skill_rating is not None:
+            logger.info(f"Filtering tasks by minimum skill rating: {min_skill_rating}")
+            # This will be applied during the result processing phase
+            # since we need to check the skill_review_requirements JSON field
             
         # Handle review tasks special case
         if task_type == 'review':
@@ -386,6 +405,37 @@ def read_tasks(
                         if not compensation or compensation.amount > max_compensation:
                             logger.info(f"Skipping task {task.id} - above maximum compensation")
                             continue
+                
+                # Apply min_skill_rating filter
+                if min_skill_rating is not None and skill_id is not None:
+                    # Get the skill name for the selected skill_id
+                    selected_skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
+                    
+                    if selected_skill:
+                        # First check if the task has the skill
+                        has_skill = any(skill.id == skill_id for skill in task.skills)
+                        if not has_skill:
+                            logger.info(f"Skipping task {task.id} - doesn't have skill ID {skill_id}")
+                            continue
+                        
+                        # Then check the rating requirement if it exists
+                        if task.skill_review_requirements and selected_skill.name in task.skill_review_requirements:
+                            skill_requirement = task.skill_review_requirements[selected_skill.name]
+                            skill_requirement_float = float(skill_requirement)
+                            
+                            # If task requires a lower level than user specified, skip it
+                            if skill_requirement_float < min_skill_rating:
+                                logger.info(f"Skipping task {task.id} - skill {selected_skill.name} requires {skill_requirement_float} but user specified minimum {min_skill_rating}")
+                                continue
+                            else:
+                                logger.info(f"Including task {task.id} - skill {selected_skill.name} requires {skill_requirement_float} which meets user minimum {min_skill_rating}")
+                        else:
+                            # If no specific requirement for this skill, include it (but only if it has the skill)
+                            logger.info(f"Task {task.id} has skill {selected_skill.name} but no specific requirement - including it")
+                            continue
+                    else:
+                        logger.warning(f"Skill with ID {skill_id} not found")
+                        continue
                 
                 # Create a dictionary for this task with all required fields
                 task_dict = {

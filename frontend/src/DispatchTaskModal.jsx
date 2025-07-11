@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus, Star } from 'lucide-react';
+import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus } from 'lucide-react';
 import { createTask, fetchSkills } from './api';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
@@ -83,7 +83,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         // Initialize skill level requirement for this skill
         skill_review_requirements: {
           ...prev.skill_review_requirements,
-          [skill.name]: 0  // Default to level 0 required
+          [skill.name]: 1.8  // Default to level 1.8 required
         }
       }));
     }
@@ -117,17 +117,9 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const renderSkillLevelStars = (level) => {
     const numLevel = parseFloat(level);
     return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-3 h-3 ${
-              star <= numLevel ? 'text-yellow-400 fill-current' : 'text-gray-300'
-            }`}
-          />
-        ))}
-        <span className="text-xs text-gray-600 ml-1">({numLevel.toFixed(1)})</span>
-      </div>
+      <span className="text-sm font-medium text-gray-700">
+        {numLevel.toFixed(1)}
+      </span>
     );
   };
 
@@ -135,7 +127,27 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     skill.name.toLowerCase().includes(skillSearch.toLowerCase())
   );
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 3));
+  // Validation functions
+  const isStep1Valid = () => {
+    return formData.title.trim() !== '' && formData.description.trim() !== '';
+  };
+
+  const isStep2Valid = () => {
+    return parseFloat(formData.compensation_amount) >= 0 && 
+           parseFloat(formData.review_compensation_amount) >= 0 && 
+           parseInt(formData.num_reviewers) >= 0 &&
+           formData.skills.length > 0;
+  };
+
+  const nextStep = () => {
+    if (currentStep === 1 && !isStep1Valid()) {
+      return; // Don't proceed if step 1 validation fails
+    }
+    if (currentStep === 2 && !isStep2Valid()) {
+      return; // Don't proceed if step 2 validation fails
+    }
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   if (!isOpen) return null;
@@ -147,9 +159,13 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         <h3 className="text-lg font-semibold">Basic Information</h3>
       </div>
       
+      <p className="text-xs text-gray-600 mb-4">
+        Fields marked with <span className="text-red-500">*</span> are required.
+      </p>
+      
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-          Task Title
+          Task Title <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -165,7 +181,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
 
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Description
+          Description <span className="text-red-500">*</span>
         </label>
         <textarea
           id="description"
@@ -218,7 +234,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
             min="0"
             value={formData.compensation_amount}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Enter amount"
           />
         </div>
@@ -254,7 +270,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
             min="0"
             value={formData.review_compensation_amount}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Enter amount"
           />
         </div>
@@ -273,16 +289,16 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           max="5"
           value={formData.num_reviewers}
           onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Required Skills & Minimum Levels
+          Required Skills & Minimum Levels <span className="text-red-500">*</span>
         </label>
         <p className="text-xs text-gray-600 mb-3">
-          Select skills and set the minimum skill level required (0.0-5.0) for contributors to undertake this task. Use 0.0 for no requirement or enter precise values like 2.7, 3.2, etc.
+          Select skills and set the minimum skill level required (0.0-5.0) for contributors to undertake this task. Use 0.0 for no requirement.
         </p>
         <div className="relative">
           <input
@@ -313,19 +329,26 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               <span className="flex-1 text-sm font-medium text-blue-800">{skill.name}</span>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-600">Min Level:</label>
+                  <label className="text-xs text-gray-600">Min Level (0.0-5.0):</label>
                   <input
                     type="number"
                     min="0"
                     max="5"
-                    value={formData.skill_review_requirements[skill.name] || 0.0}
-                    onChange={(e) => updateSkillLevelRequirement(skill.name, parseFloat(e.target.value) || 0)}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500 w-16"
+                    value={formData.skill_review_requirements[skill.name] ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        updateSkillLevelRequirement(skill.name, 1.8);
+                      } else {
+                        updateSkillLevelRequirement(skill.name, parseFloat(value) || 0);
+                      }
+                    }}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500 w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="0.0"
                   />
                 </div>
                 <div className="text-xs text-gray-500">
-                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 0.0)}
+                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1.8)}
                 </div>
                 <button
                   type="button"
@@ -377,8 +400,8 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                   {skill.name}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Min Level:</span>
-                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 0.0)}
+                  <span className="text-sm text-gray-600">Min Level (0.0-5.0):</span>
+                  {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1.8)}
                 </div>
               </div>
             ))}
@@ -456,9 +479,13 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
               <button
                 type="button"
                 onClick={nextStep}
-                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600"
+                disabled={
+                  (currentStep === 1 && !isStep1Valid()) ||
+                  (currentStep === 2 && !isStep2Valid())
+                }
+                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
               >
-                Next
+                {((currentStep === 1 && !isStep1Valid()) || (currentStep === 2 && !isStep2Valid())) ? 'Fill Required Fields' : 'Next'}
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (

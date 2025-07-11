@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, UserCircle, Edit3, Save, X, Plus, Star, 
   Briefcase, Globe, FileText, Award, TrendingUp, 
-  CheckCircle, Clock, DollarSign, Sparkles
+  CheckCircle, Clock, DollarSign, Sparkles, Search, 
+  Filter, Zap, Target, Users, Calendar
 } from 'lucide-react';
 import { fetchUserProfile, fetchSkills, fetchUserSkills, updateUserProfile, addUserSkills, createSkill, addNewUserSkill } from './api';
 
@@ -24,7 +25,7 @@ const ContributorProfile = () => {
   const [skillSearch, setSkillSearch] = useState('');
   const [addingSkill, setAddingSkill] = useState(false);
   const [newSkill, setNewSkill] = useState('');
-  const [showNewSkillInput, setShowNewSkillInput] = useState(false);
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [userData, setUserData] = useState(null);
   const [userStats, setUserStats] = useState({
     tasksCompleted: 0,
@@ -32,6 +33,7 @@ const ContributorProfile = () => {
     completionRate: 0,
     reviewsCompleted: 0
   });
+  const [skillCategory, setSkillCategory] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +68,9 @@ const ContributorProfile = () => {
           skills: userSkills.map(skill => ({
             id: skill.id,
             name: skill.name,
-            rating: skill.rating || 2.5
+            rating: skill.rating || 2.5,
+            num_tasks: skill.num_tasks || 0,
+            total_score: skill.total_score || 0
           }))
         });
 
@@ -92,7 +96,7 @@ const ContributorProfile = () => {
   };
 
   const handleAddSkill = async () => {
-    if (!newSkill.trim()) return;
+    if (!selectedSkill) return;
 
     try {
       // Get user data from localStorage
@@ -102,18 +106,19 @@ const ContributorProfile = () => {
       }
 
       const response = await addNewUserSkill(userData.id, {
-        skill_name: newSkill
+        skill_name: selectedSkill
       });
 
       setFormData(prev => ({
         ...prev,
         skills: [...prev.skills, response.data]
       }));
-      setNewSkill('');
-      setShowNewSkillInput(false);
+      setSelectedSkill('');
+      setSkillSearch('');
+      setShowSkillDropdown(false);
     } catch (error) {
       console.error('Error adding skill:', error);
-      // Optionally show error message to user
+      setError('Failed to add skill. Please try again.');
     }
   };
 
@@ -173,8 +178,9 @@ const ContributorProfile = () => {
       const newSkill = response.data;
       // Add to availableSkills and select it
       setAvailableSkills(prev => [...prev, newSkill]);
-      setSelectedSkill(newSkill.id.toString());
+      setSelectedSkill(newSkill.name);
       setSkillSearch('');
+      setShowSkillDropdown(false);
     } catch (err) {
       setError('Failed to add new skill.');
       console.error('Error creating skill:', err);
@@ -198,12 +204,39 @@ const ContributorProfile = () => {
   };
 
   const getRatingColor = (rating) => {
-    if (rating >= 4.5) return 'text-green-600 bg-green-100';
-    if (rating >= 4.0) return 'text-blue-600 bg-blue-100';
-    if (rating >= 3.5) return 'text-yellow-600 bg-yellow-100';
-    if (rating >= 3.0) return 'text-orange-600 bg-orange-100';
-    return 'text-red-600 bg-red-100';
+    if (rating >= 4.5) return 'text-green-600 bg-green-100 border-green-200';
+    if (rating >= 4.0) return 'text-blue-600 bg-blue-100 border-blue-200';
+    if (rating >= 3.5) return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+    if (rating >= 3.0) return 'text-orange-600 bg-orange-100 border-orange-200';
+    return 'text-red-600 bg-red-100 border-red-200';
   };
+
+  const getRatingLabel = (rating) => {
+    if (rating >= 4.5) return 'Expert';
+    if (rating >= 4.0) return 'Advanced';
+    if (rating >= 3.5) return 'Intermediate';
+    if (rating >= 3.0) return 'Beginner';
+    return 'Novice';
+  };
+
+  const getSkillCategory = (skillName) => {
+    const techSkills = ['javascript', 'python', 'react', 'node.js', 'sql', 'html', 'css', 'java', 'c++', 'php', 'ruby', 'swift', 'kotlin', 'go', 'rust', 'typescript', 'angular', 'vue.js', 'django', 'flask', 'express', 'mongodb', 'postgresql', 'mysql', 'redis', 'docker', 'kubernetes', 'aws', 'azure', 'gcp'];
+    const designSkills = ['ui/ux', 'figma', 'sketch', 'adobe xd', 'photoshop', 'illustrator', 'invision', 'prototyping', 'wireframing', 'user research', 'design systems', 'typography', 'color theory', 'visual design', 'interaction design'];
+    const businessSkills = ['project management', 'agile', 'scrum', 'kanban', 'product management', 'business analysis', 'strategy', 'marketing', 'sales', 'customer success', 'operations', 'finance', 'analytics', 'data analysis'];
+    const creativeSkills = ['content writing', 'copywriting', 'blogging', 'social media', 'video editing', 'animation', 'illustration', 'photography', 'graphic design', 'branding', 'storytelling', 'creative direction'];
+    
+    const lowerSkill = skillName.toLowerCase();
+    if (techSkills.some(skill => lowerSkill.includes(skill))) return 'tech';
+    if (designSkills.some(skill => lowerSkill.includes(skill))) return 'design';
+    if (businessSkills.some(skill => lowerSkill.includes(skill))) return 'business';
+    if (creativeSkills.some(skill => lowerSkill.includes(skill))) return 'creative';
+    return 'other';
+  };
+
+  const filteredUserSkills = formData.skills.filter(skill => {
+    if (skillCategory === 'all') return true;
+    return getSkillCategory(skill.name) === skillCategory;
+  });
 
   if (loading) {
     return (
@@ -223,13 +256,13 @@ const ContributorProfile = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/dashboard')}
+                <button
+                  onClick={() => navigate('/dashboard')}
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="font-medium">Back to Dashboard</span>
-              </button>
+                </button>
             </div>
             <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
@@ -237,7 +270,7 @@ const ContributorProfile = () => {
               </div>
               <span className="text-xl font-bold text-gray-900">Avasara</span>
             </div>
-          </div>
+      </div>
         </div>
       </header>
 
@@ -297,6 +330,29 @@ const ContributorProfile = () => {
                 </div>
               </div>
 
+              {/* Skills Summary */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Skills Overview</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total Skills</span>
+                    <span className="font-medium">{formData.skills.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Expert Level</span>
+                    <span className="font-medium text-green-600">
+                      {formData.skills.filter(s => s.rating >= 4.5).length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Advanced Level</span>
+                    <span className="font-medium text-blue-600">
+                      {formData.skills.filter(s => s.rating >= 4.0 && s.rating < 4.5).length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Quick Actions */}
               <div className="space-y-2">
                 <button
@@ -307,11 +363,11 @@ const ContributorProfile = () => {
                   <span>View Dashboard</span>
                 </button>
                 <button
-                  onClick={() => navigate('/onboarding')}
+                  onClick={() => navigate('/tasks')}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >
-                  <Award className="h-4 w-4" />
-                  <span>Update Skills</span>
+                  <Target className="h-4 w-4" />
+                  <span>Browse Tasks</span>
                 </button>
               </div>
             </div>
@@ -333,174 +389,238 @@ const ContributorProfile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
+                First Name
+              </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                       placeholder="Enter your first name"
-                    />
-                  </div>
+                />
+            </div>
 
                   <div>
                     <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
+                Last Name
+              </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                       placeholder="Enter your last name"
-                    />
-                  </div>
-                </div>
+                />
+              </div>
+            </div>
 
                 {/* Bio Field */}
                 <div>
                   <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
+                Bio
+              </label>
+                <textarea
+                  id="bio"
+                  name="bio"
                     rows={4}
-                    value={formData.bio}
-                    onChange={handleChange}
+                  value={formData.bio}
+                  onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                     placeholder="Tell us about yourself, your experience, and what you're passionate about..."
-                  />
-                </div>
+                />
+            </div>
 
                 {/* Portfolio URL */}
                 <div>
                   <label htmlFor="portfolioUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                    Portfolio URL
-                  </label>
+                Portfolio URL
+              </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Globe className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
-                      type="url"
-                      name="portfolioUrl"
-                      id="portfolioUrl"
-                      value={formData.portfolioUrl}
-                      onChange={handleChange}
+                <input
+                  type="url"
+                  name="portfolioUrl"
+                  id="portfolioUrl"
+                  value={formData.portfolioUrl}
+                  onChange={handleChange}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                       placeholder="https://your-portfolio.com"
-                    />
-                  </div>
-                </div>
+                />
+              </div>
+            </div>
 
-                {/* Skills Section */}
+                {/* Enhanced Skills Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Skills
-                  </label>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Your skill ratings are automatically managed based on your performance and peer reviews.
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Skills & Expertise
+                    </label>
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <Zap className="h-4 w-4" />
+                      <span>Ratings based on performance</span>
+                    </div>
+                  </div>
                   
                   {/* Skill Search */}
-                  <div className="flex space-x-3 mb-4">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        placeholder="Search or add a skill"
-                        value={skillSearch}
-                        onChange={e => setSkillSearch(e.target.value)}
-                        onFocus={() => setShowNewSkillInput(true)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      />
-                      {showNewSkillInput && (
-                        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-lg border border-gray-200 py-1 text-base overflow-auto focus:outline-none">
-                          {filteredSkills.length > 0 ? (
-                            filteredSkills.map(skill => (
-                              <div
-                                key={skill.id}
-                                className="cursor-pointer select-none relative py-3 px-4 hover:bg-indigo-50"
-                                onClick={() => {
-                                  setSelectedSkill(skill.id.toString());
-                                  setSkillSearch(skill.name);
-                                  setShowNewSkillInput(false);
-                                }}
-                              >
-                                <span className="block truncate">{skill.name}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="py-3 px-4 text-gray-500">
-                              No matching skills
-                            </div>
-                          )}
-                          {skillSearch && !filteredSkills.some(skill => skill.name.toLowerCase() === skillSearch.toLowerCase()) && (
-                            <div
-                              className="cursor-pointer select-none relative py-3 px-4 hover:bg-green-50 border-t border-gray-200"
-                              onClick={handleAddNewSkill}
-                            >
-                              <span className="block truncate text-green-600 font-medium">
-                                Add "{skillSearch}" as new skill
-                              </span>
-                            </div>
-                          )}
+                  <div className="mb-6">
+                    <div className="flex space-x-3">
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-5 w-5 text-gray-400" />
+                        </div>
+                  <input
+                    type="text"
+                          placeholder="Search for skills to add..."
+                    value={skillSearch}
+                          onChange={e => {
+                            setSkillSearch(e.target.value);
+                            setShowSkillDropdown(true);
+                          }}
+                          onFocus={() => setShowSkillDropdown(true)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        />
+                        {showSkillDropdown && (
+                          <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-lg border border-gray-200 py-1 text-base overflow-auto focus:outline-none">
+                      {filteredSkills.length > 0 ? (
+                        filteredSkills.map(skill => (
+                          <div
+                            key={skill.id}
+                                  className="cursor-pointer select-none relative py-3 px-4 hover:bg-indigo-50"
+                            onClick={() => {
+                                    setSelectedSkill(skill.name);
+                              setSkillSearch(skill.name);
+                                    setShowSkillDropdown(false);
+                            }}
+                          >
+                            <span className="block truncate">{skill.name}</span>
+                          </div>
+                        ))
+                      ) : (
+                              <div className="py-3 px-4 text-gray-500">
+                                No matching skills found
+                        </div>
+                      )}
+                      {skillSearch && !filteredSkills.some(skill => skill.name.toLowerCase() === skillSearch.toLowerCase()) && (
+                        <div
+                                className="cursor-pointer select-none relative py-3 px-4 hover:bg-green-50 border-t border-gray-200"
+                          onClick={handleAddNewSkill}
+                        >
+                                <span className="block truncate text-green-600 font-medium">
+                                  + Add "{skillSearch}" as new skill
+                          </span>
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleAddSkill}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Add</span>
-                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                        disabled={!selectedSkill}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Skill</span>
+                </button>
+              </div>
                   </div>
 
-                  {/* Current Skills */}
-                  <div className="flex flex-wrap gap-3">
-                    {formData.skills.map(skill => (
-                      <div
-                        key={skill.id}
-                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getRatingColor(skill.rating)}`}
-                      >
-                        <span className="flex items-center space-x-2">
-                          <span>{skill.name}</span>
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-3 w-3 fill-current" />
-                            <span>{skill.rating.toFixed(1)}</span>
-                          </div>
-                        </span>
+                  {/* Skill Categories Filter */}
+                  <div className="mb-4">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">Filter by category:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { key: 'all', label: 'All Skills', count: formData.skills.length },
+                        { key: 'tech', label: 'Technology', count: formData.skills.filter(s => getSkillCategory(s.name) === 'tech').length },
+                        { key: 'design', label: 'Design', count: formData.skills.filter(s => getSkillCategory(s.name) === 'design').length },
+                        { key: 'business', label: 'Business', count: formData.skills.filter(s => getSkillCategory(s.name) === 'business').length },
+                        { key: 'creative', label: 'Creative', count: formData.skills.filter(s => getSkillCategory(s.name) === 'creative').length },
+                        { key: 'other', label: 'Other', count: formData.skills.filter(s => getSkillCategory(s.name) === 'other').length }
+                      ].map(category => (
                         <button
+                          key={category.key}
                           type="button"
-                          onClick={() => handleRemoveSkill(skill.id)}
-                          className="ml-2 hover:opacity-75 transition-opacity"
+                          onClick={() => setSkillCategory(category.key)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            skillCategory === category.key
+                              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
                         >
-                          <X className="h-4 w-4" />
+                          {category.label} ({category.count})
                         </button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Current Skills Display */}
+                  <div className="space-y-3">
+                    {filteredUserSkills.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Target className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p className="text-sm">No skills found in this category</p>
+                        <p className="text-xs">Add some skills to get started!</p>
+                      </div>
+                    ) : (
+                      filteredUserSkills.map(skill => (
+                  <div
+                    key={skill.id}
+                          className={`flex items-center justify-between p-4 rounded-lg border ${getRatingColor(skill.rating)}`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-gray-900">{skill.name}</span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-white/50 font-medium">
+                                {getRatingLabel(skill.rating)}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Star className="h-4 w-4 fill-current" />
+                              <span className="text-sm font-medium">{skill.rating.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-xs text-gray-600">
+                              <div className="flex items-center space-x-1">
+                                <CheckCircle className="h-3 w-3" />
+                                <span>{skill.num_tasks || 0} tasks</span>
+                              </div>
+                            </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                              <X className="h-4 w-4" />
+                    </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+            </div>
+          </div>
 
                 {/* Form Actions */}
                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/dashboard')}
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
                     className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -514,10 +634,10 @@ const ContributorProfile = () => {
                         <span>Save Changes</span>
                       </>
                     )}
-                  </button>
-                </div>
-              </form>
-            </div>
+            </button>
+          </div>
+        </form>
+      </div>
           </div>
         </div>
       </main>
