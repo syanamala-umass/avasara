@@ -4,15 +4,24 @@ import { fetchTasks, canUndertakeTask, fetchSkills } from './api';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 
-const categories = [
-  'All',
-  'Development',
-  'Design',
-  'Marketing',
-  'Research',
-  'Operations',
-  'Other',
-];
+// const categories = [
+//   'All',
+//   'Development',
+//   'Design',
+//   'Marketing',
+//   'Research',
+//   'Operations',
+//   'Other',
+// ];
+
+// const skillCategories = {
+//   'Development': ['programming', 'coding', 'software', 'development', 'frontend', 'backend', 'fullstack', 'react', 'python', 'javascript', 'java', 'node.js', 'database', 'api'],
+//   'Design': ['design', 'ui', 'ux', 'graphic', 'visual', 'illustration', 'photoshop', 'figma', 'sketch', 'prototyping', 'wireframing'],
+//   'Marketing': ['marketing', 'social media', 'content', 'seo', 'advertising', 'branding', 'campaign', 'analytics', 'growth'],
+//   'Research': ['research', 'analysis', 'data', 'survey', 'interview', 'market research', 'competitive analysis', 'user research'],
+//   'Operations': ['operations', 'management', 'coordination', 'planning', 'strategy', 'process', 'optimization', 'efficiency'],
+//   'Other': []
+// };
 
 const compensationTypes = ['All', 'cash', 'equity'];
 const taskTypes = ['All', 'task', 'review'];
@@ -24,7 +33,9 @@ const TasksPage = () => {
     category: 'All',
     compensationType: 'All',
     minCompensation: '',
+    skillCategory: 'All',
     skillId: '',
+    minSkillRating: '',
     taskType: 'All',
   });
   const [results, setResults] = useState([]);
@@ -52,8 +63,42 @@ const TasksPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    console.log('Filter change:', name, value);
+    
+    // If skill category changes, reset skill ID but keep min skill rating if same skill
+    // if (name === 'skillCategory') {
+    //   setFilters(prev => ({ 
+    //     ...prev, 
+    //     [name]: value,
+    //     skillId: '', // Reset skill selection when category changes
+    //     minSkillRating: '' // Reset min skill rating when category changes
+    //   }));
+    // } 
+    // If skill ID changes, reset min skill rating
+    if (name === 'skillId') {
+      setFilters(prev => ({ 
+        ...prev, 
+        [name]: value,
+        minSkillRating: '' // Reset min skill rating when specific skill changes
+      }));
+    } else {
+      setFilters(prev => ({ ...prev, [name]: value }));
+    }
   };
+
+  // Filter skills based on selected category
+  // const getFilteredSkills = () => {
+  //   if (filters.skillCategory === 'All') {
+  //     return availableSkills;
+  //   }
+    
+  //   const categoryKeywords = skillCategories[filters.skillCategory] || [];
+  //   return availableSkills.filter(skill => 
+  //     categoryKeywords.some(keyword => 
+  //       skill.name.toLowerCase().includes(keyword.toLowerCase())
+  //     )
+  //   );
+  // };
 
   const handleViewDetails = (task) => {
     setSelectedTask(task);
@@ -100,16 +145,31 @@ const TasksPage = () => {
     setError('');
 
     try {
-      const params = new URLSearchParams();
+      const params = {};
       
-      if (filters.title) params.append('title', filters.title);
-      if (filters.category && filters.category !== 'All') params.append('category', filters.category);
-      if (filters.taskType && filters.taskType !== 'All') params.append('task_type', filters.taskType);
-      if (filters.compensationType && filters.compensationType !== 'All') params.append('compensation_type', filters.compensationType);
-      if (filters.minCompensation) params.append('min_compensation', filters.minCompensation);
-      if (filters.skillId) params.append('skill_id', filters.skillId);
+      if (filters.title) params.title = filters.title;
+      // if (filters.category && filters.category !== 'All') params.category = filters.category;
+      if (filters.taskType && filters.taskType !== 'All') params.task_type = filters.taskType;
+      if (filters.compensationType && filters.compensationType !== 'All') params.compensation_type = filters.compensationType;
+      if (filters.minCompensation) params.min_compensation = filters.minCompensation;
+      // if (filters.skillCategory && filters.skillCategory !== 'All') {
+      //   const categorySkills = skillCategories[filters.skillCategory];
+      //   if (categorySkills && categorySkills.length > 0) {
+      //     params.skill_name = categorySkills.join(',');
+      //   }
+      // }
+      if (filters.skillId) {
+        console.log('Filtering by skill ID:', filters.skillId);
+        params.skill_id = parseInt(filters.skillId);
+      }
+      if (filters.minSkillRating) {
+        console.log('Filtering by min skill rating:', filters.minSkillRating);
+        params.min_skill_rating = parseFloat(filters.minSkillRating);
+      }
 
-      const response = await fetchTasks(params.toString());
+      console.log('Search params:', params);
+      const response = await fetchTasks(params);
+      console.log('Search results:', response.data);
       setResults(response.data || []);
       
       // Check capabilities for all tasks
@@ -254,7 +314,7 @@ const TasksPage = () => {
               </div>
               
               {/* Category */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
+              {/* <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
                 <Tag className="h-5 w-5 text-indigo-400 mr-3" />
                 <select
                   name="category"
@@ -266,7 +326,7 @@ const TasksPage = () => {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
-              </div>
+              </div> */}
               
               {/* Task Type */}
               <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
@@ -302,6 +362,22 @@ const TasksPage = () => {
                 </select>
               </div>
               
+              {/* Skill Category */}
+              {/* <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
+                <Tag className="h-5 w-5 text-indigo-400 mr-3" />
+                <select
+                  name="skillCategory"
+                  value={filters.skillCategory}
+                  onChange={handleChange}
+                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
+                >
+                  <option value="All">All Skill Categories</option>
+                  {Object.keys(skillCategories).filter(cat => cat !== 'All').map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div> */}
+              
               {/* Skill Filter */}
               <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
                 <Tag className="h-5 w-5 text-indigo-400 mr-3" />
@@ -313,10 +389,28 @@ const TasksPage = () => {
                 >
                   <option value="">All Skills</option>
                   {availableSkills.map(skill => (
-                    <option key={skill.id} value={skill.id}>{skill.name}</option>
+                    <option key={skill.id} value={skill.id.toString()}>{skill.name}</option>
                   ))}
                 </select>
               </div>
+              
+              {/* Minimum Skill Rating - Only show when a skill is selected */}
+              {filters.skillId && (
+                <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
+                  <Tag className="h-5 w-5 text-indigo-400 mr-3" />
+                  <input
+                    type="number"
+                    name="minSkillRating"
+                    value={filters.minSkillRating}
+                    onChange={handleChange}
+                    placeholder="Min skill level (0.0-5.0)"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              )}
               
               {/* Search Button */}
               <div className="flex items-center">
