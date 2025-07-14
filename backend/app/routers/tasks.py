@@ -309,13 +309,10 @@ def read_tasks(
                 from sqlalchemy import exists, or_, and_
                 
                 # Check if task has the skill in its skills relationship OR in skill_review_requirements
-                skill_subquery = db.query(models.Task.id).outerjoin(
+                skill_subquery = db.query(models.Task.id).join(
                     models.Task.skills
                 ).filter(
-                    or_(
-                        models.Skill.id == skill_id,  # Skill in skills relationship
-                        models.Task.skill_review_requirements[selected_skill.name].isnot(None)  # Skill in requirements
-                    )
+                    models.Skill.id == skill_id  # Skill in skills relationship
                 ).subquery()
                 query = query.filter(exists().where(models.Task.id == skill_subquery.c.id))
                 logger.info(f"Filtering tasks by skill ID: {skill_id} (skill name: {selected_skill.name})")
@@ -476,6 +473,144 @@ def read_tasks(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+@router.get("/recommended", response_model=List[TaskWithDetails])
+def get_recommended_tasks(
+    limit: int = 5,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Get recommended tasks based on user's skills"""
+    try:
+        print(f"Getting recommended tasks for user {current_user.id}")
+        
+        # Get user's skills
+        user_skills = current_user.skills
+        
+        print(f"User has {len(user_skills)} skills: {[skill.name for skill in user_skills]}")
+        
+        if not user_skills:
+            # If user has no skills, return recent tasks
+            print("User has no skills, returning recent tasks")
+            tasks = db.query(models.Task).filter(
+                models.Task.status == 'open'
+            ).order_by(models.Task.created_at.desc()).limit(limit).all()
+            print(f"Found {len(tasks)} recent tasks")
+            
+            # Convert to TaskWithDetails format
+            result = []
+            for task in tasks:
+                try:
+                    # Get compensation data
+                    compensation = db.query(TaskCompensation).filter(
+                        TaskCompensation.task_id == task.id,
+                        TaskCompensation.amount_type == 'task'
+                    ).first()
+                    
+                    # Format skills
+                    skills = [{"id": skill.id, "name": skill.name} for skill in task.skills]
+                    
+                    task_dict = {
+                        "id": task.id,
+                        "user_id": task.user_id,
+                        "title": task.title,
+                        "description": task.description,
+                        "compensation_type": compensation.compensation_type if compensation else None,
+                        "compensation_amount": compensation.amount if compensation else None,
+                        "deadline": task.deadline,
+                        "created_at": task.created_at,
+                        "status": task.status,
+                        "category": task.category,
+                        "skill_review_requirements": task.skill_review_requirements,
+                        "skills": skills,
+                        "creator_name": task.user.username if task.user else "Unknown User",
+                        "creator_avatar": None,
+                        "assignments_count": 0,
+                        "reviews_count": 0,
+                        "num_people_working": 0,
+                        "has_assignment": False
+                    }
+                    result.append(task_dict)
+                except Exception as e:
+                    print(f"Error processing task {task.id}: {str(e)}")
+                    continue
+            
+            return result
+        
+        # Get skill IDs from user's skills
+        skill_ids = [skill.id for skill in user_skills]
+        print(f"Looking for tasks with skill IDs: {skill_ids}")
+        
+        # Find tasks that require any of the user's skills using the task_skills association table
+        from app.models.task import task_skill
+        recommended_tasks = db.query(models.Task).join(
+            task_skill
+        ).filter(
+            task_skill.c.skill_id.in_(skill_ids),
+            models.Task.status == 'open'
+        ).distinct().order_by(
+            models.Task.created_at.desc()
+        ).limit(limit).all()
+        
+        print(f"Found {len(recommended_tasks)} recommended tasks")
+        
+        # Convert to TaskWithDetails format
+        result = []
+        for task in recommended_tasks:
+            try:
+                print(f"Task: {task.title} (ID: {task.id})")
+                
+                # Get compensation data
+                compensation = db.query(TaskCompensation).filter(
+                    TaskCompensation.task_id == task.id,
+                    TaskCompensation.amount_type == 'task'
+                ).first()
+                
+                # Get assignments and reviews count
+                assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
+                reviews_count = db.query(Review).filter(Review.task_id == task.id).count()
+                num_people_working = db.query(TaskAssignment).filter(
+                    TaskAssignment.task_id == task.id,
+                    TaskAssignment.status == 'in_progress'
+                ).count()
+                
+                # Format skills
+                skills = [{"id": skill.id, "name": skill.name} for skill in task.skills]
+                
+                # Check if current user has an assignment for this task
+                has_assignment = check_existing_assignment(task_id=task.id, user_id=current_user.id)
+                
+                task_dict = {
+                    "id": task.id,
+                    "user_id": task.user_id,
+                    "title": task.title,
+                    "description": task.description,
+                    "compensation_type": compensation.compensation_type if compensation else None,
+                    "compensation_amount": compensation.amount if compensation else None,
+                    "deadline": task.deadline,
+                    "created_at": task.created_at,
+                    "status": task.status,
+                    "category": task.category,
+                    "skill_review_requirements": task.skill_review_requirements,
+                    "skills": skills,
+                    "creator_name": task.user.username if task.user else "Unknown User",
+                    "creator_avatar": None,
+                    "assignments_count": assignments_count,
+                    "reviews_count": reviews_count,
+                    "num_people_working": num_people_working,
+                    "has_assignment": has_assignment
+                }
+                result.append(task_dict)
+            except Exception as e:
+                print(f"Error processing task {task.id}: {str(e)}")
+                continue
+        
+        return result
+    except Exception as e:
+        print(f"Error in get_recommended_tasks: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error getting recommended tasks: {str(e)}")
 
 @router.get("/{task_id}", response_model=TaskWithDetails)
 def read_task(

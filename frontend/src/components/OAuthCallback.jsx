@@ -42,10 +42,42 @@ const OAuthCallback = () => {
               setStatus('success');
               setMessage(`Successfully signed in with ${provider}!`);
               
-              // Redirect to dashboard after a short delay
-              setTimeout(() => {
-                navigate('/dashboard');
-              }, 2000);
+              // Check if user has skills
+              try {
+                const skillsResponse = await fetch(`${API_URL}/users/${userData.id}/skills`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                if (skillsResponse.ok) {
+                  const userSkills = await skillsResponse.json();
+                  
+                  if (userSkills.length === 0) {
+                    // User has no skills, redirect to skills setup
+                    setTimeout(() => {
+                      navigate('/onboarding');
+                    }, 2000);
+                  } else {
+                    // User has skills, redirect to dashboard
+                    setTimeout(() => {
+                      navigate('/dashboard');
+                    }, 2000);
+                  }
+                } else {
+                  // If we can't check skills, proceed to dashboard anyway
+                  setTimeout(() => {
+                    navigate('/dashboard');
+                  }, 2000);
+                }
+              } catch (skillsError) {
+                console.error('Error checking user skills:', skillsError);
+                // If we can't check skills, proceed to dashboard anyway
+                setTimeout(() => {
+                  navigate('/dashboard');
+                }, 2000);
+              }
             } else {
               throw new Error('Failed to fetch user data');
             }

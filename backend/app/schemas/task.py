@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from app.schemas.skill import Skill
+from .skill import Skill
 
 class TaskBase(BaseModel):
     title: str

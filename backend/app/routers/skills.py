@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func, desc
 from typing import List
-
 from app.database import get_db
-from app.schemas.skill import SkillCreate, Skill
-from app.crud.skill import create_skill, get_skill, get_skills
+from app import models
+from app.schemas.skill import Skill, SkillCreate, SkillWithTaskCount
 
 router = APIRouter(
     prefix="/skills",
@@ -12,18 +12,47 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/", response_model=Skill, status_code=status.HTTP_201_CREATED)
-def create_new_skill(skill: SkillCreate, db: Session = Depends(get_db)):
-    return create_skill(db=db, skill=skill)
-
 @router.get("/", response_model=List[Skill])
-def read_skills(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    skills = get_skills(db, skip=skip, limit=limit)
+def read_skills(db: Session = Depends(get_db)):
+    """Get all skills"""
+    skills = db.query(models.Skill).all()
     return skills
 
-@router.get("/{skill_id}", response_model=Skill)
-def read_skill(skill_id: int, db: Session = Depends(get_db)):
-    db_skill = get_skill(db, skill_id=skill_id)
-    if db_skill is None:
-        raise HTTPException(status_code=404, detail="Skill not found")
+@router.get("/top-by-tasks", response_model=List[SkillWithTaskCount])
+def get_top_skills_by_tasks(db: Session = Depends(get_db), limit: int = 5):
+    """Get top skills by number of tasks"""
+    # Query skills with task counts, ordered by task count descending
+    # Only include skills that actually have tasks associated with them
+    skills_with_counts = db.query(
+        models.Skill,
+        func.count(models.Task.id).label('task_count')
+    ).join(
+        models.Task.skills
+    ).group_by(
+        models.Skill.id
+    ).having(
+        func.count(models.Task.id) > 0
+    ).order_by(
+        desc(func.count(models.Task.id))
+    ).limit(limit).all()
+    
+    # Convert to response format
+    result = []
+    for skill, task_count in skills_with_counts:
+        if skill is not None and task_count > 0:
+            result.append({
+                "id": skill.id,
+                "name": skill.name,
+                "task_count": task_count
+            })
+    
+    return result
+
+@router.post("/", response_model=Skill)
+def create_skill(skill: SkillCreate, db: Session = Depends(get_db)):
+    """Create a new skill"""
+    db_skill = models.Skill(**skill.dict())
+    db.add(db_skill)
+    db.commit()
+    db.refresh(db_skill)
     return db_skill

@@ -70,6 +70,7 @@ export const fetchLandingStats = () => api.get('/landing/stats');
 export const fetchTasks = (filters) => api.get('/tasks', { params: filters });
 export const fetchTaskById = (id) => api.get(`/tasks/${id}`);
 export const fetchTaskDetails = (id) => api.get(`/tasks/${id}/details`);
+export const fetchRecommendedTasks = (limit = 5) => api.get(`/tasks/recommended?limit=${limit}`);
 export const createTask = (taskData) => api.post('/tasks', taskData);
 export const updateTask = (id, taskData) => api.put(`/tasks/${id}`, taskData);
 export const deleteTask = async (taskId) => {
@@ -136,6 +137,8 @@ export const fetchSkillById = (id) => api.get(`/skills/${id}`);
 export const fetchUserSkills = (userId) => api.get(`/users/${userId}/skills`);
 export const addUserSkills = (userId, skillData) => api.post(`/users/${userId}/skills`, skillData);
 export const addNewUserSkill = (userId, skillData) => api.post(`/users/${userId}/skills/new`, skillData);
+
+export const fetchTopSkillsByTasks = (limit = 5) => api.get(`/skills/top-by-tasks?limit=${limit}`);
 
 export const fetchMyAssignments = (status = 'in_progress') => {
   const userData = JSON.parse(localStorage.getItem('userData'));

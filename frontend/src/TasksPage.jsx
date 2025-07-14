@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Users, ArrowLeft, Eye, Plus } from 'lucide-react';
-import { fetchTasks, canUndertakeTask, fetchSkills } from './api';
-import { useNavigate } from 'react-router-dom';
+import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment } from './api';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 
 // const categories = [
@@ -25,9 +25,11 @@ import TaskDetailModal from './TaskDetailModal';
 
 const compensationTypes = ['All', 'cash', 'equity'];
 const taskTypes = ['All', 'task', 'review'];
+const capabilityTypes = ['All', 'can_undertake', 'cannot_undertake'];
 
 const TasksPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [filters, setFilters] = useState({
     title: '',
     category: 'All',
@@ -37,6 +39,7 @@ const TasksPage = () => {
     skillId: '',
     minSkillRating: '',
     taskType: 'All',
+    capability: 'All',
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,8 +52,53 @@ const TasksPage = () => {
 
   useEffect(() => {
     loadSkills();
-    handleSearch();
-  }, []);
+    
+    // Check if we have a selected skill from navigation
+    if (location.state?.selectedSkill) {
+      const selectedSkillName = location.state.selectedSkill;
+      
+      // Find the skill ID by name and trigger search
+      const findSkillIdAndSearch = async () => {
+        try {
+          const response = await fetchSkills();
+          const skills = response.data || [];
+          const skill = skills.find(s => s.name.toLowerCase() === selectedSkillName.toLowerCase());
+          
+          if (skill) {
+            setFilters(prev => ({
+              ...prev,
+              skillId: skill.id.toString()
+            }));
+            
+            // Trigger search with the skill filter
+            const params = { skill_id: skill.id };
+            const searchResponse = await fetchTasks(params);
+            setResults(searchResponse.data || []);
+            
+            // Check capabilities for the filtered tasks
+            if (searchResponse.data && searchResponse.data.length > 0) {
+              await checkTaskCapabilities(searchResponse.data);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to find skill ID or search:', err);
+          // Fall back to regular search if skill filtering fails
+          handleSearch();
+        }
+      };
+      
+      findSkillIdAndSearch();
+    } else {
+      handleSearch();
+    }
+  }, [location.state]);
+
+  // Trigger search when skill filter changes (but not when capability changes)
+  useEffect(() => {
+    if (filters.skillId && availableSkills.length > 0) {
+      handleSearch();
+    }
+  }, [filters.skillId, availableSkills]);
 
   const loadSkills = async () => {
     try {
@@ -63,17 +111,7 @@ const TasksPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log('Filter change:', name, value);
     
-    // If skill category changes, reset skill ID but keep min skill rating if same skill
-    // if (name === 'skillCategory') {
-    //   setFilters(prev => ({ 
-    //     ...prev, 
-    //     [name]: value,
-    //     skillId: '', // Reset skill selection when category changes
-    //     minSkillRating: '' // Reset min skill rating when category changes
-    //   }));
-    // } 
     // If skill ID changes, reset min skill rating
     if (name === 'skillId') {
       setFilters(prev => ({ 
@@ -110,9 +148,15 @@ const TasksPage = () => {
     try {
       const response = await canUndertakeTask(task.id);
       if (response.data.can_undertake) {
-        // Handle task undertaking logic
+        // Actually create the task assignment
+        await createTaskAssignment({
+          task_id: task.id,
+          assignment_type: 'task',
+          status: 'in_progress',
+          notes: 'Task undertaken'
+        });
+        
         console.log('Task undertaken:', task.id);
-        // You can add navigation to a task undertaking page or show a success message
         alert('Task undertaken successfully! You can now view it in your Active Tasks.');
         // Optionally navigate to the dashboard or refresh the task list
         navigate('/dashboard');
@@ -159,17 +203,13 @@ const TasksPage = () => {
       //   }
       // }
       if (filters.skillId) {
-        console.log('Filtering by skill ID:', filters.skillId);
         params.skill_id = parseInt(filters.skillId);
       }
       if (filters.minSkillRating) {
-        console.log('Filtering by min skill rating:', filters.minSkillRating);
         params.min_skill_rating = parseFloat(filters.minSkillRating);
       }
 
-      console.log('Search params:', params);
       const response = await fetchTasks(params);
-      console.log('Search results:', response.data);
       setResults(response.data || []);
       
       // Check capabilities for all tasks
@@ -248,6 +288,29 @@ const TasksPage = () => {
       return `${task.compensation_amount}% equity`;
     }
     return `${task.compensation_amount} ${task.compensation_type}`;
+  };
+
+  // Filter results based on capability
+  const getFilteredResults = () => {
+    if (filters.capability === 'All') {
+      return results;
+    }
+    
+    const filtered = results.filter(task => {
+      const capability = taskCapabilities[task.id];
+      if (!capability) return false;
+      
+      if (filters.capability === 'can_undertake') {
+        return capability.can_undertake;
+      } else if (filters.capability === 'cannot_undertake') {
+        return !capability.can_undertake;
+      }
+      
+      return true;
+    });
+    
+    console.log(`Capability filter: ${filters.capability}, Total results: ${results.length}, Filtered results: ${filtered.length}`);
+    return filtered;
   };
 
   return (
@@ -412,6 +475,25 @@ const TasksPage = () => {
                 </div>
               )}
               
+              {/* Capability Filter */}
+              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
+                <CheckCircle className="h-5 w-5 text-indigo-400 mr-3" />
+                <select
+                  name="capability"
+                  value={filters.capability}
+                  onChange={handleChange}
+                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
+                >
+                  {capabilityTypes.map(type => (
+                    <option key={type} value={type}>
+                      {type === 'All' ? 'All Tasks' : 
+                       type === 'can_undertake' ? 'Can Undertake' : 
+                       'Cannot Undertake'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               {/* Search Button */}
               <div className="flex items-center">
                 <button
@@ -471,7 +553,7 @@ const TasksPage = () => {
             </div>
           )}
 
-          {results.length === 0 && !loading ? (
+          {getFilteredResults().length === 0 && !loading ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="h-8 w-8 text-gray-400" />
@@ -481,7 +563,7 @@ const TasksPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {results.map(task => (
+              {getFilteredResults().map(task => (
                 <div
                   key={task.id}
                   className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200"
