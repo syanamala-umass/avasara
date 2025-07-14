@@ -22,7 +22,9 @@ import {
   createTaskAssignment,
   deleteTask,
   fetchMyReviews,
-  fetchUserSkills
+  fetchUserSkills,
+  fetchTopSkillsByTasks,
+  fetchRecommendedTasks
 } from './api';
 
 const ProfessionalDashboard = () => {
@@ -54,6 +56,8 @@ const ProfessionalDashboard = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
   const [userData, setUserData] = useState(null);
+  const [topSkills, setTopSkills] = useState([]);
+  const [recommendedTasks, setRecommendedTasks] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -74,6 +78,7 @@ const ProfessionalDashboard = () => {
 
         setUserData(userDataFromStorage);
 
+        // Make API calls individually to handle failures gracefully
         const [
           createdTasksResponse, 
           assignedTasksResponse, 
@@ -82,8 +87,10 @@ const ProfessionalDashboard = () => {
           reviewableTasksResponse,
           pendingReviewResponse,
           rejectedTasksResponse,
-          userSkillsResponse
-        ] = await Promise.all([
+          userSkillsResponse,
+          topSkillsResponse,
+          recommendedTasksResponse
+        ] = await Promise.allSettled([
           fetchTasks({ creator_id: userDataFromStorage.id }),
           fetchMyAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
@@ -91,17 +98,26 @@ const ProfessionalDashboard = () => {
           fetchTasks({ status: 'submitted' }),
           fetchMyAssignments('submitted_for_review'),
           fetchMyAssignments('rejected'),
-          fetchUserSkills(userDataFromStorage.id)
+          fetchUserSkills(userDataFromStorage.id),
+          fetchTopSkillsByTasks(),
+          fetchRecommendedTasks()
         ]);
 
-        setCreatedTasks(createdTasksResponse.data || []);
-        setAssignedTasks(assignedTasksResponse.data || []);
-        setCompletedTasks(completedTasksResponse.data || []);
-        setCompletedReviews(completedReviewsResponse.data || []);
-        setReviewableTasks(reviewableTasksResponse.data || []);
-        setPendingReviewTasks(pendingReviewResponse.data || []);
-        setRejectedTasks(rejectedTasksResponse.data || []);
-        setUserSkills(userSkillsResponse.data || []);
+        // Handle Promise.allSettled results
+        setCreatedTasks(createdTasksResponse.status === 'fulfilled' ? (createdTasksResponse.value?.data || []) : []);
+        setAssignedTasks(assignedTasksResponse.status === 'fulfilled' ? (assignedTasksResponse.value?.data || []) : []);
+        setCompletedTasks(completedTasksResponse.status === 'fulfilled' ? (completedTasksResponse.value?.data || []) : []);
+        setCompletedReviews(completedReviewsResponse.status === 'fulfilled' ? (completedReviewsResponse.value?.data || []) : []);
+        setReviewableTasks(reviewableTasksResponse.status === 'fulfilled' ? (reviewableTasksResponse.value?.data || []) : []);
+        setPendingReviewTasks(pendingReviewResponse.status === 'fulfilled' ? (pendingReviewResponse.value?.data || []) : []);
+        setRejectedTasks(rejectedTasksResponse.status === 'fulfilled' ? (rejectedTasksResponse.value?.data || []) : []);
+        setUserSkills(userSkillsResponse.status === 'fulfilled' ? (userSkillsResponse.value?.data || []) : []);
+        
+        // Handle top skills specifically
+        const topSkillsData = topSkillsResponse.status === 'fulfilled' ? (topSkillsResponse.value?.data || []) : [];
+        setTopSkills(topSkillsData);
+        
+        setRecommendedTasks(recommendedTasksResponse.status === 'fulfilled' ? (recommendedTasksResponse.value?.data || []) : []);
 
       } catch (err) {
         console.error('Error loading dashboard data:', err);
@@ -118,6 +134,8 @@ const ProfessionalDashboard = () => {
 
     fetchDashboardData();
   }, [navigate]);
+
+
 
   // Handle clicking outside profile dropdown
   useEffect(() => {
@@ -313,7 +331,7 @@ const ProfessionalDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Professional Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Brand */}
             <div className="flex items-center space-x-4">
@@ -474,573 +492,654 @@ const ProfessionalDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full px-0 sm:px-0 lg:px-0 py-8">
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mx-4 sm:mx-6 lg:mx-8">
             <p className="font-medium">Error</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mx-4 sm:mx-6 lg:mx-8">
             <p className="font-medium">Success</p>
             <p className="text-sm">{success}</p>
           </div>
         )}
 
-        {/* Dashboard Overview */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex">
+          {/* Skills in Demand Sidebar */}
+          <div className="w-80 flex-shrink-0 pl-4 sm:pl-6 lg:pl-8">
+            <div className="space-y-6">
+              {/* Recommended Tasks */}
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                    <p className="text-2xl font-bold text-gray-900">${totalEarnings}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  <span>+12% this month</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Tasks</p>
-                    <p className="text-2xl font-bold text-gray-900">{activeTasks}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Target className="h-6 w-6 text-blue-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-blue-600">
-                  <Zap className="h-4 w-4 mr-1" />
-                  <span>In progress</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Reviews Completed</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalReviews}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Star className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-purple-600">
-                  <Award className="h-4 w-4 mr-1" />
-                  <span>Quality contributor</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{completionRate}%</p>
-                  </div>
-                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-indigo-600" />
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center text-sm text-indigo-600">
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  <span>Excellent</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={() => navigate('/tasks')}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
-                    <Briefcase className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Find New Work</p>
-                    <p className="text-sm text-gray-500">Discover tasks that match your skills</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setIsDispatchModalOpen(true)}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-green-200 transition-colors">
-                    <Lightbulb className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Post a Task</p>
-                    <p className="text-sm text-gray-500">Share your project with the community</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('undertaking')}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
-                    <Clipboard className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">My Tasks</p>
-                    <p className="text-sm text-gray-500">View your active assignments</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-              <div className="space-y-4">
-                {assignedTasks.slice(0, 3).map(task => (
-                  <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleTaskClick(task)}>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <Clipboard className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommended Tasks</h3>
+                <div className="space-y-3">
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+                  ) : recommendedTasks.length === 0 ? (
+                    <p className="text-center text-gray-500 text-sm">No recommended tasks found.</p>
+                  ) : (
+                    recommendedTasks.slice(0, 3).map(task => (
+                      <div 
+                        key={task.id} 
+                        className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors cursor-pointer"
+                        onClick={() => handleTaskClick(task)}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Briefcase className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 text-sm truncate">{task.title}</p>
+                            <p className="text-xs text-gray-500 mt-1">{task.creator_name || 'Unknown'}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-medium text-indigo-600">
+                                ${task.compensation_amount || 0}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {task.skills?.length || 0} skills match
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{task.task_title}</p>
-                        <p className="text-sm text-gray-500">Started {formatDate(task.created_at)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                        {formatStatus(task.status)}
-                      </span>
-                      <ArrowRight className="h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                ))}
-                {assignedTasks.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Clipboard className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="font-medium">No active tasks</p>
-                    <p className="text-sm">Start by finding work that matches your skills</p>
-                  </div>
+                    ))
+                  )}
+                </div>
+                {recommendedTasks.length > 3 && (
+                  <button
+                    onClick={() => navigate('/tasks')}
+                    className="w-full mt-4 text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
+                    View all recommendations →
+                  </button>
                 )}
+              </div>
+
+              {/* Skills in Demand */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 sticky top-24">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Skills in Demand</h3>
+                
+                <div className="space-y-3">
+                  {(() => {
+                    if (loading) {
+                      return (
+                        <div className="flex items-center justify-center py-6">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
+                        </div>
+                      );
+                    } else if (!topSkills || topSkills.length === 0) {
+                      return (
+                        <p className="text-center text-gray-500 text-sm py-6">No skills data available</p>
+                      );
+                    } else {
+                      return topSkills.slice(0, 5).map((skill, index) => (
+                        <button
+                          key={skill.id}
+                          onClick={() => navigate('/tasks', { state: { selectedSkill: skill.name } })}
+                          className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 border border-transparent transition-all duration-200 text-left group cursor-pointer"
+                        >
+                          <span className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{skill.name}</span>
+                          <span className="text-sm text-gray-500">{skill.task_count} tasks</span>
+                        </button>
+                      ));
+                    }
+                  })()}
+                </div>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-8 border-b border-gray-200">
-            {[
-              { key: 'overview', label: 'Overview', icon: <Sparkles className="h-4 w-4" /> },
-              { key: 'undertaking', label: 'Active Tasks', icon: <Target className="h-4 w-4" /> },
-              { key: 'completed', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
-              { key: 'pending_review', label: 'Under Review', icon: <Eye className="h-4 w-4" /> },
-              { key: 'dispatched', label: 'Posted Tasks', icon: <Lightbulb className="h-4 w-4" /> },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.key
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
+          {/* Main Dashboard Content */}
+          <div className="flex-1 px-4 sm:px-6 lg:px-8">
+            {/* Navigation Tabs */}
+            <div className="mb-8">
+              <nav className="flex space-x-8 border-b border-gray-200">
+                {[
+                  { key: 'overview', label: 'Overview', icon: <Sparkles className="h-4 w-4" /> },
+                  { key: 'undertaking', label: 'Active Tasks', icon: <Target className="h-4 w-4" /> },
+                  { key: 'completed', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
+                  { key: 'pending_review', label: 'Under Review', icon: <Eye className="h-4 w-4" /> },
+                  { key: 'dispatched', label: 'Posted Tasks', icon: <Lightbulb className="h-4 w-4" /> },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === tab.key
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Overview Tab Content (at top when active) */}
+            {activeTab === 'overview' && (
+              <div className="space-y-8">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                        <p className="text-2xl font-bold text-gray-900">${totalEarnings}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Active Tasks</p>
+                        <p className="text-2xl font-bold text-gray-900">{activeTasks}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Target className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Reviews Completed</p>
+                        <p className="text-2xl font-bold text-gray-900">{totalReviews}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Star className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Completion Rate</p>
+                        <p className="text-2xl font-bold text-gray-900">{completionRate}%</p>
+                      </div>
+                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-indigo-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Tasks Posted</p>
+                        <p className="text-2xl font-bold text-gray-900">{createdTasks.length}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Lightbulb className="h-6 w-6 text-orange-600" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button
+                      onClick={() => navigate('/tasks')}
+                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
+                    >
+                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
+                        <Briefcase className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">Find New Work</p>
+                        <p className="text-sm text-gray-500">Discover tasks that match your skills</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setIsDispatchModalOpen(true)}
+                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
+                    >
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-green-200 transition-colors">
+                        <Lightbulb className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">Post a Task</p>
+                        <p className="text-sm text-gray-500">Share your project with the community</p>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('undertaking')}
+                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
+                    >
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
+                        <Clipboard className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">My Tasks</p>
+                        <p className="text-sm text-gray-500">View your active assignments</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                  <div className="space-y-4">
+                    {assignedTasks.slice(0, 3).map(task => (
+                      <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleTaskClick(task)}>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <Clipboard className="h-5 w-5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{task.task_title}</p>
+                            <p className="text-sm text-gray-500">Started {formatDate(task.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                            {formatStatus(task.status)}
+                          </span>
+                          <ArrowRight className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    ))}
+                    {assignedTasks.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Clipboard className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p className="font-medium">No active tasks</p>
+                        <p className="text-sm">Start by finding work that matches your skills</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Other Tab Content (at top when active) */}
+            {activeTab === 'undertaking' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Active Tasks</h2>
+                  <button
+                    onClick={() => navigate('/tasks')}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                  >
+                    Find More Work
+                  </button>
+                </div>
+                
+                {loading ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading your tasks...</p>
+                  </div>
+                ) : assignedTasks.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <Target className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Tasks</h3>
+                    <p className="text-gray-500 mb-6">You're not currently working on any tasks.</p>
+                    <button
+                      onClick={() => navigate('/tasks')}
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                    >
+                      Find Work That Matches Your Skills
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {assignedTasks.map(task => (
+                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                                {formatStatus(task.status)}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Started {formatDate(task.created_at)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <DollarSign className="h-4 w-4" />
+                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              {task.notes || 'No additional notes provided.'}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                                task.assignment_type === 'review' 
+                                  ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                                  : 'bg-green-100 text-green-800 hover:bg-green-200'
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskAction(task, task.assignment_type === 'review' ? 'review' : 'submit');
+                              }}
+                            >
+                              {task.assignment_type === 'review' ? 'Submit Review' : 'Submit Work'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'completed' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Completed Tasks & Reviews</h2>
+                </div>
+                
+                {loading ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading completed tasks...</p>
+                  </div>
+                ) : (completedTasks.length === 0 && completedReviews.length === 0) ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <CheckCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Work</h3>
+                    <p className="text-gray-500 mb-6">Complete your first task to see it here.</p>
+                    <button
+                      onClick={() => navigate('/tasks')}
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                    >
+                      Find Work to Complete
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Completed Tasks Section */}
+                    {completedTasks.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Tasks</h3>
+                        <div className="grid gap-4">
+                          {completedTasks.map(task => (
+                            <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-3 mb-3">
+                                    <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Completed
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                                    <div className="flex items-center space-x-1">
+                                      <Calendar className="h-4 w-4" />
+                                      <span>Completed {formatDate(task.completed_at)}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <DollarSign className="h-4 w-4" />
+                                      <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-600 text-sm">
+                                    {task.description || 'No description provided.'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    {formatCompensation(task.compensation_amount, task.compensation_type)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Completed Reviews Section */}
+                    {completedReviews.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Reviews</h3>
+                        <div className="grid gap-4">
+                          {completedReviews.map(review => (
+                            <div key={review.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ id: review.task_id })}>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-3 mb-3">
+                                    <h3 className="text-lg font-semibold text-gray-900">{review.task_title || `Task ${review.task_id}`}</h3>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                      review.is_approved 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {review.is_approved ? 'Approved' : 'Rejected'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                                    <div className="flex items-center space-x-1">
+                                      <Calendar className="h-4 w-4" />
+                                      <span>Reviewed {formatDate(review.created_at)}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <DollarSign className="h-4 w-4" />
+                                      <span>{formatCompensation(review.compensation_amount, 'cash')}</span>
+                                    </div>
+                                  </div>
+                                  {review.feedback && (
+                                    <p className="text-gray-600 text-sm">
+                                      <strong>Feedback:</strong> {review.feedback}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    {formatCompensation(review.compensation_amount, 'cash')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'pending_review' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Tasks Under Review</h2>
+                </div>
+                
+                {loading ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading tasks under review...</p>
+                  </div>
+                ) : pendingReviewTasks.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <Eye className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Tasks Under Review</h3>
+                    <p className="text-gray-500 mb-6">Tasks you've submitted will appear here while being reviewed.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {pendingReviewTasks.map(task => (
+                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Under Review
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Submitted {formatDate(task.created_at)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <DollarSign className="h-4 w-4" />
+                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              {task.notes || 'No additional notes provided.'}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg font-medium text-sm"
+                              disabled
+                            >
+                              Reviewing...
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'dispatched' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Tasks You've Posted</h2>
+                  <button
+                    onClick={() => setIsDispatchModalOpen(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                  >
+                    Post New Task
+                  </button>
+                </div>
+                
+                {loading ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading your posted tasks...</p>
+                  </div>
+                ) : createdTasks.length === 0 ? (
+                  <div className="bg-white rounded-xl p-8 text-center">
+                    <Lightbulb className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Posted Tasks</h3>
+                    <p className="text-gray-500 mb-6">Share your projects with the community to get help.</p>
+                    <button
+                      onClick={() => setIsDispatchModalOpen(true)}
+                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                    >
+                      Post Your First Task
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {createdTasks.map(task => (
+                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                                {formatStatus(task.status)}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Posted {formatDate(task.created_at)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <DollarSign className="h-4 w-4" />
+                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Clock className="h-4 w-4" />
+                                <span>Due {formatDate(task.deadline)}</span>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              {task.description || 'No description provided.'}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm('Are you sure you want to delete this task?')) {
+                                  deleteTask(task.id);
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'undertaking' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Active Tasks</h2>
-              <button
-                onClick={() => navigate('/tasks')}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-              >
-                Find More Work
-              </button>
-            </div>
-            
-            {loading ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading your tasks...</p>
-              </div>
-            ) : assignedTasks.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <Target className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Tasks</h3>
-                <p className="text-gray-500 mb-6">You're not currently working on any tasks.</p>
-                <button
-                  onClick={() => navigate('/tasks')}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                >
-                  Find Work That Matches Your Skills
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {assignedTasks.map(task => (
-                  <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                            {formatStatus(task.status)}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Started {formatDate(task.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="h-4 w-4" />
-                            <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm">
-                          {task.notes || 'No additional notes provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <button
-                          className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                            task.assignment_type === 'review' 
-                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                              : 'bg-green-100 text-green-800 hover:bg-green-200'
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTaskAction(task, task.assignment_type === 'review' ? 'review' : 'submit');
-                          }}
-                        >
-                          {task.assignment_type === 'review' ? 'Submit Review' : 'Submit Work'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Modals */}
+        {isTaskModalOpen && selectedTask && (
+          <TaskDetailModal
+            task={selectedTask}
+            isOpen={isTaskModalOpen}
+            onClose={() => {
+              setIsTaskModalOpen(false);
+              setSelectedTask(null);
+            }}
+          />
         )}
 
-        {/* Completed Tab */}
-        {activeTab === 'completed' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Completed Tasks & Reviews</h2>
-            </div>
-            
-            {loading ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading completed tasks...</p>
-              </div>
-            ) : (completedTasks.length === 0 && completedReviews.length === 0) ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <CheckCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Work</h3>
-                <p className="text-gray-500 mb-6">Complete your first task to see it here.</p>
-                <button
-                  onClick={() => navigate('/tasks')}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                >
-                  Find Work to Complete
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Completed Tasks Section */}
-                {completedTasks.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Tasks</h3>
-                    <div className="grid gap-4">
-                      {completedTasks.map(task => (
-                        <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-3">
-                                <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Completed
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>Completed {formatDate(task.completed_at)}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-4 w-4" />
-                                  <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
-                                </div>
-                              </div>
-                              <p className="text-gray-600 text-sm">
-                                {task.description || 'No description provided.'}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                                {formatCompensation(task.compensation_amount, task.compensation_type)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Completed Reviews Section */}
-                {completedReviews.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Reviews</h3>
-                    <div className="grid gap-4">
-                      {completedReviews.map(review => (
-                        <div key={review.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ id: review.task_id })}>
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-3">
-                                <h3 className="text-lg font-semibold text-gray-900">{review.task_title || `Task ${review.task_id}`}</h3>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  review.is_approved 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {review.is_approved ? 'Approved' : 'Rejected'}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>Reviewed {formatDate(review.created_at)}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-4 w-4" />
-                                  <span>{formatCompensation(review.compensation_amount, 'cash')}</span>
-                                </div>
-                              </div>
-                              {review.feedback && (
-                                <p className="text-gray-600 text-sm">
-                                  <strong>Feedback:</strong> {review.feedback}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                                {formatCompensation(review.compensation_amount, 'cash')}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        {isTaskActionModalOpen && selectedTask && (
+          <TaskActionModal
+            task={selectedTask}
+            mode={actionMode}
+            isOpen={isTaskActionModalOpen}
+            onClose={() => {
+              setIsTaskActionModalOpen(false);
+              setSelectedTask(null);
+            }}
+            onSubmit={actionMode === 'review' ? handleTaskReview : handleTaskSubmit}
+          />
         )}
 
-        {/* Pending Review Tab */}
-        {activeTab === 'pending_review' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Tasks Under Review</h2>
-            </div>
-            
-            {loading ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading tasks under review...</p>
-              </div>
-            ) : pendingReviewTasks.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <Eye className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Tasks Under Review</h3>
-                <p className="text-gray-500 mb-6">Tasks you've submitted will appear here while being reviewed.</p>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {pendingReviewTasks.map(task => (
-                  <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Under Review
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Submitted {formatDate(task.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="h-4 w-4" />
-                            <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm">
-                          {task.notes || 'No additional notes provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <button
-                          className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg font-medium text-sm"
-                          disabled
-                        >
-                          Reviewing...
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Dispatched (Posted Tasks) Tab */}
-        {activeTab === 'dispatched' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-900">Tasks You've Posted</h2>
-              <button
-                onClick={() => setIsDispatchModalOpen(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-              >
-                Post New Task
-              </button>
-            </div>
-            
-            {loading ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading your posted tasks...</p>
-              </div>
-            ) : createdTasks.length === 0 ? (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <Lightbulb className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Posted Tasks</h3>
-                <p className="text-gray-500 mb-6">Share your projects with the community to get help.</p>
-                <button
-                  onClick={() => setIsDispatchModalOpen(true)}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                >
-                  Post Your First Task
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {createdTasks.map(task => (
-                  <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                            {formatStatus(task.status)}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>Posted {formatDate(task.created_at)}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="h-4 w-4" />
-                            <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock className="h-4 w-4" />
-                            <span>Due {formatDate(task.deadline)}</span>
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm">
-                          {task.description || 'No description provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <button
-                          className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Are you sure you want to delete this task?')) {
-                              deleteTask(task.id);
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        {isDispatchModalOpen && (
+          <DispatchTaskModal
+            isOpen={isDispatchModalOpen}
+            onClose={() => setIsDispatchModalOpen(false)}
+            onTaskCreated={(newTask) => {
+              setCreatedTasks(prev => [newTask, ...prev]);
+              setSuccess('Task created successfully!');
+              setIsDispatchModalOpen(false);
+            }}
+          />
         )}
       </main>
-
-      {/* Modals */}
-      {isTaskModalOpen && selectedTask && (
-        <TaskDetailModal
-          task={selectedTask}
-          isOpen={isTaskModalOpen}
-          onClose={() => {
-            setIsTaskModalOpen(false);
-            setSelectedTask(null);
-          }}
-        />
-      )}
-
-      {isTaskActionModalOpen && selectedTask && (
-        <TaskActionModal
-          task={selectedTask}
-          mode={actionMode}
-          isOpen={isTaskActionModalOpen}
-          onClose={() => {
-            setIsTaskActionModalOpen(false);
-            setSelectedTask(null);
-          }}
-          onSubmit={actionMode === 'review' ? handleTaskReview : handleTaskSubmit}
-        />
-      )}
-
-      {isDispatchModalOpen && (
-        <DispatchTaskModal
-          isOpen={isDispatchModalOpen}
-          onClose={() => setIsDispatchModalOpen(false)}
-          onTaskCreated={(newTask) => {
-            setCreatedTasks(prev => [newTask, ...prev]);
-            setSuccess('Task created successfully!');
-            setIsDispatchModalOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 };

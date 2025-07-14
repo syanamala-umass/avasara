@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { registerUser, fetchSkills, createSkill } from './api';
-import Select from 'react-select';
+import React, { useState } from 'react';
+import { registerUser } from './api';
 import { 
   X, 
   User, 
@@ -8,11 +7,9 @@ import {
   Mail, 
   Lock, 
   Shield, 
-  Plus, 
   Sparkles,
   ArrowRight,
-  Users,
-  CheckCircle
+  Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,21 +19,11 @@ const SignupPopup = ({ isOpen, onClose }) => {
     password: '',
     confirmPassword: '',
     full_name: '',
-    username: '',
-    skills: []
+    username: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [availableSkills, setAvailableSkills] = useState([]);
-  const [newSkillName, setNewSkillName] = useState('');
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Fetch available skills using fetchSkills from api.js
-    fetchSkills()
-      .then(res => setAvailableSkills(res.data))
-      .catch(err => console.error('Error fetching skills:', err));
-  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,43 +31,6 @@ const SignupPopup = ({ isOpen, onClose }) => {
       ...prev,
       [name]: value
     }));
-  };
-
-  // Multi-select handler
-  const handleSkillsChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions);
-    const selectedIds = selectedOptions.map(option => parseInt(option.value));
-    setFormData(prev => ({
-      ...prev,
-      skills: selectedIds
-    }));
-  };
-
-  const handleAddSkill = () => {
-    // No longer needed with multi-select, but keep for compatibility
-  };
-
-  const handleRemoveSkill = (skillId) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.filter(id => id !== skillId)
-    }));
-  };
-
-  const handleCreateSkill = async () => {
-    if (!newSkillName.trim()) return;
-    try {
-      const response = await createSkill({ name: newSkillName.trim() });
-      const newSkill = response.data;
-      setAvailableSkills(prev => [...prev, newSkill]);
-      setFormData(prev => ({
-        ...prev,
-        skills: [...prev.skills, newSkill.id]
-      }));
-      setNewSkillName('');
-    } catch (err) {
-      alert('Failed to create skill. It may already exist.');
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -107,8 +57,7 @@ const SignupPopup = ({ isOpen, onClose }) => {
         email: formData.email,
         password: formData.password,
         username: formData.username,
-        full_name: formData.full_name,
-        skills: formData.skills
+        full_name: formData.full_name
       });
 
       if (response.data) {
@@ -191,7 +140,7 @@ const SignupPopup = ({ isOpen, onClose }) => {
                 value={formData.full_name}
                 onChange={handleChange}
                 className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                placeholder="John Doe"
+                placeholder="Enter your full name"
                 required
               />
             </div>
@@ -211,15 +160,10 @@ const SignupPopup = ({ isOpen, onClose }) => {
                 value={formData.username}
                 onChange={handleChange}
                 className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                placeholder="johndoe"
+                placeholder="Choose a username"
                 required
-                pattern="[a-zA-Z0-9_]+"
-                title="Username can only contain letters, numbers, and underscores"
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Only letters, numbers, and underscores allowed
-            </p>
           </div>
 
           {/* Email */}
@@ -236,12 +180,12 @@ const SignupPopup = ({ isOpen, onClose }) => {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                placeholder="your.email@example.com"
+                placeholder="Enter your email"
                 required
               />
             </div>
           </div>
-          
+
           {/* Password */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="password">
@@ -281,100 +225,6 @@ const SignupPopup = ({ isOpen, onClose }) => {
               />
             </div>
           </div>
-
-          {/* Skills */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Skills & Expertise
-            </label>
-            <Select
-              isMulti
-              options={availableSkills.map(skill => ({
-                value: skill.id,
-                label: skill.name
-              }))}
-              value={availableSkills
-                .filter(skill => formData.skills.includes(skill.id))
-                .map(skill => ({ value: skill.id, label: skill.name }))}
-              onChange={selectedOptions => {
-                setFormData(prev => ({
-                  ...prev,
-                  skills: selectedOptions.map(option => option.value)
-                }));
-              }}
-              className="mb-3"
-              placeholder="Select your skills..."
-              styles={{
-                control: (provided) => ({
-                  ...provided,
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '4px',
-                  boxShadow: 'none',
-                  '&:hover': {
-                    border: '1px solid #6366f1'
-                  }
-                }),
-                option: (provided, state) => ({
-                  ...provided,
-                  backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#f3f4f6' : 'white',
-                  color: state.isSelected ? 'white' : '#374151'
-                })
-              }}
-            />
-            
-            {/* Add New Skill */}
-            <div className="flex space-x-2">
-              <div className="relative flex-1">
-                <Plus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  value={newSkillName}
-                  onChange={e => setNewSkillName(e.target.value)}
-                  placeholder="Add new skill"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleCreateSkill}
-                className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </button>
-            </div>
-          </div>
-
-          {/* Selected Skills Display */}
-          {formData.skills.length > 0 && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Your Skills
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {formData.skills.map(skillId => {
-                  const skill = availableSkills.find(s => s.id === skillId);
-                  return skill ? (
-                    <span
-                      key={skillId}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 border border-indigo-200"
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      {skill.name}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSkill(skillId)}
-                        className="ml-2 text-indigo-600 hover:text-indigo-800 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
           
           {/* Submit Button */}
           <div className="pt-4">

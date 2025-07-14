@@ -154,7 +154,14 @@ def create_new_assignment(
                 detail=f"Your skill levels do not meet the minimum requirements for this task. You can view all tasks but can only {assignment_type_text} tasks where you meet the minimum skill level requirements."
         )
     
-    return crud.create_task_assignment(assignment, current_user.id)
+    try:
+        print(f"Creating task assignment for user {current_user.id}, task {assignment.task_id}")
+        result = crud.create_task_assignment(assignment, current_user.id)
+        print(f"Task assignment created successfully: {result}")
+        return result
+    except Exception as e:
+        print(f"Error creating task assignment: {str(e)}")
+        raise
 
 @router.get("/", response_model=List[TaskAssignmentWithDetails])
 def read_assignments(
