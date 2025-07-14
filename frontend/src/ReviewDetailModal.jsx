@@ -10,7 +10,7 @@ const ReviewDetailModal = ({
     skills: [],
     review_compensation_type: 'cash',
     review_compensation_amount: 0,
-    status: 'submitted_for_review',
+    status: 'submitted',
     creator_name: 'Unknown Creator',
     category: 'review',
     id: null
@@ -48,7 +48,7 @@ const ReviewDetailModal = ({
       
       // Filter submissions to only show those that need review
       const submissionsNeedingReview = (taskData.assignments || []).filter(
-        assignment => assignment.status === 'submitted_for_review'
+        assignment => assignment.status === 'submitted'
       );
       setSubmissionsToReview(submissionsNeedingReview);
       
@@ -215,7 +215,7 @@ const ReviewDetailModal = ({
                       <div className="bg-white p-3 rounded border border-indigo-200">
                         <div className="text-center">
                           <div className="text-lg font-bold text-indigo-600">
-                            {taskDetails.assignments.filter(a => a.status === 'submitted_for_review').length}
+                            {taskDetails.assignments.filter(a => a.status === 'submitted').length}
                           </div>
                           <div className="text-xs text-indigo-600">Submitted for Review</div>
                         </div>

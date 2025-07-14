@@ -260,6 +260,9 @@ def read_tasks(
             joinedload(models.Task.user)
         )
         
+        # Import SQLAlchemy functions once at the beginning
+        from sqlalchemy import exists, and_, or_
+        
         # Apply filters
         if status:
             query = query.filter(models.Task.status == status)
@@ -288,7 +291,6 @@ def read_tasks(
             skill_names = category_skills.get(category, [])
             if skill_names:
                 # Create OR conditions for skill names using subquery
-                from sqlalchemy import exists, or_
                 skill_conditions = []
                 for skill_name in skill_names:
                     skill_conditions.append(models.Skill.name.ilike(f"%{skill_name}%"))
@@ -305,10 +307,7 @@ def read_tasks(
             # Get the skill name for the selected skill_id
             selected_skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
             if selected_skill:
-                # Use a subquery to check both skills relationship and skill_review_requirements
-                from sqlalchemy import exists, or_, and_
-                
-                # Check if task has the skill in its skills relationship OR in skill_review_requirements
+                # Check if task has the skill in its skills relationship
                 skill_subquery = db.query(models.Task.id).join(
                     models.Task.skills
                 ).filter(
@@ -329,10 +328,20 @@ def read_tasks(
         if task_type == 'review':
             # For review tasks, we want tasks that have submitted assignments
             # BUT exclude tasks where the current user is the original task completer
-            query = query.join(models.TaskAssignment).filter(
+            # Use a subquery approach to avoid complex joins
+            
+            # Create a subquery to find tasks with submitted assignments by other users
+            submitted_assignments_subquery = db.query(models.TaskAssignment.task_id).filter(
                 models.TaskAssignment.status == 'submitted',
-                models.TaskAssignment.user_id != current_user.id  # Exclude tasks completed by current user
-            ).distinct()
+                models.TaskAssignment.user_id != current_user.id
+            ).subquery()
+            
+            # Filter tasks to only include those with submitted assignments by other users
+            query = query.filter(
+                exists().where(
+                    models.Task.id == submitted_assignments_subquery.c.task_id
+                )
+            )
             
         tasks = query.offset(skip).limit(limit).all()
         
