@@ -88,7 +88,7 @@ const UserDashboard = () => {
           fetchTaskAssignments({ status: 'completed' }),
           fetchMyReviews(),
           fetchTasks({ status: 'submitted' }),
-          fetchMyAssignments('submitted_for_review'),
+          fetchMyAssignments('submitted'),
           fetchMyAssignments('rejected')
         ]);
 
@@ -195,7 +195,7 @@ const UserDashboard = () => {
       const userData = JSON.parse(localStorage.getItem('userData'));
       const [assignedTasksResponse, pendingReviewResponse] = await Promise.all([
         fetchMyAssignments('in_progress'),
-        fetchMyAssignments('submitted_for_review')
+        fetchMyAssignments('submitted')
       ]);
       
       // Update the lists with fresh data
@@ -949,7 +949,7 @@ const UserDashboard = () => {
                               <Trash2 className="h-5 w-5" />
                             </button>
                           )}
-                          {task.status === 'submitted_for_review' && (
+                          {task.status === 'submitted' && (
                             <button 
                               className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm font-medium hover:bg-yellow-200 transition"
                               onClick={(e) => {

@@ -51,7 +51,13 @@ def get_top_skills_by_tasks(db: Session = Depends(get_db), limit: int = 5):
 @router.post("/", response_model=Skill)
 def create_skill(skill: SkillCreate, db: Session = Depends(get_db)):
     """Create a new skill"""
-    db_skill = models.Skill(**skill.dict())
+    # Only pass fields that exist in the Skill model
+    skill_data = skill.dict()
+    # Remove fields that don't exist in the model
+    skill_data.pop('description', None)
+    skill_data.pop('category', None)
+    
+    db_skill = models.Skill(**skill_data)
     db.add(db_skill)
     db.commit()
     db.refresh(db_skill)

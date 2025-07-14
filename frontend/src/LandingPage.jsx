@@ -245,81 +245,6 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Task Categories */}
-      <div className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Every Skill, Every Task
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              From technical development to creative content, find tasks that match your expertise 
-              or discover new skills to learn.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {taskCategories.map((category, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${category.color} text-white mb-4`}>
-                  {category.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900">{category.name}</h3>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Community Impact
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See how our global community is making a difference, one task at a time.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-blue-600 text-white mb-6">
-                <Users className="h-8 w-8" />
-              </div>
-              <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {/* {loading ? '...' : stats.total_contributors} */}
-              </h3>
-              <p className="text-lg text-gray-600">Active Contributors</p>
-              <p className="text-sm text-gray-500 mt-2">From 50+ countries</p>
-            </div>
-
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-green-600 text-white mb-6">
-                <CheckCircle className="h-8 w-8" />
-              </div>
-              <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {/* {loading ? '...' : stats.total_tasks} */}
-              </h3>
-              <p className="text-lg text-gray-600">Tasks Completed</p>
-              <p className="text-sm text-gray-500 mt-2">With 98% satisfaction</p>
-            </div>
-
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-purple-600 text-white mb-6">
-                <TrendingUp className="h-8 w-8" />
-              </div>
-              <h3 className="text-4xl font-bold text-gray-900 mb-2">
-                {/* {loading ? '...' : stats.total_startups} */}
-              </h3>
-              <p className="text-lg text-gray-600">Projects Launched</p>
-              <p className="text-sm text-gray-500 mt-2">Across all industries</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* How It Works */}
       <div className="py-20 bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -365,6 +290,32 @@ const LandingPage = () => {
                 recognition in our community.
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Task Categories */}
+      <div className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Every Skill, Every Task
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              From technical development to creative content, find tasks that match your expertise 
+              or discover new skills to learn.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {taskCategories.map((category, index) => (
+              <div key={index} className="bg-white rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${category.color} text-white mb-4`}>
+                  {category.icon}
+                </div>
+                <h3 className="font-semibold text-gray-900">{category.name}</h3>
+              </div>
+            ))}
           </div>
         </div>
       </div>

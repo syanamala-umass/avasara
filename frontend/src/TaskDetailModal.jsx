@@ -123,8 +123,6 @@ const TaskDetailModal = ({ isOpen, task = {
         return `${baseClasses} bg-blue-100 text-blue-800`;
       case 'submitted':
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'submitted_for_review':
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
       case 'completed':
         return `${baseClasses} bg-purple-100 text-purple-800`;
       case 'rejected':
@@ -162,8 +160,6 @@ const TaskDetailModal = ({ isOpen, task = {
         return 'One or more contributors are currently working on this task.';
       case 'submitted':
         return 'Work has been submitted and is awaiting review from reviewers.';
-      case 'submitted_for_review':
-        return 'Work has been submitted and is awaiting review by assigned reviewers.';
       case 'completed':
         return 'This task has been successfully completed and approved.';
       case 'rejected':
@@ -824,7 +820,7 @@ const TaskDetailModal = ({ isOpen, task = {
             {onUndertake && 
               canUndertake?.can_undertake && 
               ((task.status === 'open' || task.status === 'available' || !task.status) || 
-              (task.category === 'review' && task.status === 'submitted_for_review'))
+              (task.category === 'review' && task.status === 'submitted'))
             && (
               <button
                 onClick={() => onUndertake(task)}

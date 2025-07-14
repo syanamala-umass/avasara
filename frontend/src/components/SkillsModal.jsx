@@ -41,10 +41,13 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
       };
 
       initializeModal();
+    } else {
+      setError(null); // Clear error when modal is closed
     }
   }, [isOpen]);
 
   const handleAddSkill = async (skillName) => {
+    setError(null); // Clear error on new action
     if (!skillName || !userData) return;
 
     // Check if skill is already added
@@ -65,10 +68,12 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   };
 
   const handleRemoveSkill = (skillId) => {
+    setError(null); // Clear error on new action
     setUserSkills(prev => prev.filter(skill => skill.id !== skillId));
   };
 
   const handleAddNewSkill = async () => {
+    setError(null); // Clear error on new action
     if (!skillSearch.trim()) return;
     setLoading(true);
     try {
@@ -187,6 +192,7 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                 onChange={e => {
                   setSkillSearch(e.target.value);
                   setShowSkillDropdown(true);
+                  setError(null); // Clear error on typing
                 }}
                 onFocus={() => setShowSkillDropdown(true)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"

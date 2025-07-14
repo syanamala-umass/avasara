@@ -324,7 +324,7 @@ const TaskBrowser = () => {
                       <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         task.status === 'open' ? 'bg-green-100 text-green-800' :
                         task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                        task.status === 'submitted_for_review' ? 'bg-yellow-100 text-yellow-800' :
+                        task.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
                         task.status === 'completed' ? 'bg-purple-100 text-purple-800' :
                         task.status === 'rejected' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'

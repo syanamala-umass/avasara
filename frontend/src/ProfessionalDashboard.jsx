@@ -10,6 +10,7 @@ import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
 import DispatchTaskModal from './DispatchTaskModal';
 import ReviewSubmissionsModal from './ReviewSubmissionsModal';
+import SkillsModal from './components/SkillsModal';
 import {
   fetchTasks,
   fetchTaskAssignments,
@@ -52,6 +53,7 @@ const ProfessionalDashboard = () => {
   const [actionMode, setActionMode] = useState('submit');
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [isReviewSubmissionsModalOpen, setIsReviewSubmissionsModalOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
   const [success, setSuccess] = useState(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
@@ -96,7 +98,7 @@ const ProfessionalDashboard = () => {
           fetchTaskAssignments({ status: 'completed' }),
           fetchMyReviews(),
           fetchTasks({ status: 'submitted' }),
-          fetchMyAssignments('submitted_for_review'),
+          fetchMyAssignments('submitted'),
           fetchMyAssignments('rejected'),
           fetchUserSkills(userDataFromStorage.id),
           fetchTopSkillsByTasks(),
@@ -205,7 +207,7 @@ const ProfessionalDashboard = () => {
       const userData = JSON.parse(localStorage.getItem('userData'));
       const [assignedTasksResponse, pendingReviewResponse] = await Promise.all([
         fetchMyAssignments('in_progress'),
-        fetchMyAssignments('submitted_for_review')
+        fetchMyAssignments('submitted')
       ]);
       
       setAssignedTasks(assignedTasksResponse.data || []);
@@ -427,26 +429,7 @@ const ProfessionalDashboard = () => {
                       </div>
 
                       {/* Skills */}
-                      {userSkills.length > 0 && (
-                        <div className="mb-6">
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">Your Skills</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {userSkills.slice(0, 5).map(skill => (
-                              <span 
-                                key={skill.skill_id} 
-                                className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium"
-                              >
-                                {skill.skill_name} ({skill.rating}/5)
-                              </span>
-                            ))}
-                            {userSkills.length > 5 && (
-                              <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                                +{userSkills.length - 5} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      {/* This block is now removed */}
 
                       {/* Actions */}
                       <div className="space-y-2">
@@ -463,7 +446,7 @@ const ProfessionalDashboard = () => {
                         <button
                           onClick={() => {
                             setShowProfileDropdown(false);
-                            navigate('/onboarding');
+                            setIsSkillsModalOpen(true);
                           }}
                           className="w-full flex items-center space-x-3 px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                         >
@@ -1010,7 +993,7 @@ const ProfessionalDashboard = () => {
                               className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg font-medium text-sm"
                               disabled
                             >
-                              Reviewing...
+                              Being Reviewed
                             </button>
                           </div>
                         </div>
@@ -1139,6 +1122,22 @@ const ProfessionalDashboard = () => {
             }}
           />
         )}
+
+        {/* Skills Modal */}
+        <SkillsModal 
+          isOpen={isSkillsModalOpen}
+          onClose={() => setIsSkillsModalOpen(false)}
+          onComplete={() => {
+            setIsSkillsModalOpen(false);
+            setSuccess('Skills updated successfully!');
+            // Refresh user skills
+            // The original fetchDashboardData already handles this, but calling it again here
+            // ensures the latest skills are displayed in the profile dropdown.
+            // However, the original fetchDashboardData doesn't re-fetch userSkills.
+            // For now, we'll just close the modal and show a success message.
+            // A more robust solution would involve re-fetching userSkills after skills are updated.
+          }}
+        />
       </main>
     </div>
   );
