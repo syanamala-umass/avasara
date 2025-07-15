@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Users, ArrowLeft, Eye, Plus } from 'lucide-react';
-import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment } from './api';
+import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks } from './api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 
@@ -173,7 +173,9 @@ const TasksPage = () => {
     const capabilities = {};
     for (const task of tasks) {
       try {
-        const response = await canUndertakeTask(task.id);
+        // Use 'review' assignment type for review tasks, 'task' for regular tasks
+        const assignmentType = task.category === 'review' ? 'review' : 'task';
+        const response = await canUndertakeTask(task.id, assignmentType);
         capabilities[task.id] = response.data;
       } catch (err) {
         console.error(`Failed to check capabilities for task ${task.id}:`, err);
@@ -209,12 +211,22 @@ const TasksPage = () => {
         params.min_skill_rating = parseFloat(filters.minSkillRating);
       }
 
-      const response = await fetchTasks(params);
-      setResults(response.data || []);
+      // Fetch both regular tasks and review tasks
+      const [tasksResponse, reviewTasksResponse] = await Promise.all([
+        fetchTasks(params),
+        fetchReviewTasks({ status: 'open' })
+      ]);
+      
+      // Combine and categorize the results
+      const regularTasks = (tasksResponse.data || []).map(task => ({ ...task, category: 'task' }));
+      const reviewTasks = (reviewTasksResponse.data || []).map(task => ({ ...task, category: 'review' }));
+      
+      const allTasks = [...regularTasks, ...reviewTasks];
+      setResults(allTasks);
       
       // Check capabilities for all tasks
-      if (response.data && response.data.length > 0) {
-        await checkTaskCapabilities(response.data);
+      if (allTasks.length > 0) {
+        await checkTaskCapabilities(allTasks);
       }
     } catch (err) {
       console.error('Search error:', err);
@@ -240,7 +252,10 @@ const TasksPage = () => {
     if (!capability) return 'Checking...';
     
     if (capability.can_undertake) {
-      return 'You can undertake this task';
+      // Find the task to determine if it's a review task
+      const task = results.find(t => t.id === taskId);
+      const actionText = task?.category === 'review' ? 'review' : 'undertake';
+      return `You can ${actionText} this task`;
     } else {
       return capability.reason || 'You cannot undertake this task';
     }

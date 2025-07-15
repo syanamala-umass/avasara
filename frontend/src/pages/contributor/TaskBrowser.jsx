@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
-import { fetchTasks, fetchSkills, createTaskAssignment, assignTask } from '../../api';
+import { fetchTasks, fetchSkills, createTaskAssignment, assignTask, fetchReviewTasks } from '../../api';
 
 const TaskBrowser = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
+  const [reviewTasks, setReviewTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
@@ -17,7 +18,7 @@ const TaskBrowser = () => {
     minCompensation: '',
     skillId: '',
     search: '',
-    category: 'task'
+    category: 'all'  // Changed from 'task' to 'all' to show both types
   });
   const [availableSkills, setAvailableSkills] = useState([]);
   const [success, setSuccess] = useState('');
@@ -30,11 +31,14 @@ const TaskBrowser = () => {
         const skillsResponse = await fetchSkills();
         setAvailableSkills(skillsResponse.data || []);
 
-        // Fetch tasks based on category
-        const tasksResponse = await fetchTasks({
-          category: filters.category
-        });
+        // Fetch both regular tasks and review tasks
+        const [tasksResponse, reviewTasksResponse] = await Promise.all([
+          fetchTasks({ category: 'task' }),
+          fetchReviewTasks({ status: 'open' })
+        ]);
+        
         setTasks(tasksResponse.data || []);
+        setReviewTasks(reviewTasksResponse.data || []);
       } catch (err) {
         console.error('Error loading data:', err);
         setError('Failed to load tasks. Please try again later.');
@@ -44,7 +48,7 @@ const TaskBrowser = () => {
     };
 
     loadData();
-  }, [filters.category]);
+  }, []);
   
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -54,10 +58,16 @@ const TaskBrowser = () => {
     });
   };
   
+  // Combine regular tasks and review tasks
+  const allTasks = [
+    ...tasks.map(task => ({ ...task, category: 'task' })),
+    ...reviewTasks.map(task => ({ ...task, category: 'review' }))
+  ];
+  
   // Filter tasks based on criteria
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = allTasks.filter(task => {
     // Category filter
-    if (filters.category && task.category !== filters.category) {
+    if (filters.category && filters.category !== 'all' && task.category !== filters.category) {
       return false;
     }
     
@@ -178,6 +188,7 @@ const TaskBrowser = () => {
               onChange={handleFilterChange}
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
+              <option value="all">All Tasks</option>
               <option value="task">Regular Tasks</option>
               <option value="review">Review Tasks</option>
             </select>

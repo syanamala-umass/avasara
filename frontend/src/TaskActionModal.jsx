@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { X, Upload, Star, CheckCircle, XCircle } from 'lucide-react';
+import { X, Star, CheckCircle, XCircle } from 'lucide-react';
 
 const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
-  const [files, setFiles] = useState([]);
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -20,11 +19,8 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
 
     try {
       if (mode === 'submit') {
-        // Create FormData for file upload
+        // Create FormData for notes only (files are not supported in the new API)
         const formData = new FormData();
-        files.forEach(file => {
-          formData.append('files', file);
-        });
         formData.append('notes', notes);
         
         await onSubmit(task.task_id, formData);
@@ -90,10 +86,7 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
-  };
+
 
   // Reject Feedback Modal
   if (showRejectModal) {
@@ -195,50 +188,9 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
 
         {mode === 'submit' ? (
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Upload Files
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                    >
-                      <span>Upload files</span>
-                      <input
-                        id="file-upload"
-                        name="file-upload"
-                        type="file"
-                        multiple
-                        className="sr-only"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Any file type up to 10MB
-                  </p>
-                </div>
-              </div>
-              {files.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600">Selected files:</p>
-                  <ul className="mt-1 text-sm text-gray-600">
-                    {files.map((file, index) => (
-                      <li key={index}>{file.name}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Notes
+                Submission Notes
               </label>
               <textarea
                 value={notes}

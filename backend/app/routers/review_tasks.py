@@ -47,9 +47,9 @@ def get_review_tasks(
         HTTPException 500: If database query fails
     """
     with get_db_cursor() as cursor:
-        # Build the base query
+        # Build the base query - show only one review task per parent task
         query = """
-            SELECT rt.*, 
+            SELECT DISTINCT ON (rt.parent_task_id) rt.*, 
                    t.title as parent_task_title,
                    ta.notes as assignment_notes,
                    u.username as submitter_name
@@ -77,8 +77,8 @@ def get_review_tasks(
         """
         params.append(current_user.id)
         
-        # Add ordering and pagination
-        query += " ORDER BY rt.created_at DESC LIMIT %s OFFSET %s"
+        # Add ordering and pagination - order by parent_task_id first for DISTINCT ON, then by created_at
+        query += " ORDER BY rt.parent_task_id, rt.created_at DESC LIMIT %s OFFSET %s"
         params.extend([limit, skip])
         
         cursor.execute(query, params)
