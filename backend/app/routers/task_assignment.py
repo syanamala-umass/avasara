@@ -320,10 +320,16 @@ async def update_assignment_status(
         print(f"DEBUG: Creating review tasks for assignment {assignment_id}")
         # Get task details for peer evaluation and create review tasks
         with get_db_cursor(commit=True) as cursor:
-            cursor.execute(
-                "SELECT num_reviewers, title, description FROM tasks WHERE id = %s",
-                (db_assignment['task_id'],)
-            )
+            # Get parent task details including skill requirements
+            cursor.execute("""
+                SELECT t.num_reviewers, t.title, t.description, t.skill_review_requirements,
+                       array_agg(s.name) as skill_names
+                FROM tasks t
+                LEFT JOIN task_skills ts ON t.id = ts.task_id
+                LEFT JOIN skills s ON ts.skill_id = s.id
+                WHERE t.id = %s
+                GROUP BY t.id, t.num_reviewers, t.title, t.description, t.skill_review_requirements
+            """, (db_assignment['task_id'],))
             task = cursor.fetchone()
             print(f"DEBUG: Task data: {task}")
         
@@ -359,7 +365,7 @@ async def update_assignment_status(
                 """, (
                     review_task_title,
                     review_task_description,
-                    task.get('skill_review_requirements', '{}'),  # Same skill requirements as original task
+                    task['skill_review_requirements'] or '{}',  # Use parent task's skill requirements
                     db_assignment['task_id'],  # Link to parent task
                     assignment_id,  # Link to the assignment being reviewed
                     25,  # Review compensation amount
@@ -450,6 +456,23 @@ def can_undertake_task(
             "can_undertake": False,
             "reason": f"You already have a {assignment_type} assignment for this task"
         }
+    
+    # For review tasks, check if user is the original submitter (prevent self-review)
+    if assignment_type == "review":
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT ta.user_id 
+                FROM review_tasks rt
+                JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
+                WHERE rt.id = %s
+            """, (task_id,))
+            
+            review_task_result = cursor.fetchone()
+            if review_task_result and review_task_result['user_id'] == current_user.id:
+                return {
+                    "can_undertake": False,
+                    "reason": "You cannot review your own submission"
+                }
     
     # Check if user is blocked from this task
     with get_db_cursor() as cursor:

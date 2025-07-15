@@ -82,12 +82,44 @@ export const deleteTask = async (taskId) => {
   }
 };
 export const applyForTask = (id, data) => api.post(`/tasks/${id}/apply`, data);
-export const submitTask = (id, formData) => {
-  return api.post(`/tasks/${id}/submit`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+export const submitTask = async (taskId, formData) => {
+  try {
+    // First, get the user's assignment for this task
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    if (!userData || !userData.id) {
+      throw new Error('User data not found');
+    }
+
+    // Get the assignment ID for this task and user
+    const assignmentsResponse = await api.get('/task-assignments', {
+      params: {
+        task_id: taskId,
+        user_id: userData.id,
+        status: 'in_progress'
+      }
+    });
+
+    const assignments = assignmentsResponse.data || [];
+    if (assignments.length === 0) {
+      throw new Error('No active assignment found for this task');
+    }
+
+    const assignment = assignments[0];
+    
+    // Extract notes from formData
+    const notes = formData.get('notes') || 'Task submitted for review';
+    
+    // Update the assignment status to 'submitted' which will trigger review task creation
+    const response = await api.put(`/task-assignments/${assignment.id}`, {
+      status: 'submitted',
+      notes: notes
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Error submitting task:', error);
+    throw error;
+  }
 };
 export const reviewTask = (id, data) => api.post(`/tasks/${id}/review`, data);
 export const getSubmittedTasks = () => api.get('/tasks/submitted');
@@ -111,7 +143,9 @@ export const fetchTaskAssignments = (filters) => {
 export const fetchTaskAssignmentById = (id) => api.get(`/task-assignments/${id}`);
 export const completeTask = (id, data) => api.put(`/task-assignments/${id}`, { ...data, status: 'completed' });
 export const pickUpReview = (taskId, data) => api.post('/task-assignments', { ...data, task_id: taskId, assignment_type: 'review' });
-export const canUndertakeTask = (taskId) => api.get(`/task-assignments/can-undertake/${taskId}`);
+export const canUndertakeTask = (taskId, assignmentType = 'task') => api.get(`/task-assignments/can-undertake/${taskId}`, {
+  params: { assignment_type: assignmentType }
+});
 
 // Peer Evaluation services
 export const createPeerEvaluation = (evaluationData) => api.post('/peer-evaluations', evaluationData);
@@ -167,6 +201,7 @@ export const pingBackend = () => api.get('/health');
 export const fetchMyReviews = () => api.get('/reviews/my-reviews');
 export const fetchMyReceivedReviews = () => api.get('/reviews/my-received-reviews');
 export const fetchReviewSubmissions = (taskId) => api.get(`/tasks/${taskId}/review-submissions`);
+export const fetchReviewTasks = (filters) => api.get('/review-tasks', { params: filters });
 
 // Assign (undertake) a task as a contributor with skill validation
 export const assignTask = async (taskId) => {

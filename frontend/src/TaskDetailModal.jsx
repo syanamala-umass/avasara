@@ -45,7 +45,9 @@ const TaskDetailModal = ({ isOpen, task = {
     
     setCapabilityLoading(true);
     try {
-      const response = await canUndertakeTask(task.id);
+      // Use 'review' assignment type for review tasks, 'task' for regular tasks
+      const assignmentType = task.category === 'review' ? 'review' : 'task';
+      const response = await canUndertakeTask(task.id, assignmentType);
       setCanUndertake(response.data);
     } catch (err) {
       console.error('Error checking task capability:', err);
@@ -186,10 +188,11 @@ const TaskDetailModal = ({ isOpen, task = {
     if (!canUndertake) return null;
 
     if (canUndertake.can_undertake) {
+      const actionText = task.category === 'review' ? 'review' : 'undertake';
       return (
         <div className="flex items-center gap-2 text-green-600">
           <CheckCircle className="h-5 w-5" />
-          <span className="text-sm font-medium">You can undertake this task</span>
+          <span className="text-sm font-medium">You can {actionText} this task</span>
         </div>
       );
     } else {

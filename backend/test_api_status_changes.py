@@ -42,8 +42,7 @@ def test_api_status_changes():
     print("❌ Frontend Changes Still Needed:")
     print("1. TaskBrowser.jsx - Update status check")
     print("2. TaskDetailModal.jsx - Update status handling")
-    print("3. UserDashboard.jsx - Update status filters")
-    print("4. ReviewDetailModal.jsx - Update status references")
+    print("3. ReviewDetailModal.jsx - Update status references")
     print()
     
     print("=== Status Flow Summary ===")
