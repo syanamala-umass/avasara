@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, text
 from typing import List
 from app.database import get_db
 from app import models
@@ -62,3 +62,63 @@ def create_skill(skill: SkillCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_skill)
     return db_skill
+
+@router.get("/{skill_id}", response_model=Skill)
+def get_skill_details(skill_id: int, db: Session = Depends(get_db)):
+    skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
+    # if not skill:
+    #     raise HTTPException(status_code=404, detail="Skill not found")
+    return skill
+
+@router.get("/{skill_id}/top-task-contributors")
+def get_top_task_contributors(skill_id: int, db: Session = Depends(get_db), limit: int = 5):
+    # Get the skill name from the skill_id
+    skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
+    # if not skill:
+    #     raise HTTPException(status_code=404, detail="Skill not found")
+    skill_name = skill.name
+    # Users who completed the most tasks with this skill
+    result = db.execute(text('''
+        SELECT u.id, u.username, COUNT(ta.id) as task_count
+        FROM users u
+        JOIN task_assignments ta ON ta.user_id = u.id
+        JOIN tasks t ON t.id = ta.task_id
+        WHERE ta.status = 'completed' AND t.skill_review_requirements::jsonb ? :skill_name
+        GROUP BY u.id, u.username
+        ORDER BY task_count DESC
+        LIMIT :limit
+    '''), {'skill_name': skill_name, 'limit': limit})
+    return [dict(row) for row in result.mappings().all()]
+
+@router.get("/{skill_id}/top-rated-contributors")
+def get_top_rated_contributors(skill_id: int, db: Session = Depends(get_db), limit: int = 5):
+    # Users with highest average rating for this skill
+    result = db.execute(text('''
+        SELECT u.id, u.username, AVG(us.rating) as avg_rating
+        FROM users u
+        JOIN user_skills us ON us.user_id = u.id
+        WHERE us.skill_id = :skill_id
+        GROUP BY u.id, u.username
+        ORDER BY avg_rating DESC
+        LIMIT :limit
+    '''), {'skill_id': skill_id, 'limit': limit})
+    return [dict(row) for row in result.mappings().all()]
+
+@router.get("/{skill_id}/top-job-posters")
+def get_top_job_posters(skill_id: int, db: Session = Depends(get_db), limit: int = 5):
+    # Get the skill name from the skill_id
+    skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
+    # if not skill:
+    #     raise HTTPException(status_code=404, detail="Skill not found")
+    skill_name = skill.name
+    # Users who posted the most jobs requiring this skill
+    result = db.execute(text('''
+        SELECT u.id, u.username, COUNT(t.id) as job_post_count
+        FROM users u
+        JOIN tasks t ON t.user_id = u.id
+        WHERE t.skill_review_requirements::jsonb ? :skill_name
+        GROUP BY u.id, u.username
+        ORDER BY job_post_count DESC
+        LIMIT :limit
+    '''), {'skill_name': skill_name, 'limit': limit})
+    return [dict(row) for row in result.mappings().all()]

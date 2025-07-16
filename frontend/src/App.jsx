@@ -9,6 +9,7 @@ import TasksPage from './TasksPage';
 import OAuthCallback from './components/OAuthCallback';
 import VerifyEmail from './VerifyEmail';
 import OnboardingFlow from './OnboardingFlow';
+import SkillDetailPage from './pages/SkillDetailPage';
 
 function CheckEmail() {
   return (
@@ -40,6 +41,7 @@ function App() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/check-email" element={<CheckEmail />} />
       <Route path="/onboarding" element={<OnboardingFlow />} />
+      <Route path="/skills/:skillId" element={<SkillDetailPage />} />
     </Routes>
   );
 }

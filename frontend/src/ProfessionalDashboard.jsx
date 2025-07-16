@@ -3,7 +3,7 @@ import {
   Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, 
   Trash2, XCircle, Sparkles, ArrowRight, UserCircle, Filter, MapPin, 
   DollarSign, Calendar, TrendingUp, Award, Target, Zap, Briefcase,
-  Eye, Heart, Share2, Bookmark, MessageCircle, Bell, Settings
+  Eye, Heart, Share2, Bookmark, MessageCircle, Bell, Settings, User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
@@ -25,7 +25,10 @@ import {
   fetchMyReviews,
   fetchUserSkills,
   fetchTopSkillsByTasks,
-  fetchRecommendedTasks
+  fetchRecommendedTasks,
+  fetchMyReviewAssignments,
+  fetchReviewTaskDetails,
+  submitReviewAssignment
 } from './api';
 
 const ProfessionalDashboard = () => {
@@ -34,6 +37,7 @@ const ProfessionalDashboard = () => {
   // State management
   const [createdTasks, setCreatedTasks] = useState([]);
   const [assignedTasks, setAssignedTasks] = useState([]);
+  const [assignedReviewTasks, setAssignedReviewTasks] = useState([]);
   const [completedTasks, setCompletedTasks] = useState([]);
   const [completedReviews, setCompletedReviews] = useState([]);
   const [reviewableTasks, setReviewableTasks] = useState([]);
@@ -84,6 +88,7 @@ const ProfessionalDashboard = () => {
         const [
           createdTasksResponse, 
           assignedTasksResponse, 
+          assignedReviewTasksResponse,
           completedTasksResponse, 
           completedReviewsResponse,
           reviewableTasksResponse,
@@ -95,6 +100,7 @@ const ProfessionalDashboard = () => {
         ] = await Promise.allSettled([
           fetchTasks({ creator_id: userDataFromStorage.id }),
           fetchMyAssignments('in_progress'),
+          fetchMyReviewAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
           fetchMyReviews(),
           fetchTasks({ status: 'submitted' }),
@@ -108,12 +114,27 @@ const ProfessionalDashboard = () => {
         // Handle Promise.allSettled results
         setCreatedTasks(createdTasksResponse.status === 'fulfilled' ? (createdTasksResponse.value?.data || []) : []);
         setAssignedTasks(assignedTasksResponse.status === 'fulfilled' ? (assignedTasksResponse.value?.data || []) : []);
+        setAssignedReviewTasks(assignedReviewTasksResponse.status === 'fulfilled' ? (assignedReviewTasksResponse.value?.data || []) : []);
         setCompletedTasks(completedTasksResponse.status === 'fulfilled' ? (completedTasksResponse.value?.data || []) : []);
         setCompletedReviews(completedReviewsResponse.status === 'fulfilled' ? (completedReviewsResponse.value?.data || []) : []);
         setReviewableTasks(reviewableTasksResponse.status === 'fulfilled' ? (reviewableTasksResponse.value?.data || []) : []);
         setPendingReviewTasks(pendingReviewResponse.status === 'fulfilled' ? (pendingReviewResponse.value?.data || []) : []);
         setRejectedTasks(rejectedTasksResponse.status === 'fulfilled' ? (rejectedTasksResponse.value?.data || []) : []);
         setUserSkills(userSkillsResponse.status === 'fulfilled' ? (userSkillsResponse.value?.data || []) : []);
+        
+        // Debug logging
+        console.log('DEBUG: Dashboard data loading results:');
+        console.log('DEBUG: assignedTasksResponse status:', assignedTasksResponse.status);
+        console.log('DEBUG: assignedTasksResponse value:', assignedTasksResponse.value);
+        console.log('DEBUG: assignedTasks count:', assignedTasksResponse.status === 'fulfilled' ? (assignedTasksResponse.value?.data || []).length : 0);
+        
+        console.log('DEBUG: assignedReviewTasksResponse status:', assignedReviewTasksResponse.status);
+        console.log('DEBUG: assignedReviewTasksResponse value:', assignedReviewTasksResponse.value);
+        console.log('DEBUG: assignedReviewTasks count:', assignedReviewTasksResponse.status === 'fulfilled' ? (assignedReviewTasksResponse.value?.data || []).length : 0);
+        
+        if (assignedReviewTasksResponse.status === 'fulfilled' && assignedReviewTasksResponse.value?.data) {
+          console.log('DEBUG: assignedReviewTasks data:', assignedReviewTasksResponse.value.data);
+        }
         
         // Handle top skills specifically
         const topSkillsData = topSkillsResponse.status === 'fulfilled' ? (topSkillsResponse.value?.data || []) : [];
@@ -173,11 +194,38 @@ const ProfessionalDashboard = () => {
   const handleTaskClick = async (task) => {
     try {
       setLoading(true);
-      const taskId = (activeTab === 'undertaking' || activeTab === 'pending_review') ? task.task_id : task.id;
-      const response = await fetchTaskById(taskId);
-      const taskData = response.data;
+      console.log('DEBUG: handleTaskClick called with task:', task);
       
-      setSelectedTask(taskData);
+      let response;
+      
+      // Check if this is a review task
+      console.log('DEBUG: Task object received:', task);
+      console.log('DEBUG: Task category:', task.category);
+      console.log('DEBUG: Task has parent_task_title:', !!task.parent_task_title);
+      
+      if (task.category === 'review' || task.parent_task_title) {
+        // For review tasks, use the review task ID and call the review task endpoint
+        const reviewTaskId = task.id || task.review_task_id;
+        console.log('DEBUG: Detected as review task, fetching review task details for ID:', reviewTaskId);
+        response = await fetchReviewTaskDetails(reviewTaskId);
+      } else {
+        // For regular tasks, use the regular task endpoint
+        const taskId = (activeTab === 'undertaking' || activeTab === 'pending_review') ? task.task_id : task.id;
+        console.log('DEBUG: Detected as regular task, fetching regular task details for ID:', taskId);
+        response = await fetchTaskById(taskId);
+      }
+      
+      const taskData = response.data;
+      console.log('DEBUG: Task data received:', taskData);
+      
+      // Ensure the task has the correct category for TaskDetailModal
+      const taskWithCategory = {
+        ...taskData,
+        category: task.category === 'review' || task.parent_task_title ? 'review' : 'task'
+      };
+      console.log('DEBUG: Task with category set:', taskWithCategory);
+      
+      setSelectedTask(taskWithCategory);
       setIsTaskModalOpen(true);
       
     } catch (error) {
@@ -225,21 +273,26 @@ const ProfessionalDashboard = () => {
     }
   };
 
-  const handleTaskReview = async (taskId, reviewData) => {
+  const handleTaskReview = async (assignmentId, reviewData) => {
     try {
       setLoading(true);
       setError(null);
       setSuccess(null);
 
-      await reviewTask(taskId, reviewData);
+      console.log('DEBUG: Submitting review for assignment ID:', assignmentId);
+      console.log('DEBUG: Review data:', reviewData);
+
+      await submitReviewAssignment(assignmentId, reviewData);
       
       const userData = JSON.parse(localStorage.getItem('userData'));
-      const [assignedTasksResponse, completedReviewsResponse] = await Promise.all([
+      const [assignedTasksResponse, assignedReviewTasksResponse, completedReviewsResponse] = await Promise.all([
         fetchMyAssignments('in_progress'),
+        fetchMyReviewAssignments('in_progress'),
         fetchMyReviews()
       ]);
       
       setAssignedTasks(assignedTasksResponse.data || []);
+      setAssignedReviewTasks(assignedReviewTasksResponse.data || []);
       setCompletedReviews(completedReviewsResponse.data || []);
 
       setSuccess('Review submitted successfully! Thank you for your feedback.');
@@ -322,7 +375,13 @@ const ProfessionalDashboard = () => {
   // Calculate dashboard stats
   const totalEarnings = completedTasks.reduce((sum, task) => sum + (task.compensation_amount || 0), 0);
   const totalReviews = completedReviews.length;
-  const activeTasks = assignedTasks.length;
+  const activeTasks = assignedTasks.length + assignedReviewTasks.length;
+  
+  // Debug logging for rendering
+  console.log('DEBUG: Rendering dashboard with:');
+  console.log('DEBUG: assignedTasks:', assignedTasks);
+  console.log('DEBUG: assignedReviewTasks:', assignedReviewTasks);
+  console.log('DEBUG: activeTasks count:', activeTasks);
   const completionRate = completedTasks.length > 0 ? ((completedTasks.length / (completedTasks.length + rejectedTasks.length)) * 100).toFixed(1) : 0;
 
   const toggleProfileDropdown = () => {
@@ -561,7 +620,7 @@ const ProfessionalDashboard = () => {
                       return topSkills.slice(0, 5).map((skill, index) => (
                         <button
                           key={skill.id}
-                          onClick={() => navigate('/tasks', { state: { selectedSkill: skill.name } })}
+                          onClick={() => navigate(`/skills/${skill.id}`)}
                           className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 border border-transparent transition-all duration-200 text-left group cursor-pointer"
                         >
                           <span className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{skill.name}</span>
@@ -718,26 +777,46 @@ const ProfessionalDashboard = () => {
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
                   <div className="space-y-4">
-                    {assignedTasks.slice(0, 3).map(task => (
-                      <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleTaskClick(task)}>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                            <Clipboard className="h-5 w-5 text-indigo-600" />
+                    {/* Combine regular tasks and review tasks, sort by creation date, and take first 3 */}
+                    {[...assignedTasks, ...assignedReviewTasks]
+                      .sort((a, b) => new Date(b.created_at || b.assigned_at) - new Date(a.created_at || a.assigned_at))
+                      .slice(0, 3)
+                      .map(task => {
+                        const isReviewTask = task.parent_task_title; // Review tasks have this field
+                        return (
+                          <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleTaskClick(isReviewTask ? { id: task.review_task_id, category: 'review' } : task)}>
+                            <div className="flex items-center space-x-4">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                                isReviewTask ? 'bg-yellow-100' : 'bg-indigo-100'
+                              }`}>
+                                {isReviewTask ? (
+                                  <Eye className="h-5 w-5 text-yellow-600" />
+                                ) : (
+                                  <Clipboard className="h-5 w-5 text-indigo-600" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {isReviewTask ? `Review: ${task.parent_task_title}` : task.task_title}
+                                </p>
+                                <p className="text-sm text-gray-500">Started {formatDate(isReviewTask ? task.assigned_at : task.created_at)}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {isReviewTask && (
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Review
+                                </span>
+                              )}
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                                {formatStatus(task.status)}
+                              </span>
+                              <ArrowRight className="h-4 w-4 text-gray-400" />
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{task.task_title}</p>
-                            <p className="text-sm text-gray-500">Started {formatDate(task.created_at)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                            {formatStatus(task.status)}
-                          </span>
-                          <ArrowRight className="h-4 w-4 text-gray-400" />
-                        </div>
-                      </div>
-                    ))}
-                    {assignedTasks.length === 0 && (
+                        );
+                    })}
+                    {(assignedTasks.length === 0 && assignedReviewTasks.length === 0) && (
                       <div className="text-center py-8 text-gray-500">
                         <Clipboard className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p className="font-medium">No active tasks</p>
@@ -767,7 +846,7 @@ const ProfessionalDashboard = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
                     <p className="text-gray-500">Loading your tasks...</p>
                   </div>
-                ) : assignedTasks.length === 0 ? (
+                ) : (assignedTasks.length === 0 && assignedReviewTasks.length === 0) ? (
                   <div className="bg-white rounded-xl p-8 text-center">
                     <Target className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Tasks</h3>
@@ -781,6 +860,10 @@ const ProfessionalDashboard = () => {
                   </div>
                 ) : (
                   <div className="grid gap-6">
+                    {console.log('DEBUG: Rendering active tasks section')}
+                    {console.log('DEBUG: assignedTasks length:', assignedTasks.length)}
+                    {console.log('DEBUG: assignedReviewTasks length:', assignedReviewTasks.length)}
+                    {/* Regular Tasks */}
                     {assignedTasks.map(task => (
                       <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
                         <div className="flex justify-between items-start">
@@ -818,6 +901,49 @@ const ProfessionalDashboard = () => {
                               }}
                             >
                               {task.assignment_type === 'review' ? 'Submit Review' : 'Submit Work'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Review Tasks */}
+                    {assignedReviewTasks.map(reviewTask => (
+                      <div key={reviewTask.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ id: reviewTask.review_task_id, category: 'review' })}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900">Review: {reviewTask.parent_task_title}</h3>
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Review Task
+                              </span>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(reviewTask.status)}`}>
+                                {formatStatus(reviewTask.status)}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                              <div className="flex items-center space-x-1">
+                                <Calendar className="h-4 w-4" />
+                                <span>Started {formatDate(reviewTask.assigned_at)}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <User className="h-4 w-4" />
+                                <span>Submitted by: {reviewTask.submitter_name}</span>
+                              </div>
+                            </div>
+                            <p className="text-gray-600 text-sm">
+                              {reviewTask.assignment_notes || 'No additional notes provided.'}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <button
+                              className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium text-sm hover:bg-yellow-200 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskAction(reviewTask, 'review');
+                              }}
+                            >
+                              Submit Review
                             </button>
                           </div>
                         </div>

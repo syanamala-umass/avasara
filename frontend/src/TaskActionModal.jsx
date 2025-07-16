@@ -26,10 +26,12 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
         await onSubmit(task.task_id, formData);
         onClose();
       } else if (mode === 'review') {
-        // For review submissions
-        await onSubmit(task.task_id, {
+        // For review submissions - use assignment ID for review tasks
+        const assignmentId = task.id; // This is the review assignment ID
+        await onSubmit(assignmentId, {
           rating,
-          feedback
+          feedback,
+          status: 'completed'
         });
         onClose();
       }
@@ -45,10 +47,12 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
     setError('');
 
     try {
-      await onSubmit(task.task_id, {
+      const assignmentId = task.id; // This is the review assignment ID
+      await onSubmit(assignmentId, {
         rating: 5, // Default high rating for acceptance
         feedback: 'Task accepted and completed successfully.',
-        status: 'accepted'
+        status: 'completed',
+        accept_reject: true
       });
       onClose();
     } catch (err) {
@@ -72,10 +76,12 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
     setError('');
 
     try {
-      await onSubmit(task.task_id, {
+      const assignmentId = task.id; // This is the review assignment ID
+      await onSubmit(assignmentId, {
         rating: 1, // Low rating for rejection
         feedback: rejectFeedback,
-        status: 'rejected'
+        status: 'completed',
+        accept_reject: false
       });
       setShowRejectModal(false);
       onClose();

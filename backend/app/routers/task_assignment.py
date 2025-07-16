@@ -21,7 +21,8 @@ router = APIRouter(
 def check_user_skills_match_task_requirements(
     db: Session,
     user_id: int,
-    task_id: int
+    task_id: int,
+    assignment_type: str = "task"
 ) -> bool:
     """
     Check if user's skills meet the task's minimum skill level requirements.
@@ -32,10 +33,13 @@ def check_user_skills_match_task_requirements(
     2. User has the required skills with minimum skill levels
     3. User's skill ratings meet or exceed the task requirements
     
+    For review tasks, it checks the skill requirements of the parent task being reviewed.
+    
     Args:
         db (Session): Database session for querying user skills and task requirements
         user_id (int): The ID of the user whose skills should be validated
         task_id (int): The ID of the task to check requirements against
+        assignment_type (str): Type of assignment ("task" or "review")
         
     Returns:
         bool: True if user has skills that meet minimum requirements and is not blocked,
@@ -44,6 +48,8 @@ def check_user_skills_match_task_requirements(
     Raises:
         No exceptions raised - returns False for any validation failures
     """
+    print(f"DEBUG: Starting skill check for user {user_id} against task {task_id} (assignment_type: {assignment_type})")
+    
     # Get user's skills with their levels from contributor_skill table
     user_skills_query = """
         SELECT s.name, cs.rating 
@@ -53,11 +59,20 @@ def check_user_skills_match_task_requirements(
     """
     
     # Get task's skill review requirements (minimum skill levels)
-    task_requirements_query = """
-        SELECT skill_review_requirements 
-        FROM tasks 
-        WHERE id = %s
-    """
+    # For review tasks, get requirements from the parent task
+    if assignment_type == "review":
+        task_requirements_query = """
+            SELECT t.skill_review_requirements 
+            FROM tasks t
+            JOIN review_tasks rt ON rt.parent_task_id = t.id
+            WHERE rt.id = %s
+        """
+    else:
+        task_requirements_query = """
+            SELECT skill_review_requirements 
+            FROM tasks 
+            WHERE id = %s
+        """
     
     # Check if user is blocked from this task
     block_check_query = """
@@ -73,12 +88,13 @@ def check_user_skills_match_task_requirements(
         
         if block_result:
             # User is blocked from this task
-            print(f"User {user_id} is blocked from task {task_id} until {block_result['blocked_until']}: {block_result['reason']}")
+            print(f"DEBUG: User {user_id} is blocked from task {task_id} until {block_result['blocked_until']}: {block_result['reason']}")
             return False
         
         # Get user skills with levels
         cursor.execute(user_skills_query, (user_id,))
         user_skills = {row['name']: row['rating'] for row in cursor.fetchall()}
+        print(f"DEBUG: User {user_id} skills: {user_skills}")
         
         # Get task requirements
         cursor.execute(task_requirements_query, (task_id,))
@@ -86,19 +102,24 @@ def check_user_skills_match_task_requirements(
         
         if not task_result or not task_result['skill_review_requirements']:
             # If no specific requirements, allow assignment
+            print(f"DEBUG: Task {task_id} has no skill requirements, allowing assignment")
             return True
             
         task_requirements = task_result['skill_review_requirements']
+        print(f"DEBUG: Task {task_id} requirements: {task_requirements}")
         
         # Check if user meets minimum skill level requirements
         for required_skill, required_level in task_requirements.items():
             user_level = user_skills.get(required_skill, 0)
+            print(f"DEBUG: Checking skill '{required_skill}' - required: {required_level}, user has: {user_level}")
             
             # User must have at least the required skill level
             if user_level < required_level:
+                print(f"DEBUG: User {user_id} does not meet requirement for skill '{required_skill}' (required: {required_level}, has: {user_level})")
                 return False
         
         # User meets all requirements and is not blocked
+        print(f"DEBUG: User {user_id} meets all skill requirements for task {task_id}")
         return True
 
 @router.post("/", response_model=TaskAssignment, status_code=status.HTTP_201_CREATED)
@@ -147,7 +168,7 @@ def create_new_assignment(
     
     # For both task and review assignments, check if user's skills match requirements
     if assignment.assignment_type in ["task", "review"]:
-        if not check_user_skills_match_task_requirements(db, current_user.id, assignment.task_id):
+        if not check_user_skills_match_task_requirements(db, current_user.id, assignment.task_id, assignment.assignment_type):
             assignment_type_text = "undertake" if assignment.assignment_type == "task" else "review"
             raise HTTPException(
                 status_code=403,
@@ -385,13 +406,9 @@ async def update_assignment_status(
     
     # If the assignment is being marked as completed (after reviews), update skill ratings
     elif assignment.status == "completed":
-        # Update user's skill ratings for completed task
-        update_user_skill_ratings_from_task_completion(
-            task_id=db_assignment['task_id'],
-            user_id=current_user.id,
-            success=True,
-            average_score=0
-        )
+        # Note: Skill ratings are updated in the review aggregation process
+        # when the final accept/reject decision is made
+        pass
     
     return updated_assignment
 
@@ -436,6 +453,8 @@ def can_undertake_task(
         HTTPException 400: If invalid assignment_type provided
         HTTPException 500: If database query fails
     """
+    print(f"DEBUG: can_undertake_task called for user {current_user.id}, task_id {task_id}, assignment_type {assignment_type}")
+    
     # Validate assignment_type parameter
     if assignment_type not in ["task", "review"]:
         raise HTTPException(
@@ -450,6 +469,8 @@ def can_undertake_task(
         assignment_type=assignment_type
     )
     
+    print(f"DEBUG: Existing assignment check result: {has_existing_assignment}")
+    
     if has_existing_assignment:
         action_text = "undertake" if assignment_type == "task" else "review"
         return {
@@ -459,20 +480,25 @@ def can_undertake_task(
     
     # For review tasks, check if user is the original submitter (prevent self-review)
     if assignment_type == "review":
+        print(f"DEBUG: Checking for self-review prevention for task {task_id}")
         with get_db_cursor() as cursor:
             cursor.execute("""
                 SELECT ta.user_id 
                 FROM review_tasks rt
                 JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
-                WHERE rt.id = %s
+                WHERE rt.parent_task_id = %s AND rt.status = 'open'
             """, (task_id,))
             
-            review_task_result = cursor.fetchone()
-            if review_task_result and review_task_result['user_id'] == current_user.id:
-                return {
-                    "can_undertake": False,
-                    "reason": "You cannot review your own submission"
-                }
+            review_tasks = cursor.fetchall()
+            print(f"DEBUG: Found {len(review_tasks)} review tasks for parent task {task_id}")
+            for review_task in review_tasks:
+                print(f"DEBUG: Review task submitter: {review_task['user_id']}, current user: {current_user.id}")
+                if review_task['user_id'] == current_user.id:
+                    print(f"DEBUG: Self-review detected - user {current_user.id} cannot review their own submission")
+                    return {
+                        "can_undertake": False,
+                        "reason": "You cannot review your own submission"
+                    }
     
     # Check if user is blocked from this task
     with get_db_cursor() as cursor:
@@ -483,6 +509,7 @@ def can_undertake_task(
         """, (task_id, current_user.id))
         
         block_result = cursor.fetchone()
+        print(f"DEBUG: Block check result: {block_result}")
         
         if block_result:
             from datetime import datetime
@@ -503,7 +530,9 @@ def can_undertake_task(
             }
     
     # Check if user's skill levels meet task requirements
-    skills_match = check_user_skills_match_task_requirements(db, current_user.id, task_id)
+    print(f"DEBUG: Checking skill requirements for user {current_user.id} against task {task_id}")
+    skills_match = check_user_skills_match_task_requirements(db, current_user.id, task_id, assignment_type)
+    print(f"DEBUG: Skills match result: {skills_match}")
     
     if not skills_match:
         action_text = "undertake" if assignment_type == "task" else "review"
@@ -513,6 +542,7 @@ def can_undertake_task(
         }
     
     action_text = "undertake" if assignment_type == "task" else "review"
+    print(f"DEBUG: User {current_user.id} can {action_text} task {task_id}")
     return {
         "can_undertake": True,
         "reason": f"You can {action_text} this task"
