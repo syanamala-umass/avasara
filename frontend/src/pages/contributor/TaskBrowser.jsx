@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
-import { fetchTasks, fetchSkills, createTaskAssignment, assignTask, fetchReviewTasks } from '../../api';
+import { fetchTasks, fetchSkills, createTaskAssignment, assignTask, fetchReviewTasks, assignReviewTask } from '../../api';
 
 const TaskBrowser = () => {
   const navigate = useNavigate();
@@ -122,13 +122,8 @@ const TaskBrowser = () => {
     setSuccess('');
     try {
       if (task.category === 'review') {
-        // For review tasks, create a review assignment
-        await createTaskAssignment({
-          task_id: task.id,
-          assignment_type: 'review',
-          status: 'in_progress',
-          notes: 'Task being reviewed'
-        });
+        // For review tasks, use the review task assignment endpoint
+        await assignReviewTask(task.id);
         setSuccess('You have been assigned to review this task!');
       } else {
         // For regular tasks, use the assignTask function

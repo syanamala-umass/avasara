@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
-import { fetchTaskDetails, canUndertakeTask } from './api';
+import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask } from './api';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -18,7 +18,6 @@ const TaskDetailModal = ({ isOpen, task = {
 }, onClose, onUndertake, isReviewTask, onResubmit }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [taskDetails, setTaskDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [canUndertake, setCanUndertake] = useState(null);
   const [capabilityLoading, setCapabilityLoading] = useState(false);
@@ -35,8 +34,21 @@ const TaskDetailModal = ({ isOpen, task = {
       } else {
         setActiveTab('overview');
       }
-      loadTaskDetails();
-      checkTaskCapability();
+      
+      // Use the task data that's already been fetched instead of making another API call
+      setTaskDetails(task);
+      
+      // Only check capability if this is not an already undertaken task
+      // Check if the task has assignment information indicating it's already undertaken
+      const isAlreadyUndertaken = task.has_assignment || task.assignment_id || task.status === 'in_progress' || task.status === 'submitted';
+      console.log('DEBUG: Is task already undertaken?', isAlreadyUndertaken);
+      
+      if (!isAlreadyUndertaken) {
+        checkTaskCapability();
+      } else {
+        console.log('DEBUG: Skipping capability check for already undertaken task');
+        setCanUndertake(null); // Clear any previous capability data
+      }
     }
   }, [isOpen, task?.id]);
 
@@ -60,47 +72,7 @@ const TaskDetailModal = ({ isOpen, task = {
     }
   };
 
-  const loadTaskDetails = async () => {
-    if (!task?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Fetching task details for task ID:', task.id);
-      
-      // Try to fetch detailed task information including assignments and reviews
-      const response = await fetchTaskDetails(task.id);
-      console.log('API Response:', response);
-      console.log('Response data:', response.data);
-      console.log('Response status:', response.status);
-      
-      // Handle different response structures
-      const taskData = response.data || response;
-      console.log('Task data to set:', taskData);
-      
-      setTaskDetails(taskData);
-    } catch (err) {
-      console.error('Error fetching task details:', err);
-      console.error('Error response:', err.response);
-      
-      // Fallback: use the basic task data if the details endpoint fails
-      console.log('Using fallback task data:', task);
-      setTaskDetails({
-        ...task,
-        assignments: [],
-        reviews: [],
-        assignments_count: 0,
-        active_assignments: 0,
-        reviews_count: 0,
-        approval_rate: 0
-      });
-      
-      setError('Failed to load detailed task information. Showing basic task data.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   if (!isOpen || !task) {
     return null;
@@ -176,6 +148,14 @@ const TaskDetailModal = ({ isOpen, task = {
   };
 
   const renderCapabilityIndicator = () => {
+    // Check if this is an already undertaken task
+    const isAlreadyUndertaken = task.has_assignment || task.assignment_id || task.status === 'in_progress' || task.status === 'submitted';
+    
+    // Don't show capability indicator for already undertaken tasks
+    if (isAlreadyUndertaken) {
+      return null;
+    }
+    
     if (capabilityLoading) {
       return (
         <div className="flex items-center gap-2 text-gray-500">
@@ -786,20 +766,9 @@ const TaskDetailModal = ({ isOpen, task = {
 
           {/* Content */}
           <div className="bg-white px-6 py-6 max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-500">Loading task details...</p>
-              </div>
-            ) : error ? (
+            {error ? (
               <div className="text-center py-8">
                 <p className="text-sm text-red-600">{error}</p>
-                <button
-                  onClick={loadTaskDetails}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Try again
-                </button>
               </div>
             ) : (
               <>

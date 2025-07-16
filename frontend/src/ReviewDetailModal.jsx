@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, FileText, Clock, CheckCircle, XCircle, Star, MessageSquare } from 'lucide-react';
-import { fetchTaskDetails } from './api';
+import { X, Star, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { fetchReviewTaskDetails } from './api';
 
 const ReviewDetailModal = ({ 
   isOpen, 
@@ -38,7 +38,7 @@ const ReviewDetailModal = ({
     try {
       console.log('Fetching review task details for task ID:', task.id);
       
-      const response = await fetchTaskDetails(task.id);
+      const response = await fetchReviewTaskDetails(task.id);
       const taskData = response.data || response;
       
       console.log('Full task data received:', taskData);

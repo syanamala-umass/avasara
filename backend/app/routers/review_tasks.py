@@ -9,6 +9,7 @@ from app.schemas.review_task import (
 )
 from app.database.connection import get_db_cursor
 from app.routers.task_assignment import check_user_skills_match_task_requirements
+from app.services.rating_service import rating_service
 
 router = APIRouter(
     prefix="/review-tasks",
@@ -84,22 +85,89 @@ def get_review_tasks(
         cursor.execute(query, params)
         review_tasks = cursor.fetchall()
         
-        # Filter by user skills (this could be optimized with a JOIN)
-        available_tasks = []
-        for task in review_tasks:
-            if check_user_skills_match_task_requirements(db, current_user.id, task['parent_task_id']):
-                available_tasks.append(task)
-        
-        return available_tasks
+        # Return all review tasks - skill requirements are checked when user tries to undertake the task
+        return review_tasks
 
-@router.get("/{review_task_id}", response_model=ReviewTaskWithDetails)
+@router.get("/my-assignments", response_model=List[ReviewAssignmentWithDetails])
+def get_my_review_assignments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    status: Optional[str] = Query(None, regex="^(in_progress|completed|cancelled)$"),
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get review task assignments for the current user.
+    
+    This endpoint returns review task assignments that the user is currently working on
+    or has completed.
+    
+    Args:
+        skip (int): Number of records to skip for pagination
+        limit (int): Maximum number of records to return
+        status (str, optional): Filter by assignment status
+        current_user: The authenticated user
+        db (Session): Database session
+        
+    Returns:
+        List[ReviewAssignmentWithDetails]: Review task assignments with details
+        
+    Raises:
+        HTTPException 500: If database query fails
+    """
+    print(f"DEBUG: get_my_review_assignments called for user {current_user.id}")
+    print(f"DEBUG: status filter: {status}")
+    print(f"DEBUG: skip: {skip}, limit: {limit}")
+    
+    with get_db_cursor() as cursor:
+        query = """
+            SELECT rta.*, 
+                   rt.parent_task_id,
+                   rt.status as review_task_status,
+                   t.title as parent_task_title,
+                   t.description as parent_task_description,
+                   ta.notes as assignment_notes,
+                   u.username as submitter_name,
+                   u.email as submitter_email
+            FROM review_task_assignments rta
+            JOIN review_tasks rt ON rta.review_task_id = rt.id
+            JOIN tasks t ON rt.parent_task_id = t.id
+            JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
+            JOIN users u ON ta.user_id = u.id
+            WHERE rta.reviewer_id = %s
+        """
+        
+        params = [current_user.id]
+        
+        # Add status filter if provided
+        if status:
+            query += " AND rta.status = %s"
+            params.append(status)
+        
+        # Add ordering and pagination
+        query += " ORDER BY rta.assigned_at DESC LIMIT %s OFFSET %s"
+        params.extend([limit, skip])
+        
+        print(f"DEBUG: Executing query: {query}")
+        print(f"DEBUG: Query params: {params}")
+        
+        cursor.execute(query, params)
+        assignments = cursor.fetchall()
+        
+        print(f"DEBUG: Found {len(assignments)} review task assignments")
+        for i, assignment in enumerate(assignments):
+            print(f"DEBUG: Assignment {i+1}: ID={assignment['id']}, review_task_id={assignment['review_task_id']}, status={assignment['status']}, parent_task_title={assignment['parent_task_title']}")
+        
+        return assignments
+
+@router.get("/{review_task_id}/details", response_model=ReviewTaskWithDetails)
 def get_review_task(
     review_task_id: int,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get detailed information about a specific review task.
+    Get basic information about a specific review task.
     
     Args:
         review_task_id (int): The ID of the review task
@@ -107,7 +175,7 @@ def get_review_task(
         db (Session): Database session
         
     Returns:
-        ReviewTaskWithDetails: Detailed review task information
+        ReviewTaskWithDetails: Basic review task information
         
     Raises:
         HTTPException 404: If review task not found
@@ -132,40 +200,44 @@ def get_review_task(
         
         return review_task
 
-@router.post("/{review_task_id}/assign", response_model=ReviewAssignment)
-def assign_review_task(
+@router.get("/{review_task_id}/details", response_model=ReviewTaskWithDetails)
+def get_review_task_details(
     review_task_id: int,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Assign a review task to the current user.
-    
-    This endpoint allows users to pick up review tasks. The function validates:
-    1. Review task is available (status = 'open')
-    2. User has required skills
-    3. User isn't already assigned to this review task
+    Get detailed information about a specific review task including assignments and reviews.
     
     Args:
-        review_task_id (int): The ID of the review task to assign
+        review_task_id (int): The ID of the review task
         current_user: The authenticated user
         db (Session): Database session
         
     Returns:
-        ReviewAssignment: The created review assignment
+        ReviewTaskWithDetails: Detailed review task information with assignments and reviews
         
     Raises:
         HTTPException 404: If review task not found
-        HTTPException 400: If review task is not available or user already assigned
-        HTTPException 403: If user doesn't meet skill requirements
-        HTTPException 500: If database operation fails
+        HTTPException 500: If database query fails
     """
+    print(f"DEBUG: get_review_task_details called for review_task_id: {review_task_id}")
+    
     with get_db_cursor() as cursor:
-        # Check if review task exists and is available
+        # Get the basic review task information
         cursor.execute("""
-            SELECT rt.*, t.title as parent_task_title
+            SELECT rt.*, 
+                   t.title as parent_task_title,
+                   t.description as parent_task_description,
+                   t.skill_requirements as parent_skill_requirements,
+                   ta.notes as assignment_notes,
+                   ta.status as assignment_status,
+                   u.username as submitter_name,
+                   u.email as submitter_email
             FROM review_tasks rt
             JOIN tasks t ON rt.parent_task_id = t.id
+            JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
+            JOIN users u ON ta.user_id = u.id
             WHERE rt.id = %s
         """, (review_task_id,))
         
@@ -173,40 +245,146 @@ def assign_review_task(
         if not review_task:
             raise HTTPException(status_code=404, detail="Review task not found")
         
-        if review_task['status'] != 'open':
+        print(f"DEBUG: Found review task: {review_task}")
+        
+        # Get review task assignments (who is reviewing this)
+        cursor.execute("""
+            SELECT rta.*, u.username as reviewer_name, u.email as reviewer_email
+            FROM review_task_assignments rta
+            JOIN users u ON rta.reviewer_id = u.id
+            WHERE rta.review_task_id = %s
+        """, (review_task_id,))
+        
+        assignments = cursor.fetchall()
+        print(f"DEBUG: Found {len(assignments)} review task assignments")
+        
+        # Add assignments to the review task data
+        review_task['assignments'] = assignments
+        review_task['assignments_count'] = len(assignments)
+        
+        # Get completed reviews for this review task
+        cursor.execute("""
+            SELECT r.*, u.username as reviewer_name
+            FROM reviews r
+            JOIN users u ON r.reviewer_id = u.id
+            WHERE r.task_id = %s
+        """, (review_task['parent_task_id'],))
+        
+        reviews = cursor.fetchall()
+        print(f"DEBUG: Found {len(reviews)} reviews for parent task")
+        
+        # Add reviews to the review task data
+        review_task['reviews'] = reviews
+        review_task['reviews_count'] = len(reviews)
+        
+        # Calculate approval rate
+        if len(reviews) > 0:
+            approved_reviews = len([r for r in reviews if r['is_approved']])
+            review_task['approval_rate'] = (approved_reviews / len(reviews)) * 100
+        else:
+            review_task['approval_rate'] = 0
+        
+        return review_task
+
+@router.post("/{review_task_id}/assign", response_model=ReviewAssignment)
+def assign_review_task(
+    review_task_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Assign a review task to the authenticated user.
+    
+    This endpoint allows users to assign themselves to review tasks. The function performs
+    several validations before creating the assignment:
+    1. Checks if the review task exists and is open
+    2. Validates that user is not already assigned to this review task
+    3. Checks if user's skills meet the review task requirements
+    4. Creates the assignment if all validations pass
+    
+    Args:
+        review_task_id (int): The ID of the review task to assign
+        current_user: The authenticated user making the assignment request
+        db (Session): Database session for CRUD operations
+        
+    Returns:
+        ReviewAssignment: The created review assignment with all details
+        
+    Raises:
+        HTTPException 404: If review task not found
+        HTTPException 400: If review task is not open or user already assigned
+        HTTPException 403: If user's skill levels don't meet requirements
+        HTTPException 500: If database operation fails
+    """
+    print(f"DEBUG: Starting review task assignment for user {current_user.id}, review_task_id {review_task_id}")
+    
+    with get_db_cursor(commit=True) as cursor:
+        # Check if review task exists and is open
+        cursor.execute("""
+            SELECT rt.*, t.skill_review_requirements, t.title as parent_task_title
+            FROM review_tasks rt
+            JOIN tasks t ON rt.parent_task_id = t.id
+            WHERE rt.id = %s
+        """, (review_task_id,))
+        
+        review_task = cursor.fetchone()
+        print(f"DEBUG: Review task query result: {review_task}")
+        
+        if not review_task:
+            print(f"DEBUG: Review task {review_task_id} not found")
             raise HTTPException(
-                status_code=400, 
-                detail=f"Review task is not available. Current status: {review_task['status']}"
+                status_code=404,
+                detail="Review task not found"
             )
         
-        # Check if user is already assigned
+        if review_task['status'] != 'open':
+            print(f"DEBUG: Review task {review_task_id} is not open (status: {review_task['status']})")
+            raise HTTPException(
+                status_code=400,
+                detail="Review task is not available for assignment"
+            )
+        
+        print(f"DEBUG: Review task found - parent_task_id: {review_task['parent_task_id']}, skill_requirements: {review_task['skill_review_requirements']}")
+        
+        # Check if user is already assigned to this review task
         cursor.execute("""
             SELECT id FROM review_task_assignments 
             WHERE review_task_id = %s AND reviewer_id = %s
         """, (review_task_id, current_user.id))
         
-        if cursor.fetchone():
+        existing_assignment = cursor.fetchone()
+        print(f"DEBUG: Existing assignment check result: {existing_assignment}")
+        
+        if existing_assignment:
+            print(f"DEBUG: User {current_user.id} already assigned to review task {review_task_id}")
             raise HTTPException(
                 status_code=400,
                 detail="You are already assigned to this review task"
             )
         
         # Check if user has required skills
-        if not check_user_skills_match_task_requirements(db, current_user.id, review_task['parent_task_id']):
+        print(f"DEBUG: Checking user skills for user {current_user.id} against task {review_task['parent_task_id']}")
+        skills_match = check_user_skills_match_task_requirements(db, current_user.id, review_task['parent_task_id'], "review")
+        print(f"DEBUG: Skills match result: {skills_match}")
+        
+        if not skills_match:
+            print(f"DEBUG: User {current_user.id} skills do not match requirements for review task {review_task_id}")
             raise HTTPException(
                 status_code=403,
                 detail="Your skill levels do not meet the requirements for this review task"
             )
         
         # Create the review assignment
+        print(f"DEBUG: Creating review assignment for user {current_user.id}, review_task_id {review_task_id}")
         cursor.execute("""
             INSERT INTO review_task_assignments (
                 review_task_id, reviewer_id, status
-            ) VALUES (%s, %s, 'assigned')
+            ) VALUES (%s, %s, 'in_progress')
             RETURNING id, review_task_id, reviewer_id, status, assigned_at, updated_at
         """, (review_task_id, current_user.id))
         
         assignment = cursor.fetchone()
+        print(f"DEBUG: Created assignment: {assignment}")
         
         # Update review task status to in_progress
         cursor.execute("""
@@ -214,6 +392,9 @@ def assign_review_task(
             SET status = 'in_progress' 
             WHERE id = %s
         """, (review_task_id,))
+        
+        print(f"DEBUG: Updated review task {review_task_id} status to in_progress")
+        print(f"DEBUG: Review task assignment completed successfully for user {current_user.id}")
         
         return assignment
 
@@ -292,8 +473,18 @@ def update_review_assignment(
         cursor.execute(query, params)
         updated_assignment = cursor.fetchone()
         
-        # If review is completed, check if all reviews for this assignment are done
+        # If review is completed, update the review task status and check aggregation
         if assignment_update.status == "completed":
+            # Update the review task status to completed
+            cursor.execute("""
+                UPDATE review_tasks 
+                SET status = 'completed', updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (assignment['review_task_id'],))
+            
+            print(f"DEBUG: Updated review task {assignment['review_task_id']} status to completed")
+            
+            # Check if all reviews for this assignment are done
             check_and_aggregate_reviews(cursor, assignment['assignment_being_reviewed_id'])
         
         return updated_assignment
@@ -348,8 +539,19 @@ def check_and_aggregate_reviews(cursor, assignment_id: int):
             break
     
     if all_completed and total_reviews > 0:
+        # Get the task assignment details for skill rating update
+        cursor.execute("""
+            SELECT ta.user_id, ta.task_id, t.skill_review_requirements
+            FROM task_assignments ta
+            JOIN tasks t ON ta.task_id = t.id
+            WHERE ta.id = %s
+        """, (assignment_id,))
+        
+        assignment_info = cursor.fetchone()
+        task_accepted = accept_count > reject_count
+        
         # Determine approval/rejection based on majority of accept/reject decisions
-        if accept_count > reject_count:
+        if task_accepted:
             # Majority accepted - approve the assignment
             cursor.execute("""
                 UPDATE task_assignments
@@ -389,6 +591,28 @@ def check_and_aggregate_reviews(cursor, assignment_id: int):
                 VALUES (%s, %s, %s, 'Work rejected by majority of reviewers')
                 ON CONFLICT (task_id, user_id) 
                 DO UPDATE SET blocked_until = EXCLUDED.blocked_until, reason = EXCLUDED.reason
-            """, (review_tasks[0]['parent_task_id'], assignment_id, blocked_until))
+            """, (review_tasks[0]['parent_task_id'], assignment_info['user_id'], blocked_until))
             
-            print(f"Assignment {assignment_id} rejected: {accept_count} accept, {reject_count} reject") 
+            print(f"Assignment {assignment_id} rejected: {accept_count} accept, {reject_count} reject")
+        
+        # Update skill ratings based on the final decision
+        if assignment_info and assignment_info['skill_review_requirements']:
+            try:
+                skill_requirements = assignment_info['skill_review_requirements']
+                user_id = assignment_info['user_id']
+                
+                # Update each required skill rating
+                for skill_name in skill_requirements.keys():
+                    # Get skill ID
+                    cursor.execute("SELECT id FROM skills WHERE name = %s", (skill_name,))
+                    skill_result = cursor.fetchone()
+                    
+                    if skill_result:
+                        skill_id = skill_result['id']
+                        # Update the user's rating for this skill
+                        rating_service.update_skill_rating(user_id, skill_id, task_accepted)
+                        print(f"Updated skill rating for user {user_id}, skill {skill_name}: {'accepted' if task_accepted else 'rejected'}")
+                        
+            except Exception as e:
+                # Log error but don't fail the aggregation process
+                print(f"Error updating skill ratings: {str(e)}") 

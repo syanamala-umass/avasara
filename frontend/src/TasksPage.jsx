@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Users, ArrowLeft, Eye, Plus } from 'lucide-react';
-import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks } from './api';
+import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks, assignReviewTask } from './api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 
@@ -146,18 +146,27 @@ const TasksPage = () => {
   const handleUndertakeTask = async (e, task) => {
     e?.stopPropagation();
     try {
-      const response = await canUndertakeTask(task.id);
+      // Use correct assignment type for capability check
+      const assignmentType = task.category === 'review' ? 'review' : 'task';
+      const response = await canUndertakeTask(task.id, assignmentType);
+      
       if (response.data.can_undertake) {
-        // Actually create the task assignment
-        await createTaskAssignment({
-          task_id: task.id,
-          assignment_type: 'task',
-          status: 'in_progress',
-          notes: 'Task undertaken'
-        });
+        if (task.category === 'review') {
+          // For review tasks, use the review task assignment endpoint
+          await assignReviewTask(task.id);
+          alert('Review task assigned successfully! You can now view it in your Active Tasks.');
+        } else {
+          // For regular tasks, create a task assignment
+          await createTaskAssignment({
+            task_id: task.id,
+            assignment_type: 'task',
+            status: 'in_progress',
+            notes: 'Task undertaken'
+          });
+          alert('Task undertaken successfully! You can now view it in your Active Tasks.');
+        }
         
         console.log('Task undertaken:', task.id);
-        alert('Task undertaken successfully! You can now view it in your Active Tasks.');
         // Optionally navigate to the dashboard or refresh the task list
         navigate('/dashboard');
       } else {

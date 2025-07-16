@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Zap
 } from 'lucide-react';
-import { fetchSkills, addNewUserSkill, createSkill, addUserSkills } from '../api';
+import { fetchSkills, addNewUserSkill, createSkill, addUserSkills, fetchUserSkills, addUserSkillsBulk } from '../api';
 
 const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   const [availableSkills, setAvailableSkills] = useState([]);
@@ -31,9 +31,14 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
           }
           setUserData(userDataFromStorage);
 
-          // Load available skills
-          const skillsResponse = await fetchSkills();
+          // Load available skills and user's existing skills
+          const [skillsResponse, userSkillsResponse] = await Promise.all([
+            fetchSkills(),
+            fetchUserSkills(userDataFromStorage.id)
+          ]);
+          
           setAvailableSkills(skillsResponse.data);
+          setUserSkills(userSkillsResponse.data || []);
         } catch (err) {
           console.error('Error initializing skills modal:', err);
           setError('Failed to load skills. Please try again.');
@@ -43,27 +48,23 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
       initializeModal();
     } else {
       setError(null); // Clear error when modal is closed
+      setUserSkills([]); // Reset user skills when modal closes
     }
   }, [isOpen]);
 
-  const handleAddSkill = async (skillName) => {
+  const handleAddSkill = (skillName) => {
     setError(null); // Clear error on new action
-    if (!skillName || !userData) return;
+    if (!skillName) return;
 
     // Check if skill is already added
     if (userSkills.some(skill => skill.name === skillName)) {
       return;
     }
 
-    try {
-      const response = await addNewUserSkill(userData.id, {
-        skill_name: skillName
-      });
-
-      setUserSkills(prev => [...prev, response.data]);
-    } catch (error) {
-      console.error('Error adding skill:', error);
-      setError('Failed to add skill. Please try again.');
+    // Find the skill in available skills to get the full skill object
+    const skillToAdd = availableSkills.find(skill => skill.name === skillName);
+    if (skillToAdd) {
+      setUserSkills(prev => [...prev, skillToAdd]);
     }
   };
 
@@ -72,26 +73,30 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
     setUserSkills(prev => prev.filter(skill => skill.id !== skillId));
   };
 
-  const handleAddNewSkill = async () => {
+  const handleAddNewSkill = () => {
     setError(null); // Clear error on new action
     if (!skillSearch.trim()) return;
-    setLoading(true);
-    try {
-      const response = await createSkill({ name: skillSearch.trim() });
-      const newSkill = response.data;
-      setAvailableSkills(prev => [...prev, newSkill]);
-      
-      // Add the new skill to user skills
-      await handleAddSkill(newSkill.name);
-      
-      setSkillSearch('');
-      setShowSkillDropdown(false);
-    } catch (err) {
-      setError('Failed to add new skill.');
-      console.error('Error creating skill:', err);
-    } finally {
-      setLoading(false);
+    
+    const newSkillName = skillSearch.trim();
+    
+    // Check if skill already exists
+    if (availableSkills.some(skill => skill.name.toLowerCase() === newSkillName.toLowerCase())) {
+      setError('This skill already exists. Please select it from the list.');
+      return;
     }
+    
+    // Create a temporary skill object (will be created on backend when Continue is clicked)
+    const tempSkill = {
+      id: `temp_${Date.now()}`, // Temporary ID
+      name: newSkillName,
+      is_new: true // Flag to indicate this is a new skill
+    };
+    
+    setAvailableSkills(prev => [...prev, tempSkill]);
+    setUserSkills(prev => [...prev, tempSkill]);
+    
+    setSkillSearch('');
+    setShowSkillDropdown(false);
   };
 
   const handleComplete = async () => {
@@ -104,9 +109,14 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
     setError(null);
     
     try {
-      // Update user skills
-      await addUserSkills(userData.id, {
-        skill_ids: userSkills.map(skill => skill.id)
+      // Separate existing skills from new skills
+      const existingSkills = userSkills.filter(skill => !skill.is_new);
+      const newSkills = userSkills.filter(skill => skill.is_new);
+      
+      // Use the bulk API to handle both existing and new skills
+      await addUserSkillsBulk(userData.id, {
+        existing_skill_ids: existingSkills.map(skill => skill.id),
+        new_skill_names: newSkills.map(skill => skill.name)
       });
       
       onComplete();

@@ -267,6 +267,103 @@ def add_new_user_skill(
         "rating": rating
     }
 
+@router.post("/{user_id}/skills/bulk", response_model=List[SkillWithRating])
+def add_user_skills_bulk(
+    user_id: int,
+    skills_data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Add multiple skills to a user in one operation.
+    Can handle both existing skills (by ID) and new skills (by name).
+    All new skills start with a 2.5 rating.
+    
+    Expected format:
+    {
+        "existing_skill_ids": [1, 2, 3],
+        "new_skill_names": ["Python", "JavaScript", "React"]
+    }
+    """
+    # Verify user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify current user is authorized
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this user's skills")
+    
+    existing_skill_ids = skills_data.get("existing_skill_ids", [])
+    new_skill_names = skills_data.get("new_skill_names", [])
+    
+    # Validate existing skill IDs
+    if existing_skill_ids:
+        existing_skills = db.query(Skill).filter(Skill.id.in_(existing_skill_ids)).all()
+        if len(existing_skills) != len(existing_skill_ids):
+            raise HTTPException(status_code=404, detail="One or more existing skills not found")
+    
+    # Create new skills if any
+    new_skill_ids = []
+    for skill_name in new_skill_names:
+        if not skill_name or not skill_name.strip():
+            continue
+            
+        # Check if skill already exists
+        existing_skill = db.query(Skill).filter(Skill.name == skill_name.strip()).first()
+        
+        if existing_skill:
+            new_skill_ids.append(existing_skill.id)
+        else:
+            # Create new skill
+            new_skill = Skill(name=skill_name.strip())
+            db.add(new_skill)
+            db.flush()  # Get the ID without committing
+            new_skill_ids.append(new_skill.id)
+    
+    # Combine all skill IDs
+    all_skill_ids = existing_skill_ids + new_skill_ids
+    
+    # Remove skills that are not in the new list
+    if all_skill_ids:
+        db.execute(
+            text("""
+                DELETE FROM contributor_skill
+                WHERE user_id = :user_id
+                AND skill_id NOT IN :skill_ids
+            """),
+            {"user_id": user_id, "skill_ids": tuple(all_skill_ids)}
+        )
+    else:
+        # If the new list is empty, remove all skills
+        db.execute(
+            text("""
+                DELETE FROM contributor_skill
+                WHERE user_id = :user_id
+            """),
+            {"user_id": user_id}
+        )
+    
+    # Add skills with 2.5 rating for new skills, keep existing ratings for existing skills
+    for skill_id in all_skill_ids:
+        # Check if skill already exists for user
+        existing = db.execute(
+            text("SELECT rating FROM contributor_skill WHERE user_id = :user_id AND skill_id = :skill_id"),
+            {"user_id": user_id, "skill_id": skill_id}
+        ).first()
+        
+        if not existing:
+            # New skill gets 2.5 rating
+            db.execute(
+                text("INSERT INTO contributor_skill (user_id, skill_id, rating) VALUES (:user_id, :skill_id, :rating)"),
+                {"user_id": user_id, "skill_id": skill_id, "rating": 2.5}
+            )
+    
+    db.commit()
+    
+    # Return updated skills list
+    return get_user_skills(user_id, db, current_user)
+
 @router.get("/me")
 def get_current_user_info(current_user = Depends(get_current_user)):
     """

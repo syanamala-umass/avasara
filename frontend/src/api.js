@@ -142,7 +142,7 @@ export const fetchTaskAssignments = (filters) => {
 };
 export const fetchTaskAssignmentById = (id) => api.get(`/task-assignments/${id}`);
 export const completeTask = (id, data) => api.put(`/task-assignments/${id}`, { ...data, status: 'completed' });
-export const pickUpReview = (taskId, data) => api.post('/task-assignments', { ...data, task_id: taskId, assignment_type: 'review' });
+export const pickUpReview = (taskId, data) => api.post(`/review-tasks/${taskId}/assign`);
 export const canUndertakeTask = (taskId, assignmentType = 'task') => api.get(`/task-assignments/can-undertake/${taskId}`, {
   params: { assignment_type: assignmentType }
 });
@@ -171,8 +171,14 @@ export const fetchSkillById = (id) => api.get(`/skills/${id}`);
 export const fetchUserSkills = (userId) => api.get(`/users/${userId}/skills`);
 export const addUserSkills = (userId, skillData) => api.post(`/users/${userId}/skills`, skillData);
 export const addNewUserSkill = (userId, skillData) => api.post(`/users/${userId}/skills/new`, skillData);
+export const addUserSkillsBulk = (userId, skillData) => api.post(`/users/${userId}/skills/bulk`, skillData);
 
 export const fetchTopSkillsByTasks = (limit = 5) => api.get(`/skills/top-by-tasks?limit=${limit}`);
+export const fetchSkillDetails = (skillId) => api.get(`/skills/${skillId}`);
+export const fetchTopTaskContributors = (skillId) => api.get(`/skills/${skillId}/top-task-contributors`);
+export const fetchTopRatedContributors = (skillId) => api.get(`/skills/${skillId}/top-rated-contributors`);
+export const fetchTopJobPosters = (skillId) => api.get(`/skills/${skillId}/top-job-posters`);
+export const fetchOpenJobsForSkill = (skillId) => api.get(`/tasks`, { params: { skill_id: skillId, status: 'open' } });
 
 export const fetchMyAssignments = (status = 'in_progress') => {
   const userData = JSON.parse(localStorage.getItem('userData'));
@@ -202,6 +208,14 @@ export const fetchMyReviews = () => api.get('/reviews/my-reviews');
 export const fetchMyReceivedReviews = () => api.get('/reviews/my-received-reviews');
 export const fetchReviewSubmissions = (taskId) => api.get(`/tasks/${taskId}/review-submissions`);
 export const fetchReviewTasks = (filters) => api.get('/review-tasks', { params: filters });
+export const fetchReviewTaskDetails = (reviewTaskId) => api.get(`/review-tasks/${reviewTaskId}/details`);
+export const fetchReviewTask = (reviewTaskId) => api.get(`/review-tasks/${reviewTaskId}`);
+export const assignReviewTask = (reviewTaskId) => api.post(`/review-tasks/${reviewTaskId}/assign`);
+export const submitReviewAssignment = (assignmentId, reviewData) => api.put(`/review-tasks/assignments/${assignmentId}`, reviewData);
+export const fetchMyReviewAssignments = (status = 'in_progress') => {
+  console.log('DEBUG: fetchMyReviewAssignments called with status:', status);
+  return api.get('/review-tasks/my-assignments', { params: { status } });
+};
 
 // Assign (undertake) a task as a contributor with skill validation
 export const assignTask = async (taskId) => {
