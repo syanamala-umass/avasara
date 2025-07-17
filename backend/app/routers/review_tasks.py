@@ -160,45 +160,45 @@ def get_my_review_assignments(
         
         return assignments
 
-@router.get("/{review_task_id}/details", response_model=ReviewTaskWithDetails)
-def get_review_task(
-    review_task_id: int,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get basic information about a specific review task.
-    
-    Args:
-        review_task_id (int): The ID of the review task
-        current_user: The authenticated user
-        db (Session): Database session
-        
-    Returns:
-        ReviewTaskWithDetails: Basic review task information
-        
-    Raises:
-        HTTPException 404: If review task not found
-        HTTPException 500: If database query fails
-    """
-    with get_db_cursor() as cursor:
-        cursor.execute("""
-            SELECT rt.*, 
-                   t.title as parent_task_title,
-                   ta.notes as assignment_notes,
-                   u.username as submitter_name
-            FROM review_tasks rt
-            JOIN tasks t ON rt.parent_task_id = t.id
-            JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
-            JOIN users u ON ta.user_id = u.id
-            WHERE rt.id = %s
-        """, (review_task_id,))
-        
-        review_task = cursor.fetchone()
-        if not review_task:
-            raise HTTPException(status_code=404, detail="Review task not found")
-        
-        return review_task
+# @router.get("/{review_task_id}/details", response_model=ReviewTaskWithDetails)
+# def get_review_task(
+#     review_task_id: int,
+#     current_user = Depends(get_current_user),
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Get basic information about a specific review task.
+#     
+#     Args:
+#         review_task_id (int): The ID of the review task
+#         current_user: The authenticated user
+#         db (Session): Database session
+#         
+#     Returns:
+#         ReviewTaskWithDetails: Basic review task information
+#         
+#     Raises:
+#         HTTPException 404: If review task not found
+#         HTTPException 500: If database query fails
+#     """
+#     with get_db_cursor() as cursor:
+#         cursor.execute("""
+#             SELECT rt.*, 
+#                    t.title as parent_task_title,
+#                    ta.notes as assignment_notes,
+#                    u.username as submitter_name
+#             FROM review_tasks rt
+#             JOIN tasks t ON rt.parent_task_id = t.id
+#             JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
+#             JOIN users u ON ta.user_id = u.id
+#             WHERE rt.id = %s
+#         """, (review_task_id,))
+#         
+#         review_task = cursor.fetchone()
+#         if not review_task:
+#             raise HTTPException(status_code=404, detail="Review task not found")
+#         
+#         return review_task
 
 @router.get("/{review_task_id}/details", response_model=ReviewTaskWithDetails)
 def get_review_task_details(

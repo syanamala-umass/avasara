@@ -1228,4 +1228,224 @@ def get_review_submissions(
         "total_reviews": len(reviews)
     }
 
+# @router.get("/public", response_model=List[TaskWithDetails])
+# def get_public_tasks(
+#     request: Request,
+#     skip: int = 0, 
+#     limit: int =100, 
+#     status: str = None, 
+#     creator_id: int = None,
+#     category: str = None,
+#     title: str = None,
+#     compensation_type: str = None,
+#     min_compensation: float = None,
+#     max_compensation: float = None,
+#     task_type: str = None,
+#     skill_id: int = None,
+#     min_skill_rating: float = None,
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Get public tasks without authentication.
+    
+#     This endpoint returns tasks that are available for public viewing,
+#     without user-specific functionality like capability checks.
+#     """
+#     with get_db_cursor() as cursor:
+#         # Build the base query
+#         query = """
+#             SELECT DISTINCT t.*, 
+#                    u.username as creator_name,
+#                    s.name as startup_name,
+#                    s.logo as startup_logo,
+#                    tc_task.compensation_type as task_compensation_type,
+#                    tc_task.amount as task_compensation_amount,
+#                    tc_review.compensation_type as review_compensation_type,
+#                    tc_review.amount as review_compensation_amount,
+#                    COUNT(DISTINCT ta.id) as assignments_count,
+#                    COUNT(DISTINCT r.id) as reviews_count,
+#                    COUNT(DISTINCT CASE WHEN ta.status = 'in_progress' THEN ta.id END) as num_people_working
+#             FROM tasks t
+#             LEFT JOIN users u ON t.user_id = u.id
+#             LEFT JOIN startups s ON t.startup_id = s.id
+#             LEFT JOIN task_compensations tc_task ON t.id = tc_task.task_id AND tc_task.amount_type = 'task'
+#             LEFT JOIN task_compensations tc_review ON t.id = tc_review.task_id AND tc_review.amount_type = 'review'
+#             LEFT JOIN task_assignments ta ON t.id = ta.task_id
+#             LEFT JOIN reviews r ON t.id = r.task_id
+#         """
+        
+#         where_conditions = ["t.status = 'open'"]  # Only show open tasks
+#         params = []
+        
+#         # Add filters
+#         if status:
+#             where_conditions.append("t.status = %s")
+#             params.append(status)
+        
+#         if creator_id:
+#             where_conditions.append("t.user_id= %s")
+#             params.append(creator_id)
+            
+#         if category:
+#             where_conditions.append("t.category = %s")
+#             params.append(category)
+            
+#         if title:
+#             where_conditions.append("LOWER(t.title) LIKE LOWER(%s)")
+#             params.append(f"%{title}%")
+            
+#         if compensation_type:
+#             where_conditions.append("tc_task.compensation_type = %s")
+#             params.append(compensation_type)
+            
+#         if min_compensation is not None:
+#             where_conditions.append("tc_task.amount >= %s")
+#             params.append(min_compensation)
+            
+#         if max_compensation is not None:
+#             where_conditions.append("tc_task.amount <= %s")
+#             params.append(max_compensation)
+            
+#         if task_type:
+#             where_conditions.append("t.category = %s")
+#             params.append(task_type)
+            
+#         if skill_id:
+#             where_conditions.append("            EXISTS (
+#                     SELECT 1 FROM task_skills ts 
+#                     WHERE ts.task_id = t.id AND ts.skill_id = %s
+#                 )")
+#             params.append(skill_id)
+        
+#         # Add WHERE clause
+#         if where_conditions:
+#             query += " WHERE " + " AND ".join(where_conditions)
+        
+#         # Add GROUP BY and ORDER BY
+#         query += """
+#             GROUP BY t.id, u.username, s.name, s.logo, 
+#                      tc_task.compensation_type, tc_task.amount,
+#                      tc_review.compensation_type, tc_review.amount
+#             ORDER BY t.created_at DESC
+#             LIMIT %s OFFSET %s
+#         """
+#         params.extend([limit, skip])
+        
+#         cursor.execute(query, params)
+#         tasks = cursor.fetchall()
+        
+#         # Format the response
+#         formatted_tasks = []
+#         for task in tasks:
+#             # Get skills for this task
+#             cursor.execute("""
+#                 SELECT s.id, s.name 
+#                 FROM skills s 
+#                 JOIN task_skills ts ON s.id = ts.skill_id 
+#                 WHERE ts.task_id = %s
+#             """, (task['id'],))
+#             skills = [{id: row[id], "name": row['name']} for row in cursor.fetchall()]
+            
+#             formatted_task = {
+#                 "id": task['id'],
+#                 "user_id": task['user_id'],
+#                 "title": task['title'],
+#                 "description": task['description'],
+#                 "compensation_type": task['task_compensation_type'],
+#                 "compensation_amount": task['task_compensation_amount'],
+#                 "review_compensation_type": task['review_compensation_type'],
+#                 "review_compensation_amount": task['review_compensation_amount'],
+#                 "deadline": task['deadline'],
+#                 "created_at": task['created_at'],
+#                 "status": task['status'],
+#                 "skill_review_requirements": task['skill_review_requirements'],
+#                 "category": task['category'],
+#                 "skills": skills,
+#                 "creator_name": task['creator_name'] or "Unknown User",
+#                 "creator_avatar": None,
+#                 "assignments_count": task['assignments_count'] or 0,
+#                 "reviews_count": task['reviews_count'] or 0,
+#                 "num_people_working": task['num_people_working'] or 0,
+#                 "has_assignment": False,  # Public endpoint doesn't show user-specific assignment status
+#                 "startup_name": task['startup_name'] or "",
+#                 "startup_logo": task['startup_logo']
+#             }
+#             formatted_tasks.append(formatted_task)
+        
+#         return formatted_tasks
+
+# @router.get("/public/{task_id}", response_model=TaskWithDetails)
+# def get_public_task(
+#     task_id: int,
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Get public task details without authentication.
+#     """
+#     with get_db_cursor() as cursor:
+#         cursor.execute("""
+#             SELECT t.*, 
+#                    u.username as creator_name,
+#                    s.name as startup_name,
+#                    s.logo as startup_logo,
+#                    tc_task.compensation_type as task_compensation_type,
+#                    tc_task.amount as task_compensation_amount,
+#                    tc_review.compensation_type as review_compensation_type,
+#                    tc_review.amount as review_compensation_amount,
+#                    COUNT(DISTINCT ta.id) as assignments_count,
+#                    COUNT(DISTINCT r.id) as reviews_count,
+#                    COUNT(DISTINCT CASE WHEN ta.status = 'in_progress' THEN ta.id END) as num_people_working
+#             FROM tasks t
+#             LEFT JOIN users u ON t.user_id = u.id
+#             LEFT JOIN startups s ON t.startup_id = s.id
+#             LEFT JOIN task_compensations tc_task ON t.id = tc_task.task_id AND tc_task.amount_type = 'task'
+#             LEFT JOIN task_compensations tc_review ON t.id = tc_review.task_id AND tc_review.amount_type = 'review'
+#             LEFT JOIN task_assignments ta ON t.id = ta.task_id
+#             LEFT JOIN reviews r ON t.id = r.task_id
+#             WHERE t.id = %s
+#             GROUP BY t.id, u.username, s.name, s.logo, 
+#                      tc_task.compensation_type, tc_task.amount,
+#                      tc_review.compensation_type, tc_review.amount
+#         """, (task_id,))
+        
+#         task = cursor.fetchone()
+#         if not task:
+#             raise HTTPException(status_code=404, detail="Task not found")
+        
+#         # Get skills for this task
+#         cursor.execute("""
+#             SELECT s.id, s.name 
+#             FROM skills s 
+#             JOIN task_skills ts ON s.id = ts.skill_id 
+#             WHERE ts.task_id = %s
+#         """, (task_id,))
+#         skills = [{id: row[id], "name": row['name']} for row in cursor.fetchall()]
+        
+#         formatted_task = {
+#             "id": task['id'],
+#             "user_id": task['user_id'],
+#             "title": task['title'],
+#             "description": task['description'],
+#             "compensation_type": task['task_compensation_type'],
+#             "compensation_amount": task['task_compensation_amount'],
+#             "review_compensation_type": task['review_compensation_type'],
+#             "review_compensation_amount": task['review_compensation_amount'],
+#             "deadline": task['deadline'],
+#             "created_at": task['created_at'],
+#             "status": task['status'],
+#             "skill_review_requirements": task['skill_review_requirements'],
+#             "category": task['category'],
+#             "skills": skills,
+#             "creator_name": task['creator_name'] or "Unknown User",
+#             "creator_avatar": None,
+#             "assignments_count": task['assignments_count'] or 0,
+#             "reviews_count": task['reviews_count'] or 0,
+#             "num_people_working": task['num_people_working'] or 0,
+#             "has_assignment": False,  # Public endpoint doesn't show user-specific assignment status
+#             "startup_name": task['startup_name'] or "",
+#             "startup_logo": task['startup_logo']
+#         }
+        
+#         return formatted_task
+
 
