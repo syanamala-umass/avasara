@@ -3,7 +3,7 @@ import { loginUser, getOAuthUrl, fetchUserSkills } from './api';
 import { X, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 import SkillsModal from './components/SkillsModal';
 
-const LoginPopup = ({ isOpen, onClose }) => {
+const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -273,9 +273,16 @@ const LoginPopup = ({ isOpen, onClose }) => {
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">
+              <button
+                type="button"
+                className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors underline bg-transparent border-none cursor-pointer p-0"
+                onClick={() => {
+                  onClose();
+                  if (onShowSignup) onShowSignup();
+                }}
+              >
                 Sign up
-              </a>
+              </button>
             </p>
           </div>
         </div>

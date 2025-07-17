@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const SignupPopup = ({ isOpen, onClose }) => {
+const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -259,7 +259,10 @@ const SignupPopup = ({ isOpen, onClose }) => {
             <span>Already part of our community?</span>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              if (onShowLogin) onShowLogin();
+            }}
             className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
           >
             Sign in to your account

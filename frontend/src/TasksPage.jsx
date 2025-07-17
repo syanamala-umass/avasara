@@ -3,6 +3,7 @@ import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertC
 import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks, assignReviewTask } from './api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
+import LoginPopup from './LoginPopup';
 
 // const categories = [
 //   'All',
@@ -49,6 +50,7 @@ const TasksPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   useEffect(() => {
     loadSkills();
@@ -145,6 +147,14 @@ const TasksPage = () => {
 
   const handleUndertakeTask = async (e, task) => {
     e?.stopPropagation();
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setShowLoginPopup(true);
+      return;
+    }
+    
     try {
       // Use correct assignment type for capability check
       const assignmentType = task.category === 'review' ? 'review' : 'task';
@@ -335,6 +345,10 @@ const TasksPage = () => {
     
     console.log(`Capability filter: ${filters.capability}, Total results: ${results.length}, Filtered results: ${filtered.length}`);
     return filtered;
+  };
+
+  const closeLoginPopup = () => {
+    setShowLoginPopup(false);
   };
 
   return (
@@ -664,6 +678,9 @@ const TasksPage = () => {
           onUndertake={() => handleUndertakeTask(null, selectedTask)}
         />
       )}
+      
+      {/* Login Popup */}
+      <LoginPopup isOpen={showLoginPopup} onClose={closeLoginPopup} />
     </div>
   );
 };

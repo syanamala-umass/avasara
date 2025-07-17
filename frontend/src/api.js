@@ -248,4 +248,10 @@ export const resubmitTask = async (assignmentId, notes) => {
   }
 };
 
+// Public Task services (no authentication required)
+export const fetchPublicTasks = (filters) => api.get('/tasks/public', { params: filters });
+export const fetchPublicTaskById = (id) => api.get(`/tasks/public/${id}`);
+export const fetchPublicReviewTasks = (filters) => api.get('/review-tasks/public', { params: filters });
+export const fetchPublicReviewTaskById = (id) => api.get(`/review-tasks/public/${id}`);
+
 export default api;

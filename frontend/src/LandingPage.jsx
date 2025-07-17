@@ -30,6 +30,7 @@ import {
   Handshake,
   Gift
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import LoginPopup from './LoginPopup';
 import SignupPopup from './SignupPopup';
 import { fetchLandingStats } from './api';
@@ -46,6 +47,7 @@ const LandingPage = () => {
   // const [loading, setLoading] = useState(true);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showSignupPopup, setShowSignupPopup] = useState(false);
+  const navigate = useNavigate();
 
   const openLoginPopup = () => {
     setShowLoginPopup(true);
@@ -100,7 +102,7 @@ const LandingPage = () => {
     {
       icon: <Zap className="h-8 w-8" />,
       title: "Lightning Fast",
-      description: "Get tasks completed quickly with our efficient peer-review system"
+      description: "Get tasks completed quickly with our open marketplace where anyone can contribute"
     },
     {
       icon: <Heart className="h-8 w-8" />,
@@ -160,10 +162,10 @@ const LandingPage = () => {
       </nav>
 
       {/* Login Popup */}
-      <LoginPopup isOpen={showLoginPopup} onClose={closeLoginPopup} />
+      <LoginPopup isOpen={showLoginPopup} onClose={closeLoginPopup} onShowSignup={openSignupPopup} />
 
       {/* Signup Popup */}
-      <SignupPopup isOpen={showSignupPopup} onClose={closeSignupPopup} />
+      <SignupPopup isOpen={showSignupPopup} onClose={closeSignupPopup} onShowLogin={openLoginPopup} />
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">
@@ -171,7 +173,6 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 relative">
           <div className="text-center">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium mb-6">
-              <Sparkles className="h-4 w-4 mr-2" />
               Of the People, By the People, For the People
             </div>
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 leading-tight mb-6">
@@ -193,30 +194,54 @@ const LandingPage = () => {
               >
                 Start Contributing <ArrowRight className="ml-2 h-5 w-5" />
               </button>
-              <button className="px-8 py-4 border-2 border-indigo-600 rounded-xl text-indigo-600 font-semibold hover:bg-indigo-50 transition-all duration-200 flex items-center justify-center">
-                <Rocket className="mr-2 h-5 w-5" />
-                Explore Tasks
-              </button>
-            </div>
-            
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap justify-center items-center space-x-8 text-gray-500">
-              <div className="flex items-center">
-                <Users2 className="h-5 w-5 mr-2" />
-                <span className="text-sm">10,000+ Contributors</span>
-              </div>
-              <div className="flex items-center">
-                <Target className="h-5 w-5 mr-2" />
-                <span className="text-sm">50,000+ Tasks Completed</span>
-              </div>
-              <div className="flex items-center">
-                <Star className="h-5 w-5 mr-2" />
-                <span className="text-sm">4.9/5 Rating</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* What Sets Avasara Apart Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              What Sets Avasara Apart
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Avasara isn’t just another gig platform. We’re a results-driven, collaborative community where anyone can contribute, learn, and make a real impact. Here’s what makes us different:
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="flex items-start bg-gradient-to-br from-indigo-50 to-white rounded-2xl shadow-md p-8">
+              <Briefcase className="h-12 w-12 text-indigo-600 flex-shrink-0 mr-6" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Bidding, Just Building</h3>
+                <p className="text-gray-600">Skip the race to the bottom. Tasks are matched by skill and value, not by who bids lowest. This means quality work and fair opportunities for everyone.</p>
+              </div>
+            </div>
+            <div className="flex items-start bg-gradient-to-br from-purple-50 to-white rounded-2xl shadow-md p-8">
+              <TrendingUp className="h-12 w-12 text-purple-600 flex-shrink-0 mr-6" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Growth-First, Not Gig-First</h3>
+                <p className="text-gray-600">Every task is a chance to learn, earn recognition, and build a portfolio that truly reflects your skills and progress.</p>
+              </div>
+            </div>
+            <div className="flex items-start bg-gradient-to-br from-green-50 to-white rounded-2xl shadow-md p-8">
+              <Users2 className="h-12 w-12 text-green-600 flex-shrink-0 mr-6" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Collaborative Excellence</h3>
+                <p className="text-gray-600">Peer review, mentorship, and teamwork are at our core. Together, we achieve more and help each other grow.</p>
+              </div>
+            </div>
+            <div className="flex items-start bg-gradient-to-br from-pink-50 to-white rounded-2xl shadow-md p-8">
+              <Gift className="h-12 w-12 text-pink-600 flex-shrink-0 mr-6" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Mission & Meaning</h3>
+                <p className="text-gray-600">From creative projects to social good, Avasara connects people with work that matters. Make a difference while you develop your talents.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Features Section */}
       <div className="py-20 bg-white">
@@ -233,8 +258,8 @@ const LandingPage = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-2xl hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 group">
-                <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white mb-6 group-hover:scale-110 transition-transform duration-300">
+              <div key={index} className="text-center p-6 rounded-2xl transition-all duration-300 group">
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white mb-6 transition-transform duration-300">
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
@@ -309,7 +334,7 @@ const LandingPage = () => {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {taskCategories.map((category, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+              <div key={index} className="bg-white rounded-2xl p-6 text-center">
                 <div className={`inline-flex items-center justify-center h-12 w-12 rounded-xl ${category.color} text-white mb-4`}>
                   {category.icon}
                 </div>
@@ -320,7 +345,6 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Top Contributors Section */}
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -426,10 +450,6 @@ const LandingPage = () => {
       <div className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/20 text-white text-sm font-medium mb-6">
-            <Handshake className="h-4 w-4 mr-2" />
-            Join 10,000+ Contributors
-          </div>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Make Your Mark?
           </h2>
@@ -444,10 +464,6 @@ const LandingPage = () => {
             >
               <Gift className="mr-2 h-5 w-5" />
               Join for Free
-            </button>
-            <button className="px-8 py-4 border-2 border-white rounded-xl text-white font-semibold hover:bg-white/10 transition-all duration-200 flex items-center justify-center">
-              <Briefcase className="mr-2 h-5 w-5" />
-              Browse Tasks
             </button>
           </div>
         </div>
@@ -514,7 +530,7 @@ const LandingPage = () => {
           
           <div className="mt-12 pt-8 border-t border-gray-800 text-center">
             <p className="text-gray-400">
-              &copy; 2025 Avasara. Built with ❤️ of the people, by the people, for the people.
+              &copy; 2025 Avasara.
             </p>
           </div>
         </div>
