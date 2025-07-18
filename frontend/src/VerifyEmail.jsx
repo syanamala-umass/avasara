@@ -29,11 +29,8 @@ const VerifyEmail = () => {
         
         // Use localhost for local development, production URL for production
         const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://avasara-backend.onrender.com');
-        console.log(`[${new Date().toISOString()}] Verifying email with API URL:`, API_URL);
-        console.log(`[${new Date().toISOString()}] Token:`, token);
         
         const response = await axios.get(`${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`);
-        console.log(`[${new Date().toISOString()}] Verification response:`, response.data);
         
         if (response.data.success) {
           setStatus('success');

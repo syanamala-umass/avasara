@@ -122,20 +122,6 @@ const ProfessionalDashboard = () => {
         setRejectedTasks(rejectedTasksResponse.status === 'fulfilled' ? (rejectedTasksResponse.value?.data || []) : []);
         setUserSkills(userSkillsResponse.status === 'fulfilled' ? (userSkillsResponse.value?.data || []) : []);
         
-        // Debug logging
-        console.log('DEBUG: Dashboard data loading results:');
-        console.log('DEBUG: assignedTasksResponse status:', assignedTasksResponse.status);
-        console.log('DEBUG: assignedTasksResponse value:', assignedTasksResponse.value);
-        console.log('DEBUG: assignedTasks count:', assignedTasksResponse.status === 'fulfilled' ? (assignedTasksResponse.value?.data || []).length : 0);
-        
-        console.log('DEBUG: assignedReviewTasksResponse status:', assignedReviewTasksResponse.status);
-        console.log('DEBUG: assignedReviewTasksResponse value:', assignedReviewTasksResponse.value);
-        console.log('DEBUG: assignedReviewTasks count:', assignedReviewTasksResponse.status === 'fulfilled' ? (assignedReviewTasksResponse.value?.data || []).length : 0);
-        
-        if (assignedReviewTasksResponse.status === 'fulfilled' && assignedReviewTasksResponse.value?.data) {
-          console.log('DEBUG: assignedReviewTasks data:', assignedReviewTasksResponse.value.data);
-        }
-        
         // Handle top skills specifically
         const topSkillsData = topSkillsResponse.status === 'fulfilled' ? (topSkillsResponse.value?.data || []) : [];
         setTopSkills(topSkillsData);
@@ -194,39 +180,27 @@ const ProfessionalDashboard = () => {
   const handleTaskClick = async (task) => {
     try {
       setLoading(true);
-      console.log('DEBUG: handleTaskClick called with task:', task);
       
       let response;
       
       // Check if this is a review task
-      console.log('DEBUG: Task object received:', task);
-      console.log('DEBUG: Task category:', task.category);
-      console.log('DEBUG: Task has parent_task_title:', !!task.parent_task_title);
-      
       if (task.type === 'review' || task.parent_task_title) {
         // For review tasks, use the review task ID and call the review task endpoint
         const reviewTaskId = task.id || task.review_task_id;
-        console.log('DEBUG: Detected as review task, fetching review task details for ID:', reviewTaskId);
-        console.log('DEBUG: Task ID field:', task.id);
-        console.log('DEBUG: Task review_task_id field:', task.review_task_id);
-        console.log('DEBUG: Selected reviewTaskId:', reviewTaskId);
         response = await fetchReviewTaskDetails(reviewTaskId);
       } else {
         // For regular tasks, use the regular task endpoint
         const taskId = (activeTab === 'undertaking' || activeTab === 'pending_review') ? task.task_id : task.id;
-        console.log('DEBUG: Detected as regular task, fetching regular task details for ID:', taskId);
         response = await fetchTaskById(taskId);
       }
       
       const taskData = response.data;
-      console.log('DEBUG: Task data received:', taskData);
       
       // Ensure the task has the correct type for TaskDetailModal
       const taskWithType = {
         ...taskData,
         type: task.type === 'review' || task.parent_task_title ? 'review' : 'task'
       };
-      console.log('DEBUG: Task with type set:', taskWithType);
       setSelectedTask(taskWithType);
       setIsTaskModalOpen(true);
       
@@ -380,10 +354,6 @@ const ProfessionalDashboard = () => {
   const activeTasks = assignedTasks.length + assignedReviewTasks.length;
   
   // Debug logging for rendering
-  console.log('DEBUG: Rendering dashboard with:');
-  console.log('DEBUG: assignedTasks:', assignedTasks);
-  console.log('DEBUG: assignedReviewTasks:', assignedReviewTasks);
-  console.log('DEBUG: activeTasks count:', activeTasks);
   const completionRate = completedTasks.length > 0 ? ((completedTasks.length / (completedTasks.length + rejectedTasks.length)) * 100).toFixed(1) : 0;
 
   const toggleProfileDropdown = () => {
@@ -787,10 +757,6 @@ const ProfessionalDashboard = () => {
                         const isReviewTask = task.parent_task_title; // Review tasks have this field
                         return (
                           <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
-                            console.log('DEBUG: Clicking on task:', task);
-                            console.log('DEBUG: isReviewTask:', isReviewTask);
-                            console.log('DEBUG: task.review_task_id:', task.review_task_id);
-                            console.log('DEBUG: task.id:', task.id);
                             handleTaskClick(isReviewTask ? { id: task.review_task_id, category: 'review' } : task);
                           }}>
                             <div className="flex items-center space-x-4">
@@ -868,9 +834,6 @@ const ProfessionalDashboard = () => {
                   </div>
                 ) : (
                   <div className="grid gap-6">
-                    {console.log('DEBUG: Rendering active tasks section')}
-                    {console.log('DEBUG: assignedTasks length:', assignedTasks.length)}
-                    {console.log('DEBUG: assignedReviewTasks length:', assignedReviewTasks.length)}
                     {/* Regular Tasks */}
                     {assignedTasks.map(task => (
                       <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>

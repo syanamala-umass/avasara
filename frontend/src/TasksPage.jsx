@@ -176,7 +176,6 @@ const TasksPage = () => {
           alert('Task undertaken successfully! You can now view it in your Active Tasks.');
         }
         
-        console.log('Task undertaken:', task.id);
         // Optionally navigate to the dashboard or refresh the task list
         navigate('/dashboard');
       } else {
@@ -194,12 +193,6 @@ const TasksPage = () => {
       try {
         // Use 'review' assignment type for review tasks, 'task' for regular tasks
         const assignmentType = task.type === 'review' ? 'review' : 'task';
-        console.log(`=== TASK CAPABILITY CHECK DEBUG ===`);
-        console.log(`Task ID: ${task.id}`);
-        console.log(`Task type: ${task.type}`);
-        console.log(`Task category: ${task.category}`);
-        console.log(`Selected assignment type: ${assignmentType}`);
-        console.log(`Making API call for task ${task.id} with assignment type: ${assignmentType}`);
         
         const response = await canUndertakeTask(task.id, assignmentType);
         capabilities[task.id] = response.data;
@@ -240,15 +233,8 @@ const TasksPage = () => {
       // Fetch all tasks (both regular and review tasks) from a single API call
       const tasksResponse = await fetchTasks(params);
       
-      console.log('=== API RESPONSE DEBUG ===');
-      console.log('Tasks response:', tasksResponse.data);
-      
       // The API already returns both regular and review tasks with correct 'type' field
       const allTasks = tasksResponse.data || [];
-      
-      console.log('=== TASK PROCESSING DEBUG ===');
-      console.log('All tasks from API:', allTasks);
-      console.log('Task 27 from API:', allTasks.find(t => t.id === 27));
       
       setResults(allTasks);
       
@@ -353,7 +339,6 @@ const TasksPage = () => {
       return true;
     });
     
-    console.log(`Capability filter: ${filters.capability}, Total results: ${results.length}, Filtered results: ${filtered.length}`);
     return filtered;
   };
 

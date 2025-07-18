@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.models.task import Task
-from app.models.task_compensation import TaskCompensation
 from app.schemas.task import TaskCreate, TaskUpdate
 
 def create_task(db: Session, task: TaskCreate, user_id: int):
@@ -14,9 +13,8 @@ def create_task(db: Session, task: TaskCreate, user_id: int):
     review_compensation_type = task_data.pop("review_compensation_type")
     review_compensation_amount = task_data.pop("review_compensation_amount")
     
-    # Extract skills and resources IDs
+    # Extract skills IDs
     skills = task_data.pop("skills", [])
-    resources = task_data.pop("resources", [])
     
     # Build compensation JSON
     compensation_json = {
@@ -36,16 +34,11 @@ def create_task(db: Session, task: TaskCreate, user_id: int):
     db.commit()
     db.refresh(db_task)
     
-    # Add skills and resources relationships
+    # Add skills relationships
     if skills:
         from app.crud.skill import get_skills_by_ids
         db_skills = get_skills_by_ids(db, skills)
         db_task.skills = db_skills
-        
-    if resources:
-        from app.models import Resource
-        db_resources = db.query(Resource).filter(Resource.id.in_(resources)).all()
-        db_task.resources = db_resources
     
     db.commit()
     db.refresh(db_task)
@@ -72,7 +65,6 @@ def update_task(db: Session, task_id: int, task: TaskUpdate, user_id: int):
         
         # Handle skills and resources separately
         skills = update_data.pop("skills", None)
-        resources = update_data.pop("resources", None)
         
         # Update task attributes
         for key, value in update_data.items():
@@ -84,12 +76,6 @@ def update_task(db: Session, task_id: int, task: TaskUpdate, user_id: int):
             db_skills = get_skills_by_ids(db, skills)
             db_task.skills = db_skills
             
-        # Update resources if provided
-        if resources is not None:
-            from app.models import Resource
-            db_resources = db.query(Resource).filter(Resource.id.in_(resources)).all()
-            db_task.resources = db_resources
-        
         db.commit()
         db.refresh(db_task)
     return db_task
