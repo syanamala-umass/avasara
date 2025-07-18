@@ -11,14 +11,6 @@ task_skill = Table(
     Column("skill_id", Integer, ForeignKey("skills.id"), primary_key=True)
 )
 
-# Association table for task resources
-task_resource = Table(
-    "task_resources",
-    Base.metadata,
-    Column("task_id", Integer, ForeignKey("tasks.id"), primary_key=True),
-    Column("resource_id", Integer, ForeignKey("resources.id"), primary_key=True)
-)
-
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -32,17 +24,16 @@ class Task(Base):
     num_reviewers = Column(Integer, nullable=True)  # Optional
     max_parallel_contributors = Column(Integer, nullable=True)
     contributor_time_limit_hours = Column(Integer, nullable=True)
-    category = Column(String, default="task")  # Add category field with default value "task"
+    category = Column(String, default="Other")  # Add category field with default value "task"
     skill_review_requirements = Column(JSON, nullable=True)  # {"skill_name": min_skill_level_required}
+    compensation = Column(JSON, nullable=True)  # JSON field for task and review compensation
 
     # Relationships
     user = relationship("User", back_populates="tasks")
     skills = relationship("Skill", secondary=task_skill, back_populates="tasks")
-    resources = relationship("Resource", secondary=task_resource, back_populates="tasks")
     assignments = relationship("TaskAssignment", back_populates="task")
     reviews = relationship("Review", back_populates="task")
     # peer_evaluations = relationship("PeerEvaluation", back_populates="task")
-    compensations = relationship("TaskCompensation", back_populates="task")
 
     # When creating a task, set category from the primary skill's category if available
     def set_category_from_skills(self):

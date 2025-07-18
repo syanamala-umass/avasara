@@ -8,7 +8,6 @@ from datetime import datetime
 
 from app.models.task_assignment import TaskAssignment
 from app.models.review import Review
-from app.models.task_compensation import TaskCompensation
 from app.database import get_db
 from app.schemas.task import TaskCreate, Task, TaskUpdate, TaskWithDetails
 from app.crud.task import create_task, get_task, get_tasks, update_task
@@ -51,13 +50,11 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
     Raises:
         HTTPException: If database query fails or user skills are invalid
     """
-    print("please ikkadiki anna ra")
     from app.models.task import Task
     # Fetch all completed tasks
     tasks = db.query(Task).filter(Task.status == 'completed').all()
-    print(tasks)
+    
     # Get current user's skills
-    print(current_user.skills)
     user_skills = set(current_user.skills or [])  # Assuming skills is a list or comma-separated string
 
     if isinstance(user_skills, str):
@@ -75,15 +72,7 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
             matched_tasks.append(task)
 
     # Get compensation data for all tasks
-    task_compensations = {}
-    task_comp_records = db.query(TaskCompensation).filter(
-        TaskCompensation.task_id.in_([task.id for task in matched_tasks])
-    ).all()
-
-    for tc in task_comp_records:
-        if tc.task_id not in task_compensations:
-            task_compensations[tc.task_id] = {'task': None, 'review': None}
-        task_compensations[tc.task_id][tc.amount_type] = tc
+    # No longer using TaskCompensation table, using JSON compensation field instead
 
     # Return matching tasks
     return [
@@ -92,7 +81,7 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
             "user_id": task.user_id,
             "title": task.title,
             "description": task.description,
-            "compensation": task_compensations[task.id],
+            "compensation": task.compensation,  # Use JSON compensation field directly
             "deadline": task.deadline,
             "created_at": task.created_at,
             "status": task.status,
@@ -131,10 +120,6 @@ def create_new_task(
     Raises:
         HTTPException: If task creation fails or validation errors occur
     """
-    print("=== Task Creation Debug ===")
-    print(f"Current user: {current_user}")
-    print(f"Task data: {task}")
-    
     # Create task with user_id
     db_task = create_task(db=db, task=task, user_id=current_user.id)
     # Set category from primary skill
@@ -158,12 +143,7 @@ def create_new_task(
         TaskAssignment.status == 'in_progress'
     ).count()
     
-    # Get task compensations
-    task_compensations = {}
-    for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == db_task.id).all():
-        if tc.task_id not in task_compensations:
-            task_compensations[tc.task_id] = {'task': None, 'review': None}
-        task_compensations[tc.task_id][tc.amount_type] = tc
+    # No longer using TaskCompensation table, using JSON compensation field instead
 
     # Format skills for response
     skills = [
@@ -181,7 +161,7 @@ def create_new_task(
         "user_id": db_task.user_id,
         "title": db_task.title,
         "description": db_task.description,
-        "compensation": task_compensations.get(db_task.id, {}),
+        "compensation": db_task.compensation,  # Use JSON compensation field
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
@@ -252,10 +232,10 @@ def read_tasks(
     """
     try:
         # Log the full URL and query parameters
-        logger.info(f"Request URL: {request.url}")
-        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
-        logger.info(f"Current user: {current_user.id}")
-
+        # logger.info(f"Request URL: {request.url}")
+        # logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
+        # logger.info(f"Current user: {current_user.id}")
+        
         # Build filter conditions for both tasks and review_tasks
         filters = []
         if status:
@@ -339,27 +319,27 @@ def read_tasks(
         filtered_result = []
         for task in result:
             if task.get('user_id') is None:
-                logger.warning(f"Task {task.get('id')} missing user_id, setting to -1")
+                # logger.warning(f"Task {task.get('id')} missing user_id, setting to -1")
                 task['user_id'] = -1
             if task.get('created_at') is None:
-                logger.warning(f"Task {task.get('id')} missing created_at, setting to 1970-01-01T00:00:00Z")
+                # logger.warning(f"Task {task.get('id')} missing created_at, setting to 1970-01-01T00:00:00Z")
                 task['created_at'] = datetime(1970, 1, 1)
             if not task.get('creator_name'):
-                logger.warning(f"Task {task.get('id')} missing creator_name, setting to 'Unknown User'")
+                # logger.warning(f"Task {task.get('id')} missing creator_name, setting to 'Unknown User'")
                 task['creator_name'] = 'Unknown User'
             filtered_result.append(task)
 
         # DEBUG: Log the first returned task
-        if filtered_result:
-            logger.info(f"First returned task: {filtered_result[0]}")
+        # if filtered_result:
+        #     logger.info(f"First returned task: {filtered_result[0]}")
 
         # Apply compensation and skill filters in Python (if needed)
         # ... (existing logic for compensation_type, min_compensation, max_compensation, skill_id, min_skill_rating) ...
 
         return filtered_result
     except Exception as e:
-        logger.error(f"Error in read_tasks: {str(e)}")
-        logger.error("Full traceback:", exc_info=True)
+        # logger.error(f"Error in read_tasks: {str(e)}")
+        # logger.error("Full traceback:", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
@@ -373,7 +353,7 @@ def get_recommended_tasks(
 ):
     """Get recommended tasks based on user's skills"""
     try:
-        print(f"Getting recommended tasks for user {current_user.id}")
+        # print(f"Getting recommended tasks for user {current_user.id}")
         
         # Get user's skills using direct SQL query
         from sqlalchemy import text
@@ -387,15 +367,15 @@ def get_recommended_tasks(
         user_skills_result = db.execute(user_skills_query, {"user_id": current_user.id})
         user_skills = [{"id": row.id, "name": row.name, "rating": row.rating} for row in user_skills_result]
         
-        print(f"User has {len(user_skills)} skills: {[skill['name'] for skill in user_skills]}")
+        # print(f"User has {len(user_skills)} skills: {[skill['name'] for skill in user_skills]}")
         
         if not user_skills:
             # If user has no skills, return recent tasks
-            print("User has no skills, returning recent tasks")
+            # print("User has no skills, returning recent tasks")
             tasks = db.query(models.Task).filter(
                 models.Task.status == 'open'
             ).order_by(models.Task.created_at.desc()).limit(limit).all()
-            print(f"Found {len(tasks)} recent tasks")
+            # print(f"Found {len(tasks)} recent tasks")
             
             # Convert to TaskWithDetails format
             result = []
@@ -412,7 +392,7 @@ def get_recommended_tasks(
                         "user_id": task.user_id,
                         "title": task.title,
                         "description": task.description,
-                        "compensation": compensation,
+                        "compensation": compensation,  # Use JSON compensation field
                         "deadline": task.deadline,
                         "created_at": task.created_at,
                         "status": task.status,
@@ -428,14 +408,14 @@ def get_recommended_tasks(
                     }
                     result.append(task_dict)
                 except Exception as e:
-                    print(f"Error processing task {task.id}: {str(e)}")
+                    # print(f"Error processing task {task.id}: {str(e)}")
                     continue
             
             return result
         
         # Get skill IDs from user's skills
         skill_ids = [skill['id'] for skill in user_skills]
-        print(f"Looking for tasks with skill IDs: {skill_ids}")
+        # print(f"Looking for tasks with skill IDs: {skill_ids}")
         
         # Find tasks that require any of the user's skills using direct SQL query
         recommended_tasks_query = text("""
@@ -472,17 +452,17 @@ def get_recommended_tasks(
             task.category = row.category
             recommended_tasks.append(task)
         
-        print(f"Found {len(recommended_tasks)} recommended tasks")
+        # print(f"Found {len(recommended_tasks)} recommended tasks")
         
         # Convert to TaskWithDetails format
         result = []
         for task in recommended_tasks:
             try:
                 # Check for required fields
-                if task.user_id is None or task.created_at is None:
-                    print(f"Skipping task {task.id} due to missing user_id or created_at")
-                    continue
-                print(f"Task: {task.title} (ID: {task.id})")
+                # if task.user_id is None or task.created_at is None:
+                #     print(f"Skipping task {task.id} due to missing user_id or created_at")
+                #     continue
+                # print(f"Task: {task.title} (ID: {task.id})")
                 
                 # Get compensation data using direct SQL
                 compensation_query = text("""
@@ -524,7 +504,7 @@ def get_recommended_tasks(
                     "user_id": task.user_id,
                     "title": task.title,
                     "description": task.description,
-                    "compensation": compensation,
+                    "compensation": compensation,  # Use JSON compensation field
                     "deadline": task.deadline,
                     "created_at": task.created_at,
                     "status": task.status,
@@ -540,12 +520,12 @@ def get_recommended_tasks(
                 }
                 result.append(task_dict)
             except Exception as e:
-                print(f"Error processing task {task.id}: {str(e)}")
+                # print(f"Error processing task {task.id}: {str(e)}")
                 continue
         
         return result
     except Exception as e:
-        print(f"Error in get_recommended_tasks: {str(e)}")
+        # print(f"Error in get_recommended_tasks: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error getting recommended tasks: {str(e)}")
@@ -599,12 +579,7 @@ def read_task(
         TaskAssignment.status == 'in_progress'
     ).count()
     
-    # Get task compensations
-    task_compensations = {}
-    for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == task_id).all():
-        if tc.task_id not in task_compensations:
-            task_compensations[tc.task_id] = {'task': None, 'review': None}
-        task_compensations[tc.task_id][tc.amount_type] = tc
+    # No longer using TaskCompensation table, using JSON compensation field instead
 
     # Check if current user has an assignment for this task
     has_assignment = check_existing_assignment(
@@ -628,7 +603,7 @@ def read_task(
         "user_id": db_task.user_id,
         "title": db_task.title,
         "description": db_task.description,
-        "compensation": task_compensations.get(db_task.id, {}),
+        "compensation": db_task.compensation,  # Use JSON compensation field directly
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
@@ -888,10 +863,6 @@ def get_task_details(
     Raises:
         HTTPException: If task not found or database errors occur
     """
-    logger.info(f"=== Task Details Request ===")
-    logger.info(f"Task ID: {task_id}")
-    logger.info(f"Current user: {current_user.id}")
-    
     # Get the task with relationships loaded
     db_task = db.query(models.Task).options(
         joinedload(models.Task.skills),
@@ -899,14 +870,11 @@ def get_task_details(
     ).filter(models.Task.id == task_id).first()
     
     if db_task is None:
-        logger.error(f"Task {task_id} not found")
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    logger.info(f"Task found: {db_task.title}")
     
     # Check if current user is the task creator (dispatcher)
     is_dispatcher = db_task.user_id == current_user.id
-    logger.info(f"User is dispatcher: {is_dispatcher}")
+    # logger.info(f"User is dispatcher: {is_dispatcher}")
     
     # Check if current user is assigned as a reviewer for this task
     user_assignment = db.query(TaskAssignment).filter(
@@ -915,7 +883,7 @@ def get_task_details(
         TaskAssignment.assignment_type == 'review'
     ).first()
     is_reviewer = user_assignment is not None
-    logger.info(f"User is reviewer: {is_reviewer}")
+    # logger.info(f"User is reviewer: {is_reviewer}")
     
     # Check if current user is a contributor who submitted this task
     contributor_assignment = db.query(TaskAssignment).filter(
@@ -924,14 +892,10 @@ def get_task_details(
         TaskAssignment.assignment_type == 'task'
     ).first()
     is_contributor = contributor_assignment is not None
-    logger.info(f"User is contributor: {is_contributor}")
+    # logger.info(f"User is contributor: {is_contributor}")
     
     # Get task compensations
-    task_compensations = {}
-    for tc in db.query(TaskCompensation).filter(TaskCompensation.task_id == task_id).all():
-        if tc.task_id not in task_compensations:
-            task_compensations[tc.task_id] = {'task': None, 'review': None}
-        task_compensations[tc.task_id][tc.amount_type] = tc
+    # No longer using TaskCompensation table, using JSON compensation field instead
     
     # Format skills
     skills = [
@@ -956,7 +920,7 @@ def get_task_details(
         "creator_name": db_task.user.username if db_task.user else "Unknown Creator",
         
         # Compensation
-        "compensation": task_compensations.get(db_task.id, {}),
+        "compensation": db_task.compensation,
         
         # Task configuration
         "num_reviewers": db_task.num_reviewers,
@@ -973,7 +937,7 @@ def get_task_details(
     
     # If user is the dispatcher, reviewer, or contributor, add detailed information
     if is_dispatcher or is_reviewer or is_contributor:
-        logger.info(f"User is dispatcher ({is_dispatcher}), reviewer ({is_reviewer}), or contributor ({is_contributor}) - adding detailed information")
+        # logger.info(f"User is dispatcher ({is_dispatcher}), reviewer ({is_reviewer}), or contributor ({is_contributor}) - adding detailed information")
         
         # Get all assignments for this task (excluding review assignments)
         assignments = db.query(TaskAssignment).options(
@@ -983,7 +947,7 @@ def get_task_details(
             TaskAssignment.assignment_type != 'review'  # Only show contributor assignments
         ).all()
         
-        logger.info(f"Found {len(assignments)} contributor assignments for task {task_id}")
+        # logger.info(f"Found {len(assignments)} contributor assignments for task {task_id}")
         
         # Format assignments
         formatted_assignments = []
@@ -1006,7 +970,7 @@ def get_task_details(
             joinedload(models.Review.reviewer)
         ).filter(models.Review.task_id == task_id).all()
         
-        logger.info(f"Found {len(reviews)} reviews for task {task_id}")
+        # logger.info(f"Found {len(reviews)} reviews for task {task_id}")
         
         # Format reviews
         formatted_reviews = []
@@ -1040,9 +1004,9 @@ def get_task_details(
             "num_people_working": active_assignments
         })
         
-        logger.info(f"Returning detailed view with {len(formatted_assignments)} contributor assignments and {len(formatted_reviews)} reviews")
+        # logger.info(f"Returning detailed view with {len(formatted_assignments)} contributor assignments and {len(formatted_reviews)} reviews")
     else:
-        logger.info("User is not dispatcher, reviewer, or contributor - returning basic information only")
+        # logger.info("User is not dispatcher, reviewer, or contributor - returning basic information only")
         
         # For other users, only add basic statistics without sensitive details
         # Count only contributor assignments (exclude review assignments)
@@ -1066,9 +1030,9 @@ def get_task_details(
             "num_people_working": active_assignments
         })
         
-        logger.info(f"Returning basic view for other users")
+        # logger.info(f"Returning basic view for other users")
     
-    logger.info(f"Task details keys: {list(task_details.keys())}")
+    # logger.info(f"Task details keys: {list(task_details.keys())}")
     
     return task_details
 

@@ -24,26 +24,17 @@ const TaskDetailModal = ({ isOpen, task = {
 
   useEffect(() => {
     if (isOpen && task?.id) {
-      console.log('=== TASK DETAIL MODAL DEBUG ===');
-      console.log('TaskDetailModal opened with task:', task);
-      console.log('Task status:', task.status);
-      console.log('Task category:', task.category);
-      console.log('Task type:', task.type);
-      console.log('Task assignments:', task.assignments);
-      console.log('Task assignments length:', task.assignments?.length || 0);
-      console.log('onUndertake exists:', !!onUndertake);
+      
       
       // For review tasks, default to submissions tab since that's what reviewers need to see
       if (task.type === 'review') {
         console.log('Setting active tab to submissions for review task');
         setActiveTab('submissions');
       } else {
-        console.log('Setting active tab to overview for regular task');
         setActiveTab('overview');
       }
       
-      // Use the task data that's already been fetched instead of making another API call
-      console.log('Setting task details:', task);
+      // Set task details
       setTaskDetails(task);
       
       // Only check capability if this is not an already undertaken task
@@ -69,15 +60,8 @@ const TaskDetailModal = ({ isOpen, task = {
     try {
       // Use 'review' assignment type for review tasks, 'task' for regular tasks
       const assignmentType = task.type === 'review' ? 'review' : 'task';
-      console.log('=== TASK CAPABILITY DEBUG ===');
-      console.log('Task ID:', task.id);
-      console.log('Task type:', task.type);
-      console.log('Task category:', task.category);
-      console.log('Selected assignment type:', assignmentType);
-      console.log('Making API call to canUndertakeTask with:', { taskId: task.id, assignmentType });
       
       const response = await canUndertakeTask(task.id, assignmentType);
-      console.log('API response:', response);
       setCanUndertake(response.data);
     } catch (err) {
       console.error('Error checking task capability:', err);
@@ -372,16 +356,8 @@ const TaskDetailModal = ({ isOpen, task = {
   );
 
   const renderSubmissionsTab = () => {
-    console.log('=== SUBMISSIONS TAB DEBUG ===');
-    console.log('taskDetails:', taskDetails);
-    console.log('taskDetails?.assignments:', taskDetails?.assignments);
-    console.log('taskDetails?.assignments?.length:', taskDetails?.assignments?.length);
-    console.log('taskDetails?.assignments type:', typeof taskDetails?.assignments);
     
-    if (taskDetails?.assignments && taskDetails.assignments.length > 0) {
-      console.log('First assignment:', taskDetails.assignments[0]);
-      console.log('First assignment keys:', Object.keys(taskDetails.assignments[0]));
-    }
+
     
     if (!taskDetails?.assignments || taskDetails.assignments.length === 0) {
       console.log('No assignments found - showing empty state');
@@ -800,10 +776,6 @@ const TaskDetailModal = ({ isOpen, task = {
           {/* Footer */}
           <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
             {(() => {
-              console.log('Footer rendering - task status:', task.status);
-              console.log('Footer rendering - task category:', task.category);
-              console.log('Footer rendering - onUndertake exists:', !!onUndertake);
-              console.log('Footer rendering - canUndertake:', canUndertake);
               return null;
             })()}
             {onUndertake && 
