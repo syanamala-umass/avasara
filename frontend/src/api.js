@@ -179,6 +179,7 @@ export const fetchTopTaskContributors = (skillId) => api.get(`/skills/${skillId}
 export const fetchTopRatedContributors = (skillId) => api.get(`/skills/${skillId}/top-rated-contributors`);
 export const fetchTopJobPosters = (skillId) => api.get(`/skills/${skillId}/top-job-posters`);
 export const fetchOpenJobsForSkill = (skillId) => api.get(`/tasks`, { params: { skill_id: skillId, status: 'open' } });
+export const fetchUserSkillHistory = (userId, skillId) => api.get(`/users/${userId}/skills/${skillId}/history`);
 
 export const fetchMyAssignments = (status = 'in_progress') => {
   const userData = JSON.parse(localStorage.getItem('userData'));

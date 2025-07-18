@@ -482,6 +482,19 @@ def can_undertake_task(
     if assignment_type == "review":
         print(f"DEBUG: Checking for self-review prevention for task {task_id}")
         with get_db_cursor() as cursor:
+            # First check if the review task is actually available (status = 'open')
+            cursor.execute("""
+                SELECT status FROM review_tasks WHERE id = %s
+            """, (task_id,))
+            review_task = cursor.fetchone()
+            
+            if not review_task or review_task['status'] != 'open':
+                return {
+                    "can_undertake": False,
+                    "reason": "This review task is not available for assignment"
+                }
+            
+            # Then check for self-review prevention
             cursor.execute("""
                 SELECT ta.user_id 
                 FROM review_tasks rt
@@ -499,6 +512,26 @@ def can_undertake_task(
                         "can_undertake": False,
                         "reason": "You cannot review your own submission"
                     }
+    
+    # For regular tasks, check if the task is actually available for assignment
+    if assignment_type == "task":
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT status FROM tasks WHERE id = %s
+            """, (task_id,))
+            task = cursor.fetchone()
+            
+            if not task:
+                return {
+                    "can_undertake": False,
+                    "reason": "Task not found check"
+                }
+            
+            if task['status'] not in ['open', 'available']:
+                return {
+                    "can_undertake": False,
+                    "reason": f"This task is not available for assignment (status: {task['status']})"
+                }
     
     # Check if user is blocked from this task
     with get_db_cursor() as cursor:

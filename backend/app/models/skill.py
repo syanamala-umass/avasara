@@ -9,6 +9,7 @@ class Skill(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
+    category = Column(String, index=True)  # New column for skill category
     
     # Relationships
     users = relationship("User", secondary=contributor_skill, back_populates="skills")

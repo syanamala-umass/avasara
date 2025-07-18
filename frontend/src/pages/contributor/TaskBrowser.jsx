@@ -60,8 +60,8 @@ const TaskBrowser = () => {
   
   // Combine regular tasks and review tasks
   const allTasks = [
-    ...tasks.map(task => ({ ...task, category: 'task' })),
-    ...reviewTasks.map(task => ({ ...task, category: 'review' }))
+    ...tasks,
+    ...reviewTasks
   ];
   
   // Filter tasks based on criteria
@@ -77,15 +77,15 @@ const TaskBrowser = () => {
     }
     
     // Compensation type filter
-    if (filters.compensationType && task.compensation_type !== filters.compensationType) {
+    if (filters.compensationType && task.compensation?.task?.type !== filters.compensationType) {
       return false;
     }
     
     // Minimum compensation filter
     if (filters.minCompensation) {
       const minValue = parseFloat(filters.minCompensation);
-      if (task.compensation_type === 'cash' || task.compensation_type === 'mixed') {
-        if (task.compensation_amount < minValue) {
+      if (task.compensation?.task?.type === 'cash' || task.compensation?.task?.type === 'mixed') {
+        if (task.compensation?.task?.amount < minValue) {
           return false;
         }
       }
@@ -121,7 +121,7 @@ const TaskBrowser = () => {
     setError('');
     setSuccess('');
     try {
-      if (task.category === 'review') {
+      if (task.type === 'review') {
         // For review tasks, use the review task assignment endpoint
         await assignReviewTask(task.id);
         setSuccess('You have been assigned to review this task!');
@@ -320,7 +320,7 @@ const TaskBrowser = () => {
                       <p className="text-sm font-medium text-blue-600 truncate">
                         {task.title}
                       </p>
-                      {task.category === 'review' && (
+                      {task.type === 'review' && (
                         <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Review Task
                         </span>
@@ -370,7 +370,7 @@ const TaskBrowser = () => {
           task={selectedTask}
           onClose={() => setIsModalOpen(false)}
           onUndertake={() => handleUndertakeTask(selectedTask)}
-          isReviewTask={selectedTask.category === 'review'}
+          isReviewTask={selectedTask.type === 'review'}
         />
       )}
     </div>

@@ -43,3 +43,15 @@ class Task(Base):
     reviews = relationship("Review", back_populates="task")
     # peer_evaluations = relationship("PeerEvaluation", back_populates="task")
     compensations = relationship("TaskCompensation", back_populates="task")
+
+    # When creating a task, set category from the primary skill's category if available
+    def set_category_from_skills(self):
+        if self.skills and len(self.skills) > 0:
+            # Assume the first skill is the primary skill
+            primary_skill = self.skills[0]
+            if hasattr(primary_skill, 'category') and primary_skill.category:
+                self.category = primary_skill.category
+            else:
+                self.category = 'Other'
+        else:
+            self.category = 'Other'

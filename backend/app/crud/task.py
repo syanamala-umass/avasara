@@ -18,29 +18,23 @@ def create_task(db: Session, task: TaskCreate, user_id: int):
     skills = task_data.pop("skills", [])
     resources = task_data.pop("resources", [])
     
-    # Create task instance
-    db_task = Task(**task_data, user_id=user_id)
+    # Build compensation JSON
+    compensation_json = {
+        "task": {
+            "compensation_type": compensation_type,
+            "amount": compensation_amount
+        },
+        "review": {
+            "compensation_type": review_compensation_type,
+            "amount": review_compensation_amount
+        }
+    }
+    
+    # Create task instance with compensation JSON
+    db_task = Task(**task_data, user_id=user_id, compensation=compensation_json)
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
-    
-    # Create task compensation
-    db_task_compensation = TaskCompensation(
-        task_id=db_task.id,
-        compensation_type=compensation_type,
-        amount_type="task",  # Specify this is for task compensation
-        amount=compensation_amount
-    )
-    db.add(db_task_compensation)
-    
-    # Create review compensation
-    db_review_compensation = TaskCompensation(
-        task_id=db_task.id,
-        compensation_type=review_compensation_type,
-        amount_type="review",  # Specify this is for review compensation
-        amount=review_compensation_amount
-    )
-    db.add(db_review_compensation)
     
     # Add skills and resources relationships
     if skills:
@@ -55,13 +49,6 @@ def create_task(db: Session, task: TaskCreate, user_id: int):
     
     db.commit()
     db.refresh(db_task)
-    
-    # Load the user relationship for the response
-    db_task = db.query(Task).options(
-        joinedload(Task.user),
-        joinedload(Task.skills)
-    ).filter(Task.id == db_task.id).first()
-    
     return db_task
 
 def get_task(db: Session, task_id: int):

@@ -7,7 +7,7 @@ class TaskBase(BaseModel):
     title: str
     description: str
     deadline: Optional[datetime] = None
-    category: str = "task"  # Add category field with default value "task"
+    category: str = "Other"  # Add category field with default value "task"
     skill_review_requirements: Optional[Dict[str, float]] = None  # {"skill_name": min_skill_level_required}
 
 class TaskCreate(TaskBase):
@@ -50,6 +50,7 @@ class TaskWithDetails(Task):
     review_compensation_type: Optional[str] = None  # "cash" or "equity"
     review_compensation_amount: Optional[float] = None
     has_assignment: bool = False  # Whether the current user has an assignment for this task
+    type: str = "task"  # "task" or "review"
     
     class Config:
         orm_mode = True
