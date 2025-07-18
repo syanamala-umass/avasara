@@ -12,7 +12,7 @@ const ReviewDetailModal = ({
     review_compensation_amount: 0,
     status: 'submitted',
     creator_name: 'Unknown Creator',
-    category: 'review',
+    type: 'review',
     id: null
   }, 
   onClose, 
@@ -36,28 +36,54 @@ const ReviewDetailModal = ({
     setError(null);
     
     try {
+      console.log('=== REVIEW TASK DETAILS DEBUG ===');
       console.log('Fetching review task details for task ID:', task.id);
+      console.log('Task ID type:', typeof task.id);
+      console.log('Task object received:', task);
+      console.log('Task object keys:', Object.keys(task));
       
       const response = await fetchReviewTaskDetails(task.id);
-      const taskData = response.data || response;
+      console.log('Raw API response:', response);
       
-      console.log('Full task data received:', taskData);
+      const taskData = response.data || response;
+      console.log('Processed task data:', taskData);
+      console.log('Task data keys:', Object.keys(taskData));
+      
       console.log('Assignments in task data:', taskData.assignments);
+      console.log('Assignments type:', typeof taskData.assignments);
+      console.log('Assignments length:', taskData.assignments?.length || 0);
+      
+      if (taskData.assignments && taskData.assignments.length > 0) {
+        console.log('First assignment:', taskData.assignments[0]);
+        console.log('First assignment keys:', Object.keys(taskData.assignments[0]));
+        console.log('First assignment status:', taskData.assignments[0].status);
+      }
       
       setTaskDetails(taskData);
       
       // Filter submissions to only show those that need review
-      const submissionsNeedingReview = (taskData.assignments || []).filter(
-        assignment => assignment.status === 'submitted'
-      );
+      const allAssignments = taskData.assignments || [];
+      console.log('All assignments before filtering:', allAssignments);
+      
+      const submissionsNeedingReview = allAssignments.filter(assignment => {
+        console.log('Checking assignment:', assignment);
+        console.log('Assignment status:', assignment.status);
+        console.log('Assignment status type:', typeof assignment.status);
+        console.log('Status === "submitted":', assignment.status === 'submitted');
+        return assignment.status === 'submitted';
+      });
+      
+      console.log('Submissions needing review after filter:', submissionsNeedingReview);
+      console.log('Total assignments found:', allAssignments.length);
+      console.log('Submissions filtered for review:', submissionsNeedingReview.length);
+      
       setSubmissionsToReview(submissionsNeedingReview);
       
-      console.log('Submissions needing review:', submissionsNeedingReview);
-      console.log('Total assignments found:', taskData.assignments?.length || 0);
-      console.log('Submissions filtered for review:', submissionsNeedingReview.length);
+      console.log('=== END REVIEW TASK DETAILS DEBUG ===');
       
     } catch (err) {
       console.error('Error fetching task details:', err);
+      console.error('Error details:', err.response?.data);
       setError('Failed to load task details. Please try again.');
     } finally {
       setLoading(false);
@@ -68,14 +94,14 @@ const ReviewDetailModal = ({
     return null;
   }
 
-  const formatCompensation = (type, amount) => {
-    if (!type || !amount) return 'No compensation specified';
-    if (type === 'cash') {
-      return `$${amount}`;
-    } else if (type === 'equity') {
-      return `${amount}% equity`;
+  const formatCompensation = (comp) => {
+    if (!comp || !comp.compensation_type || !comp.amount) return 'No compensation specified';
+    if (comp.compensation_type === 'cash') {
+      return `$${comp.amount}`;
+    } else if (comp.compensation_type === 'equity') {
+      return `${comp.amount}% equity`;
     }
-    return `${amount} ${type}`;
+    return `${comp.amount} ${comp.compensation_type}`;
   };
 
   const formatDate = (dateString) => {
@@ -177,7 +203,7 @@ const ReviewDetailModal = ({
                     <div>
                       <p className="text-xs text-blue-600">Review Compensation</p>
                       <p className="text-sm font-medium text-blue-900">
-                        {formatCompensation(task.review_compensation_type, task.review_compensation_amount)}
+                        {formatCompensation(taskDetails?.compensation?.review || task.compensation?.review)}
                       </p>
                     </div>
                   </div>

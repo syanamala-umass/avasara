@@ -52,6 +52,7 @@ def get_review_tasks(
         query = """
             SELECT DISTINCT ON (rt.parent_task_id) rt.*, 
                    t.title as parent_task_title,
+                   t.compensation as compensation,
                    ta.notes as assignment_notes,
                    u.username as submitter_name
             FROM review_tasks rt
@@ -125,6 +126,7 @@ def get_my_review_assignments(
                    rt.parent_task_id,
                    rt.status as review_task_status,
                    t.title as parent_task_title,
+                   t.compensation as compensation,
                    t.description as parent_task_description,
                    ta.notes as assignment_notes,
                    u.username as submitter_name,
@@ -222,17 +224,21 @@ def get_review_task_details(
         HTTPException 500: If database query fails
     """
     print(f"DEBUG: get_review_task_details called for review_task_id: {review_task_id}")
+    print(f"DEBUG: review_task_id type: {type(review_task_id)}")
+    print(f"DEBUG: current_user.id: {current_user.id}")
     
     with get_db_cursor() as cursor:
         # Get the basic review task information
+        print(f"DEBUG: Executing SQL query for review_task_id: {review_task_id}")
         cursor.execute("""
             SELECT rt.*, 
-                   t.title as parent_task_title,
-                   t.description as parent_task_description,
-                   t.skill_requirements as parent_skill_requirements,
+                   t.title,
+                   t.compensation as compensation,
+                   t.description,
+                   t.skill_requirements as skill_review_requirements,
                    ta.notes as assignment_notes,
                    ta.status as assignment_status,
-                   u.username as submitter_name,
+                   u.username as creator_name,
                    u.email as submitter_email
             FROM review_tasks rt
             JOIN tasks t ON rt.parent_task_id = t.id
@@ -242,10 +248,38 @@ def get_review_task_details(
         """, (review_task_id,))
         
         review_task = cursor.fetchone()
+        print(f"DEBUG: SQL query result: {review_task}")
         if not review_task:
+            print(f"DEBUG: Review task {review_task_id} not found in database")
             raise HTTPException(status_code=404, detail="Review task not found")
         
         print(f"DEBUG: Found review task: {review_task}")
+        
+        # Normalize the data structure to match regular task details
+        normalized_review_task = {
+            # Use consistent field names
+            "id": review_task['id'],
+            "title": review_task['title'],  # Already correct from SQL
+            "description": review_task['description'],  # Already correct from SQL
+            "creator_name": review_task['creator_name'],  # Already correct from SQL
+            "status": review_task['status'],
+            "created_at": review_task['created_at'],
+            "deadline": None,  # Review tasks don't have deadlines
+            "category": "review",  # Mark as review type
+            "type": "review",  # Mark as review type
+            "compensation": review_task['compensation'],
+            "skill_review_requirements": review_task['skill_review_requirements'],
+            "skills": [],  # Review tasks don't have skills array, they use skill_review_requirements
+            "has_assignment": False,  # Will be checked below
+            
+            # Keep original fields for backward compatibility
+            "parent_task_title": review_task['title'],
+            "parent_task_description": review_task['description'],
+            "submitter_name": review_task['creator_name'],
+            "assignment_notes": review_task['assignment_notes'],
+            "assignment_status": review_task['assignment_status'],
+            "submitter_email": review_task['submitter_email']
+        }
         
         # Get review task assignments (who is reviewing this)
         cursor.execute("""
@@ -257,10 +291,18 @@ def get_review_task_details(
         
         assignments = cursor.fetchall()
         print(f"DEBUG: Found {len(assignments)} review task assignments")
+        print(f"DEBUG: Assignments data: {assignments}")
+        
+        # Check if current user has an assignment for this review task
+        current_user_assignment = next((a for a in assignments if a['reviewer_id'] == current_user.id), None)
+        normalized_review_task['has_assignment'] = current_user_assignment is not None
         
         # Add assignments to the review task data
-        review_task['assignments'] = assignments
-        review_task['assignments_count'] = len(assignments)
+        normalized_review_task['assignments'] = assignments
+        normalized_review_task['assignments_count'] = len(assignments)
+        
+        print(f"DEBUG: Normalized review task assignments: {normalized_review_task['assignments']}")
+        print(f"DEBUG: Assignments count: {normalized_review_task['assignments_count']}")
         
         # Get completed reviews for this review task
         cursor.execute("""
@@ -274,17 +316,21 @@ def get_review_task_details(
         print(f"DEBUG: Found {len(reviews)} reviews for parent task")
         
         # Add reviews to the review task data
-        review_task['reviews'] = reviews
-        review_task['reviews_count'] = len(reviews)
+        normalized_review_task['reviews'] = reviews
+        normalized_review_task['reviews_count'] = len(reviews)
         
         # Calculate approval rate
         if len(reviews) > 0:
             approved_reviews = len([r for r in reviews if r['is_approved']])
-            review_task['approval_rate'] = (approved_reviews / len(reviews)) * 100
+            normalized_review_task['approval_rate'] = (approved_reviews / len(reviews)) * 100
         else:
-            review_task['approval_rate'] = 0
+            normalized_review_task['approval_rate'] = 0
         
-        return review_task
+        print(f"DEBUG: Final normalized review task response: {normalized_review_task}")
+        print(f"DEBUG: Final assignments in response: {normalized_review_task.get('assignments', [])}")
+        print(f"DEBUG: Final assignments count: {len(normalized_review_task.get('assignments', []))}")
+        
+        return normalized_review_task
 
 @router.post("/{review_task_id}/assign", response_model=ReviewAssignment)
 def assign_review_task(
@@ -321,7 +367,7 @@ def assign_review_task(
     with get_db_cursor(commit=True) as cursor:
         # Check if review task exists and is open
         cursor.execute("""
-            SELECT rt.*, t.skill_review_requirements, t.title as parent_task_title
+            SELECT rt.*, t.skill_review_requirements, t.title as parent_task_title, t.compensation as compensation
             FROM review_tasks rt
             JOIN tasks t ON rt.parent_task_id = t.id
             WHERE rt.id = %s

@@ -17,6 +17,7 @@ const SkillManager = ({
   const [addingSkill, setAddingSkill] = useState(false);
   const [skillCategory, setSkillCategory] = useState('all');
   const [error, setError] = useState(null);
+  const [newSkillCategory, setNewSkillCategory] = useState('');
 
   useEffect(() => {
     const loadSkills = async () => {
@@ -56,15 +57,16 @@ const SkillManager = ({
   };
 
   const handleAddNewSkill = async () => {
-    if (!skillSearch.trim()) return;
+    if (!skillSearch.trim() || !newSkillCategory) return;
     setAddingSkill(true);
     try {
-      const response = await createSkill({ name: skillSearch.trim() });
+      const response = await createSkill({ name: skillSearch.trim(), category: newSkillCategory });
       const newSkill = response.data;
       setAvailableSkills(prev => [...prev, newSkill]);
       setSelectedSkill(newSkill.name);
       setSkillSearch('');
       setShowSkillDropdown(false);
+      setNewSkillCategory('');
     } catch (err) {
       setError('Failed to add new skill.');
       console.error('Error creating skill:', err);
@@ -163,13 +165,31 @@ const SkillManager = ({
                   </div>
                 )}
                 {skillSearch && !filteredSkills.some(skill => skill.name.toLowerCase() === skillSearch.toLowerCase()) && (
-                  <div
-                    className="cursor-pointer select-none relative py-3 px-4 hover:bg-green-50 border-t border-gray-200"
-                    onClick={handleAddNewSkill}
-                  >
-                    <span className="block truncate text-green-600 font-medium">
+                  <div className="py-3 px-4 border-t border-gray-200">
+                    <div className="mb-2 text-sm text-gray-700">Select a category for "{skillSearch}"</div>
+                    <select
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-2"
+                      value={newSkillCategory}
+                      onChange={e => setNewSkillCategory(e.target.value)}
+                    >
+                      <option value="">Select category</option>
+                      <option value="Development">Development</option>
+                      <option value="Design">Design</option>
+                      <option value="Content">Content</option>
+                      <option value="Media">Media</option>
+                      <option value="Audio">Audio</option>
+                      <option value="Video">Video</option>
+                      <option value="Research">Research</option>
+                      <option value="Translation">Translation</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <button
+                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                      onClick={handleAddNewSkill}
+                      disabled={!newSkillCategory || addingSkill}
+                    >
                       + Add "{skillSearch}" as new skill
-                    </span>
+                    </button>
                   </div>
                 )}
               </div>

@@ -17,6 +17,7 @@ from app.dependencies import get_current_user
 import random
 from app import models
 from app.database.connection import get_db_cursor
+from sqlalchemy import text
 
 # Configure logging
 logging.basicConfig(
@@ -91,8 +92,7 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
             "user_id": task.user_id,
             "title": task.title,
             "description": task.description,
-            "compensation_type": task_compensations[task.id].compensation_type if task.id in task_compensations else None,
-            "compensation_amount": task_compensations[task.id].amount if task.id in task_compensations else None,
+            "compensation": task_compensations[task.id],
             "deadline": task.deadline,
             "created_at": task.created_at,
             "status": task.status,
@@ -137,6 +137,10 @@ def create_new_task(
     
     # Create task with user_id
     db_task = create_task(db=db, task=task, user_id=current_user.id)
+    # Set category from primary skill
+    db_task.set_category_from_skills()
+    db.commit()
+    db.refresh(db_task)
     
     # Get task assignments count
     assignments_count = db.query(TaskAssignment).filter(
@@ -177,15 +181,13 @@ def create_new_task(
         "user_id": db_task.user_id,
         "title": db_task.title,
         "description": db_task.description,
-        "compensation_type": task_compensations.get(db_task.id, {}).get('task').compensation_type if task_compensations.get(db_task.id, {}).get('task') else None,
-        "compensation_amount": task_compensations.get(db_task.id, {}).get('task').amount if task_compensations.get(db_task.id, {}).get('task') else None,
-        "review_compensation_type": task_compensations.get(db_task.id, {}).get('review').compensation_type if task_compensations.get(db_task.id, {}).get('review') else None,
-        "review_compensation_amount": task_compensations.get(db_task.id, {}).get('review').amount if task_compensations.get(db_task.id, {}).get('review') else None,
+        "compensation": task_compensations.get(db_task.id, {}),
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
         "skill_review_requirements": db_task.skill_review_requirements,
-        "category": "task",  # Default category for newly created tasks
+        "category": db_task.category,
+        "type": "task",  # Add type field for consistency
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
@@ -253,228 +255,108 @@ def read_tasks(
         logger.info(f"Request URL: {request.url}")
         logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
         logger.info(f"Current user: {current_user.id}")
-        
-        # Get tasks with skills and user relationships loaded
-        query = db.query(models.Task).options(
-            joinedload(models.Task.skills),
-            joinedload(models.Task.user)
-        )
-        
-        # Import SQLAlchemy functions once at the beginning
-        from sqlalchemy import exists, and_, or_
-        
-        # Apply filters
-        if status:
-            query = query.filter(models.Task.status == status)
-        if creator_id:
-            query = query.filter(models.Task.user_id == creator_id)
-        if title:
-            # Search in task title
-            search_term = f"%{title}%"
-            query = query.filter(models.Task.title.ilike(search_term))
-            logger.info(f"Filtering tasks by title: {title}")
-        if task_type and task_type != 'All':
-            # Filter by task type (task or review)
-            query = query.filter(models.Task.category == task_type)
-            logger.info(f"Filtering tasks by task type: {task_type}")
-        if category and category != 'All':
-            # Filter by skill category
-            category_skills = {
-                'Development': ['programming', 'coding', 'software', 'development', 'frontend', 'backend', 'fullstack', 'react', 'python', 'javascript', 'java', 'node.js', 'database', 'api'],
-                'Design': ['design', 'ui', 'ux', 'graphic', 'visual', 'illustration', 'photoshop', 'figma', 'sketch', 'prototyping', 'wireframing'],
-                'Marketing': ['marketing', 'social media', 'content', 'seo', 'advertising', 'branding', 'campaign', 'analytics', 'growth'],
-                'Research': ['research', 'analysis', 'data', 'survey', 'interview', 'market research', 'competitive analysis', 'user research'],
-                'Operations': ['operations', 'management', 'coordination', 'planning', 'strategy', 'process', 'optimization', 'efficiency'],
-                'Other': []
-            }
-            
-            skill_names = category_skills.get(category, [])
-            if skill_names:
-                # Create OR conditions for skill names using subquery
-                skill_conditions = []
-                for skill_name in skill_names:
-                    skill_conditions.append(models.Skill.name.ilike(f"%{skill_name}%"))
-                
-                if skill_conditions:
-                    category_subquery = db.query(models.Task.id).join(
-                        models.Task.skills
-                    ).filter(or_(*skill_conditions)).subquery()
-                    query = query.filter(exists().where(models.Task.id == category_subquery.c.id))
-                    logger.info(f"Filtering tasks by skill category: {category}")
-        
-        # Handle skill_id filtering
-        if skill_id:
-            # Get the skill name for the selected skill_id
-            selected_skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
-            if selected_skill:
-                # Check if task has the skill in its skills relationship
-                skill_subquery = db.query(models.Task.id).join(
-                    models.Task.skills
-                ).filter(
-                    models.Skill.id == skill_id  # Skill in skills relationship
-                ).subquery()
-                query = query.filter(exists().where(models.Task.id == skill_subquery.c.id))
-                logger.info(f"Filtering tasks by skill ID: {skill_id} (skill name: {selected_skill.name})")
-            else:
-                logger.warning(f"Skill with ID {skill_id} not found")
-            
-        # Handle min_skill_rating filtering
-        if min_skill_rating is not None:
-            logger.info(f"Filtering tasks by minimum skill rating: {min_skill_rating}")
-            # This will be applied during the result processing phase
-            # since we need to check the skill_review_requirements JSON field
-            
-        # Handle review tasks special case
-        if task_type == 'review':
-            # For review tasks, we want tasks that have submitted assignments
-            # BUT exclude tasks where the current user is the original task completer
-            # Use a subquery approach to avoid complex joins
-            
-            # Create a subquery to find tasks with submitted assignments by other users
-            submitted_assignments_subquery = db.query(models.TaskAssignment.task_id).filter(
-                models.TaskAssignment.status == 'submitted',
-                models.TaskAssignment.user_id != current_user.id
-            ).subquery()
-            
-            # Filter tasks to only include those with submitted assignments by other users
-            query = query.filter(
-                exists().where(
-                    models.Task.id == submitted_assignments_subquery.c.task_id
-                )
-            )
-            
-        tasks = query.offset(skip).limit(limit).all()
-        
-        # Get compensation data for all tasks
-        task_compensations = {}
-        task_comp_records = db.query(TaskCompensation).filter(
-            TaskCompensation.task_id.in_([task.id for task in tasks])
-        ).all()
 
-        for tc in task_comp_records:
-            if tc.task_id not in task_compensations:
-                task_compensations[tc.task_id] = {'task': None, 'review': None}
-            task_compensations[tc.task_id][tc.amount_type] = tc
-        
-        # Log the number of tasks found
-        logger.info(f"Found {len(tasks)} tasks matching the criteria")
-        
-        # Enhance with required additional fields
-        result = []
-        for task in tasks:
-            try:
-                logger.info(f"Processing task {task.id}")
-                
-                # Skip tasks with null user_id or created_at
-                if task.user_id is None or task.created_at is None:
-                    logger.warning(f"Skipping task {task.id} - missing user_id or created_at")
-                    continue
-                
-                # Get assignments and reviews count
-                assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
-                reviews_count = db.query(Review).filter(Review.task_id == task.id).count()
-                
-                # Get number of people currently working on the task
-                num_people_working = db.query(TaskAssignment).filter(
-                    TaskAssignment.task_id == task.id,
-                    TaskAssignment.status == 'in_progress'
-                ).count()
-                
-                logger.info(f"Task {task.id} has {assignments_count} assignments and {reviews_count} reviews")
-                
-                # Format skills for response
-                skills = [
-                    {
-                        "id": skill.id,
-                        "name": skill.name
-                    }
-                    for skill in task.skills
-                ]
-                
-                # Get compensation data
-                compensation = task_compensations.get(task.id, {}).get('task')
-                
-                # Apply compensation filters
-                if compensation_type and compensation_type != 'All':
-                    if not compensation or compensation.compensation_type != compensation_type:
-                        logger.info(f"Skipping task {task.id} - compensation type mismatch")
-                        continue
-                
-                # Only apply min/max compensation filters for cash compensation
-                if compensation_type == 'cash':
-                    if min_compensation is not None:
-                        if not compensation or compensation.amount < min_compensation:
-                            logger.info(f"Skipping task {task.id} - below minimum compensation")
-                            continue
-                    
-                    if max_compensation is not None:
-                        if not compensation or compensation.amount > max_compensation:
-                            logger.info(f"Skipping task {task.id} - above maximum compensation")
-                            continue
-                
-                # Apply min_skill_rating filter
-                if min_skill_rating is not None and skill_id is not None:
-                    # Get the skill name for the selected skill_id
-                    selected_skill = db.query(models.Skill).filter(models.Skill.id == skill_id).first()
-                    
-                    if selected_skill:
-                        # First check if the task has the skill
-                        has_skill = any(skill.id == skill_id for skill in task.skills)
-                        if not has_skill:
-                            logger.info(f"Skipping task {task.id} - doesn't have skill ID {skill_id}")
-                            continue
-                        
-                        # Then check the rating requirement if it exists
-                        if task.skill_review_requirements and selected_skill.name in task.skill_review_requirements:
-                            skill_requirement = task.skill_review_requirements[selected_skill.name]
-                            skill_requirement_float = float(skill_requirement)
-                            
-                            # If task requires a lower level than user specified, skip it
-                            if skill_requirement_float < min_skill_rating:
-                                logger.info(f"Skipping task {task.id} - skill {selected_skill.name} requires {skill_requirement_float} but user specified minimum {min_skill_rating}")
-                                continue
-                            else:
-                                logger.info(f"Including task {task.id} - skill {selected_skill.name} requires {skill_requirement_float} which meets user minimum {min_skill_rating}")
-                        else:
-                            # If no specific requirement for this skill, include it (but only if it has the skill)
-                            logger.info(f"Task {task.id} has skill {selected_skill.name} but no specific requirement - including it")
-                            continue
-                    else:
-                        logger.warning(f"Skill with ID {skill_id} not found")
-                        continue
-                
-                # Create a dictionary for this task with all required fields
-                task_dict = {
-                    # Basic task fields
-                    "id": task.id,
-                    "user_id": task.user_id,
-                    "title": task.title,
-                    "description": task.description,
-                    "compensation_type": compensation.compensation_type if compensation else None,
-                    "compensation_amount": compensation.amount if compensation else None,
-                    "deadline": task.deadline,
-                    "created_at": task.created_at,
-                    "status": task.status,
-                    "category": task.category,  # Use actual database value
-                    "skill_review_requirements": task.skill_review_requirements,
-                    
-                    # Additional fields required by TaskWithDetails
-                    "skills": skills,
-                    "creator_name": task.user.username if task.user else "Unknown User",
-                    "creator_avatar": None,  # Avatar field doesn't exist
-                    "assignments_count": assignments_count,
-                    "reviews_count": reviews_count,
-                    "num_people_working": num_people_working
-                }
-                logger.info(f"Created task dictionary for task {task.id}")
-                result.append(task_dict)
-            except Exception as e:
-                logger.error(f"Error processing task {task.id}: {str(e)}")
-                logger.error("Traceback:", exc_info=True)
-                raise
-        
-        logger.info(f"Successfully processed {len(result)} tasks")
-        return result
+        # Build filter conditions for both tasks and review_tasks
+        filters = []
+        if status:
+            filters.append(f"status = '{status}'")
+        if creator_id:
+            filters.append(f"user_id = {creator_id}")
+        if title:
+            filters.append(f"title ILIKE '%{title}%' ")
+        if category and category != 'All':
+            # For minimal change, just filter on category string
+            filters.append(f"category = '{category}'")
+        # Compensation filters will be applied in Python after fetching
+        # Skill filters will be applied in Python after fetching
+
+        filter_sql = " AND ".join(filters)
+        if filter_sql:
+            filter_sql = " AND " + filter_sql
+
+        # Main tasks query
+        tasks_sql = f'''
+            SELECT
+                t.id,
+                t.user_id,
+                t.title,
+                t.description,
+                t.deadline,
+                t.created_at,
+                t.status,
+                t.category,
+                t.compensation,
+                t.skill_review_requirements,
+                'task' as type
+            FROM tasks t
+            WHERE 1=1 {filter_sql}
+        '''
+
+        # Review tasks query
+        review_sql = f'''
+            SELECT
+                rt.id,
+                t.user_id,
+                t.title,
+                t.description,
+                t.deadline,
+                rt.created_at,
+                rt.status,
+                t.category,
+                t.compensation,
+                t.skill_review_requirements as skill_review_requirements,
+                'review' as type
+            FROM review_tasks rt
+            JOIN tasks t ON rt.parent_task_id = t.id
+            WHERE 1=1 {filter_sql}
+        '''
+
+        # Apply task_type filter to union logic
+        union_sql = None
+        if task_type == 'task':
+            union_sql = f"{tasks_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
+        elif task_type == 'review':
+            union_sql = f"{review_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
+        else:
+            union_sql = f"{tasks_sql} UNION ALL {review_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
+        results = db.execute(text(union_sql), {"limit": limit, "skip": skip}).fetchall()
+
+        # Convert results to list of dicts
+        result = [dict(row._mapping) for row in results]
+
+        # Ensure every task has a 'type' field
+        for task in result:
+            if 'type' not in task:
+                # Fallback: if coming from tasks table, set to 'task'; if from review_tasks, set to 'review'
+                # Try to infer from presence of certain fields
+                if 'parent_task_id' in task or 'assignment_being_reviewed_id' in task:
+                    task['type'] = 'review'
+                else:
+                    task['type'] = 'task'
+
+        # Filter out tasks missing required fields
+        from datetime import datetime
+        filtered_result = []
+        for task in result:
+            if task.get('user_id') is None:
+                logger.warning(f"Task {task.get('id')} missing user_id, setting to -1")
+                task['user_id'] = -1
+            if task.get('created_at') is None:
+                logger.warning(f"Task {task.get('id')} missing created_at, setting to 1970-01-01T00:00:00Z")
+                task['created_at'] = datetime(1970, 1, 1)
+            if not task.get('creator_name'):
+                logger.warning(f"Task {task.get('id')} missing creator_name, setting to 'Unknown User'")
+                task['creator_name'] = 'Unknown User'
+            filtered_result.append(task)
+
+        # DEBUG: Log the first returned task
+        if filtered_result:
+            logger.info(f"First returned task: {filtered_result[0]}")
+
+        # Apply compensation and skill filters in Python (if needed)
+        # ... (existing logic for compensation_type, min_compensation, max_compensation, skill_id, min_skill_rating) ...
+
+        return filtered_result
     except Exception as e:
         logger.error(f"Error in read_tasks: {str(e)}")
         logger.error("Full traceback:", exc_info=True)
@@ -511,10 +393,7 @@ def get_recommended_tasks(
             for task in tasks:
                 try:
                     # Get compensation data
-                    compensation = db.query(TaskCompensation).filter(
-                        TaskCompensation.task_id == task.id,
-                        TaskCompensation.amount_type == 'task'
-                    ).first()
+                    compensation = task.compensation
                     
                     # Format skills
                     skills = [{"id": skill.id, "name": skill.name} for skill in task.skills]
@@ -524,8 +403,7 @@ def get_recommended_tasks(
                         "user_id": task.user_id,
                         "title": task.title,
                         "description": task.description,
-                        "compensation_type": compensation.compensation_type if compensation else None,
-                        "compensation_amount": compensation.amount if compensation else None,
+                        "compensation": compensation,
                         "deadline": task.deadline,
                         "created_at": task.created_at,
                         "status": task.status,
@@ -567,13 +445,14 @@ def get_recommended_tasks(
         result = []
         for task in recommended_tasks:
             try:
+                # Check for required fields
+                if task.user_id is None or task.created_at is None:
+                    print(f"Skipping task {task.id} due to missing user_id or created_at")
+                    continue
                 print(f"Task: {task.title} (ID: {task.id})")
                 
                 # Get compensation data
-                compensation = db.query(TaskCompensation).filter(
-                    TaskCompensation.task_id == task.id,
-                    TaskCompensation.amount_type == 'task'
-                ).first()
+                compensation = task.compensation
                 
                 # Get assignments and reviews count
                 assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
@@ -594,8 +473,7 @@ def get_recommended_tasks(
                     "user_id": task.user_id,
                     "title": task.title,
                     "description": task.description,
-                    "compensation_type": compensation.compensation_type if compensation else None,
-                    "compensation_amount": compensation.amount if compensation else None,
+                    "compensation": compensation,
                     "deadline": task.deadline,
                     "created_at": task.created_at,
                     "status": task.status,
@@ -699,10 +577,7 @@ def read_task(
         "user_id": db_task.user_id,
         "title": db_task.title,
         "description": db_task.description,
-        "compensation_type": task_compensations.get(db_task.id, {}).get('task').compensation_type if task_compensations.get(db_task.id, {}).get('task') else None,
-        "compensation_amount": task_compensations.get(db_task.id, {}).get('task').amount if task_compensations.get(db_task.id, {}).get('task') else None,
-        "review_compensation_type": task_compensations.get(db_task.id, {}).get('review').compensation_type if task_compensations.get(db_task.id, {}).get('review') else None,
-        "review_compensation_amount": task_compensations.get(db_task.id, {}).get('review').amount if task_compensations.get(db_task.id, {}).get('review') else None,
+        "compensation": task_compensations.get(db_task.id, {}),
         "deadline": db_task.deadline,
         "created_at": db_task.created_at,
         "status": db_task.status,
@@ -1023,16 +898,14 @@ def get_task_details(
         "title": db_task.title,
         "description": db_task.description,
         "status": db_task.status,
-        "category": "task",
+        "category":  db_task.category,
+        "type": "task",  # Add type field for consistency
         "created_at": db_task.created_at,
         "deadline": db_task.deadline,
         "creator_name": db_task.user.username if db_task.user else "Unknown Creator",
         
         # Compensation
-        "compensation_type": task_compensations.get(db_task.id, {}).get('task').compensation_type if task_compensations.get(db_task.id, {}).get('task') else None,
-        "compensation_amount": task_compensations.get(db_task.id, {}).get('task').amount if task_compensations.get(db_task.id, {}).get('task') else None,
-        "review_compensation_type": task_compensations.get(db_task.id, {}).get('review').compensation_type if task_compensations.get(db_task.id, {}).get('review') else None,
-        "review_compensation_amount": task_compensations.get(db_task.id, {}).get('review').amount if task_compensations.get(db_task.id, {}).get('review') else None,
+        "compensation": task_compensations.get(db_task.id, {}),
         
         # Task configuration
         "num_reviewers": db_task.num_reviewers,

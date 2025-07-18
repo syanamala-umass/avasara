@@ -8,8 +8,6 @@ class ReviewTaskBase(BaseModel):
     description: Optional[str] = None
     status: str = Field(default="open", pattern="^(open|in_progress|completed|cancelled)$")
     skill_requirements: Dict[str, Any] = Field(default_factory=dict)
-    compensation_amount: Decimal = Field(default=0, ge=0)
-    compensation_type: str = Field(default="cash")
 
 class ReviewTaskCreate(ReviewTaskBase):
     parent_task_id: int
@@ -20,8 +18,6 @@ class ReviewTaskUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(open|in_progress|completed|cancelled)$")
     skill_requirements: Optional[Dict[str, Any]] = None
-    compensation_amount: Optional[Decimal] = Field(None, ge=0)
-    compensation_type: Optional[str] = None
 
 class ReviewTask(ReviewTaskBase):
     id: int

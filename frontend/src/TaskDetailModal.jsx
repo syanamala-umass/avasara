@@ -13,7 +13,7 @@ const TaskDetailModal = ({ isOpen, task = {
   status: 'open',
   creator_name: 'Unknown Creator',
   has_assignment: false,
-  category: 'task',
+  type: 'task',
   id: null
 }, onClose, onUndertake, isReviewTask, onResubmit }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -24,18 +24,26 @@ const TaskDetailModal = ({ isOpen, task = {
 
   useEffect(() => {
     if (isOpen && task?.id) {
+      console.log('=== TASK DETAIL MODAL DEBUG ===');
       console.log('TaskDetailModal opened with task:', task);
       console.log('Task status:', task.status);
       console.log('Task category:', task.category);
+      console.log('Task type:', task.type);
+      console.log('Task assignments:', task.assignments);
+      console.log('Task assignments length:', task.assignments?.length || 0);
       console.log('onUndertake exists:', !!onUndertake);
+      
       // For review tasks, default to submissions tab since that's what reviewers need to see
-      if (task.category === 'review') {
+      if (task.type === 'review') {
+        console.log('Setting active tab to submissions for review task');
         setActiveTab('submissions');
       } else {
+        console.log('Setting active tab to overview for regular task');
         setActiveTab('overview');
       }
       
       // Use the task data that's already been fetched instead of making another API call
+      console.log('Setting task details:', task);
       setTaskDetails(task);
       
       // Only check capability if this is not an already undertaken task
@@ -49,6 +57,8 @@ const TaskDetailModal = ({ isOpen, task = {
         console.log('DEBUG: Skipping capability check for already undertaken task');
         setCanUndertake(null); // Clear any previous capability data
       }
+      
+      console.log('=== END TASK DETAIL MODAL DEBUG ===');
     }
   }, [isOpen, task?.id]);
 
@@ -58,8 +68,16 @@ const TaskDetailModal = ({ isOpen, task = {
     setCapabilityLoading(true);
     try {
       // Use 'review' assignment type for review tasks, 'task' for regular tasks
-      const assignmentType = task.category === 'review' ? 'review' : 'task';
+      const assignmentType = task.type === 'review' ? 'review' : 'task';
+      console.log('=== TASK CAPABILITY DEBUG ===');
+      console.log('Task ID:', task.id);
+      console.log('Task type:', task.type);
+      console.log('Task category:', task.category);
+      console.log('Selected assignment type:', assignmentType);
+      console.log('Making API call to canUndertakeTask with:', { taskId: task.id, assignmentType });
+      
       const response = await canUndertakeTask(task.id, assignmentType);
+      console.log('API response:', response);
       setCanUndertake(response.data);
     } catch (err) {
       console.error('Error checking task capability:', err);
@@ -78,14 +96,14 @@ const TaskDetailModal = ({ isOpen, task = {
     return null;
   }
 
-  const formatCompensation = (type, amount) => {
-    if (!type || !amount) return 'No compensation specified';
-    if (type === 'cash') {
-      return `$${amount}`;
-    } else if (type === 'equity') {
-      return `${amount}% equity`;
+  const formatCompensation = (comp) => {
+    if (!comp || !comp.compensation_type || !comp.amount) return 'No compensation specified';
+    if (comp.compensation_type === 'cash') {
+      return `$${comp.amount}`;
+    } else if (comp.compensation_type === 'equity') {
+      return `${comp.amount}% equity`;
     }
-    return `${amount} ${type}`;
+    return `${comp.amount} ${comp.compensation_type}`;
   };
 
   const getStatusBadge = (status) => {
@@ -168,7 +186,7 @@ const TaskDetailModal = ({ isOpen, task = {
     if (!canUndertake) return null;
 
     if (canUndertake.can_undertake) {
-      const actionText = task.category === 'review' ? 'review' : 'undertake';
+      const actionText = task.type === 'review' ? 'review' : 'undertake';
       return (
         <div className="flex items-center gap-2 text-green-600">
           <CheckCircle className="h-5 w-5" />
@@ -291,37 +309,30 @@ const TaskDetailModal = ({ isOpen, task = {
               <div className="flex justify-between">
                 <span className="text-xs text-green-600">Type:</span>
                 <span className="text-sm font-medium text-green-900 capitalize">
-                  {taskDetails?.compensation_type || task.compensation_type || 'Not specified'}
+                  {taskDetails?.compensation?.task?.compensation_type || task.compensation?.task?.compensation_type || 'Not specified'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-green-600">Amount:</span>
                 <span className="text-sm font-medium text-green-900">
-                  {formatCompensation(
-                    taskDetails?.compensation_type || task.compensation_type,
-                    taskDetails?.compensation_amount || task.compensation_amount
-                  )}
+                  {formatCompensation(taskDetails?.compensation?.task || task.compensation?.task)}
                 </span>
               </div>
             </div>
           </div>
-          
           <div className="bg-white p-3 rounded border border-green-200">
             <h5 className="text-sm font-medium text-green-800 mb-2">Review Compensation</h5>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-xs text-green-600">Type:</span>
                 <span className="text-sm font-medium text-green-900 capitalize">
-                  {taskDetails?.review_compensation_type || task.review_compensation_type || 'Not specified'}
+                  {taskDetails?.compensation?.review?.compensation_type || task.compensation?.review?.compensation_type || 'Not specified'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-xs text-green-600">Amount:</span>
                 <span className="text-sm font-medium text-green-900">
-                  {formatCompensation(
-                    taskDetails?.review_compensation_type || task.review_compensation_type,
-                    taskDetails?.review_compensation_amount || task.review_compensation_amount
-                  )}
+                  {formatCompensation(taskDetails?.compensation?.review || task.compensation?.review)}
                 </span>
               </div>
             </div>
@@ -361,7 +372,19 @@ const TaskDetailModal = ({ isOpen, task = {
   );
 
   const renderSubmissionsTab = () => {
+    console.log('=== SUBMISSIONS TAB DEBUG ===');
+    console.log('taskDetails:', taskDetails);
+    console.log('taskDetails?.assignments:', taskDetails?.assignments);
+    console.log('taskDetails?.assignments?.length:', taskDetails?.assignments?.length);
+    console.log('taskDetails?.assignments type:', typeof taskDetails?.assignments);
+    
+    if (taskDetails?.assignments && taskDetails.assignments.length > 0) {
+      console.log('First assignment:', taskDetails.assignments[0]);
+      console.log('First assignment keys:', Object.keys(taskDetails.assignments[0]));
+    }
+    
     if (!taskDetails?.assignments || taskDetails.assignments.length === 0) {
+      console.log('No assignments found - showing empty state');
       return (
         <div className="text-center py-8">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
@@ -637,10 +660,7 @@ const TaskDetailModal = ({ isOpen, task = {
             <div className="flex justify-between items-center">
               <span className="text-sm text-indigo-600">Task Compensation:</span>
               <span className="text-sm font-medium text-indigo-900">
-                {formatCompensation(
-                  taskDetails?.compensation_type || task.compensation_type,
-                  taskDetails?.compensation_amount || task.compensation_amount
-                )}
+                {formatCompensation(taskDetails?.compensation?.task || task.compensation?.task)}
               </span>
             </div>
           </div>
@@ -648,10 +668,7 @@ const TaskDetailModal = ({ isOpen, task = {
             <div className="flex justify-between items-center">
               <span className="text-sm text-indigo-600">Review Compensation:</span>
               <span className="text-sm font-medium text-indigo-900">
-                {formatCompensation(
-                  taskDetails?.review_compensation_type || task.review_compensation_type,
-                  taskDetails?.review_compensation_amount || task.review_compensation_amount
-                )}
+                {formatCompensation(taskDetails?.compensation?.review || task.compensation?.review)}
               </span>
             </div>
           </div>
@@ -738,7 +755,7 @@ const TaskDetailModal = ({ isOpen, task = {
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
-              {taskDetails?.assignments?.length > 0 || taskDetails?.reviews?.length > 0 || task.category === 'review' ? (
+              {taskDetails?.assignments?.length > 0 || taskDetails?.reviews?.length > 0 || task.type === 'review' ? (
                 // Show all tabs for tasks with data or review tasks
                 ['overview', 'submissions', 'reviews', 'stats'].map((tab) => (
                   <button
@@ -792,17 +809,17 @@ const TaskDetailModal = ({ isOpen, task = {
             {onUndertake && 
               canUndertake?.can_undertake && 
               ((task.status === 'open' || task.status === 'available' || !task.status) || 
-              (task.category === 'review' && task.status === 'submitted'))
+              (task.type === 'review' && task.status === 'submitted'))
             && (
               <button
                 onClick={() => onUndertake(task)}
                 className={`px-4 py-2 text-white rounded-md text-sm font-medium hover:bg-opacity-90 ${
-                  task.category === 'review' 
+                  task.type === 'review' 
                     ? 'bg-yellow-600 hover:bg-yellow-700' 
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {task.category === 'review' ? 'Review Task' : 'Undertake Task'}
+                {task.type === 'review' ? 'Review Task' : 'Undertake Task'}
               </button>
             )}
             {onUndertake && 

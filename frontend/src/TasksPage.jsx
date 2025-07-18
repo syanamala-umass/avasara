@@ -157,11 +157,11 @@ const TasksPage = () => {
     
     try {
       // Use correct assignment type for capability check
-      const assignmentType = task.category === 'review' ? 'review' : 'task';
+      const assignmentType = task.type === 'review' ? 'review' : 'task';
       const response = await canUndertakeTask(task.id, assignmentType);
       
       if (response.data.can_undertake) {
-        if (task.category === 'review') {
+        if (task.type === 'review') {
           // For review tasks, use the review task assignment endpoint
           await assignReviewTask(task.id);
           alert('Review task assigned successfully! You can now view it in your Active Tasks.');
@@ -193,7 +193,14 @@ const TasksPage = () => {
     for (const task of tasks) {
       try {
         // Use 'review' assignment type for review tasks, 'task' for regular tasks
-        const assignmentType = task.category === 'review' ? 'review' : 'task';
+        const assignmentType = task.type === 'review' ? 'review' : 'task';
+        console.log(`=== TASK CAPABILITY CHECK DEBUG ===`);
+        console.log(`Task ID: ${task.id}`);
+        console.log(`Task type: ${task.type}`);
+        console.log(`Task category: ${task.category}`);
+        console.log(`Selected assignment type: ${assignmentType}`);
+        console.log(`Making API call for task ${task.id} with assignment type: ${assignmentType}`);
+        
         const response = await canUndertakeTask(task.id, assignmentType);
         capabilities[task.id] = response.data;
       } catch (err) {
@@ -230,17 +237,19 @@ const TasksPage = () => {
         params.min_skill_rating = parseFloat(filters.minSkillRating);
       }
 
-      // Fetch both regular tasks and review tasks
-      const [tasksResponse, reviewTasksResponse] = await Promise.all([
-        fetchTasks(params),
-        fetchReviewTasks({ status: 'open' })
-      ]);
+      // Fetch all tasks (both regular and review tasks) from a single API call
+      const tasksResponse = await fetchTasks(params);
       
-      // Combine and categorize the results
-      const regularTasks = (tasksResponse.data || []).map(task => ({ ...task, category: 'task' }));
-      const reviewTasks = (reviewTasksResponse.data || []).map(task => ({ ...task, category: 'review' }));
+      console.log('=== API RESPONSE DEBUG ===');
+      console.log('Tasks response:', tasksResponse.data);
       
-      const allTasks = [...regularTasks, ...reviewTasks];
+      // The API already returns both regular and review tasks with correct 'type' field
+      const allTasks = tasksResponse.data || [];
+      
+      console.log('=== TASK PROCESSING DEBUG ===');
+      console.log('All tasks from API:', allTasks);
+      console.log('Task 27 from API:', allTasks.find(t => t.id === 27));
+      
       setResults(allTasks);
       
       // Check capabilities for all tasks
@@ -315,13 +324,14 @@ const TasksPage = () => {
   };
 
   const formatCompensation = (task) => {
-    if (!task.compensation_amount || !task.compensation_type) return 'Not specified';
-    if (task.compensation_type === 'cash') {
-      return `$${task.compensation_amount}`;
-    } else if (task.compensation_type === 'equity') {
-      return `${task.compensation_amount}% equity`;
+    const comp = task.type === 'review' ? task.compensation?.review : task.compensation?.task;
+    if (!comp || !comp.compensation_type || !comp.amount) return 'Not specified';
+    if (comp.compensation_type === 'cash') {
+      return `$${comp.amount}`;
+    } else if (comp.compensation_type === 'equity') {
+      return `${comp.amount}% equity`;
     }
-    return `${task.compensation_amount} ${task.compensation_type}`;
+    return `${comp.amount} ${comp.compensation_type}`;
   };
 
   // Filter results based on capability
@@ -611,7 +621,7 @@ const TasksPage = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-xl font-bold text-gray-900">{task.title}</h3>
                         {getCapabilityIcon(task.id)}
-                        {task.category === 'review' && (
+                        {task.type === 'review' && (
                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
                             Review Task
                           </span>
@@ -621,7 +631,7 @@ const TasksPage = () => {
                       <div className="flex items-center text-xs text-gray-500 gap-4 mb-3">
                         <div className="flex items-center gap-1">
                           <Tag className="h-4 w-4" />
-                          <span>{task.category}</span>
+                          <span>{task.category || 'Other'}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <DollarSign className="h-4 w-4" />

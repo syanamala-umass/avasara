@@ -55,8 +55,7 @@ def create_skill(skill: SkillCreate, db: Session = Depends(get_db)):
     skill_data = skill.dict()
     # Remove fields that don't exist in the model
     skill_data.pop('description', None)
-    skill_data.pop('category', None)
-    
+    # Do NOT pop category; it is required and should be stored
     db_skill = models.Skill(**skill_data)
     db.add(db_skill)
     db.commit()

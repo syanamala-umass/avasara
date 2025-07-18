@@ -103,7 +103,7 @@ const ProfessionalDashboard = () => {
           fetchMyReviewAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
           fetchMyReviews(),
-          fetchTasks({ status: 'submitted' }),
+          fetchTasks({ status: 'submitted', task_type: 'task' }),
           fetchMyAssignments('submitted'),
           fetchMyAssignments('rejected'),
           fetchUserSkills(userDataFromStorage.id),
@@ -203,10 +203,13 @@ const ProfessionalDashboard = () => {
       console.log('DEBUG: Task category:', task.category);
       console.log('DEBUG: Task has parent_task_title:', !!task.parent_task_title);
       
-      if (task.category === 'review' || task.parent_task_title) {
+      if (task.type === 'review' || task.parent_task_title) {
         // For review tasks, use the review task ID and call the review task endpoint
         const reviewTaskId = task.id || task.review_task_id;
         console.log('DEBUG: Detected as review task, fetching review task details for ID:', reviewTaskId);
+        console.log('DEBUG: Task ID field:', task.id);
+        console.log('DEBUG: Task review_task_id field:', task.review_task_id);
+        console.log('DEBUG: Selected reviewTaskId:', reviewTaskId);
         response = await fetchReviewTaskDetails(reviewTaskId);
       } else {
         // For regular tasks, use the regular task endpoint
@@ -218,14 +221,13 @@ const ProfessionalDashboard = () => {
       const taskData = response.data;
       console.log('DEBUG: Task data received:', taskData);
       
-      // Ensure the task has the correct category for TaskDetailModal
-      const taskWithCategory = {
+      // Ensure the task has the correct type for TaskDetailModal
+      const taskWithType = {
         ...taskData,
-        category: task.category === 'review' || task.parent_task_title ? 'review' : 'task'
+        type: task.type === 'review' || task.parent_task_title ? 'review' : 'task'
       };
-      console.log('DEBUG: Task with category set:', taskWithCategory);
-      
-      setSelectedTask(taskWithCategory);
+      console.log('DEBUG: Task with type set:', taskWithType);
+      setSelectedTask(taskWithType);
       setIsTaskModalOpen(true);
       
     } catch (error) {
@@ -329,14 +331,14 @@ const ProfessionalDashboard = () => {
     }
   };
 
-  const formatCompensation = (amount, type) => {
-    if (!amount || !type) return 'No compensation specified';
-    if (type === 'cash') {
-      return `$${amount}`;
-    } else if (type === 'equity') {
-      return `${amount}% equity`;
+  const formatCompensation = (comp) => {
+    if (!comp || !comp.compensation_type || !comp.amount) return 'No compensation specified';
+    if (comp.compensation_type === 'cash') {
+      return `$${comp.amount}`;
+    } else if (comp.compensation_type === 'equity') {
+      return `${comp.amount}% equity`;
     }
-    return `${amount} ${type}`;
+    return `${comp.amount} ${comp.compensation_type}`;
   };
 
   const formatStatus = (status) => {
@@ -784,7 +786,13 @@ const ProfessionalDashboard = () => {
                       .map(task => {
                         const isReviewTask = task.parent_task_title; // Review tasks have this field
                         return (
-                          <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => handleTaskClick(isReviewTask ? { id: task.review_task_id, category: 'review' } : task)}>
+                          <div key={task.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => {
+                            console.log('DEBUG: Clicking on task:', task);
+                            console.log('DEBUG: isReviewTask:', isReviewTask);
+                            console.log('DEBUG: task.review_task_id:', task.review_task_id);
+                            console.log('DEBUG: task.id:', task.id);
+                            handleTaskClick(isReviewTask ? { id: task.review_task_id, category: 'review' } : task);
+                          }}>
                             <div className="flex items-center space-x-4">
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                                 isReviewTask ? 'bg-yellow-100' : 'bg-indigo-100'
@@ -881,7 +889,7 @@ const ProfessionalDashboard = () => {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                                <span>{formatCompensation(task.compensation?.task)}</span>
                               </div>
                             </div>
                             <p className="text-gray-600 text-sm">
@@ -989,7 +997,7 @@ const ProfessionalDashboard = () => {
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center space-x-3 mb-3">
-                                    <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
+                                    <h3 className="text-lg font-semibold text-gray-900">{task.title || task.task_title || `Task ${task.id}`}</h3>
                                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                       Completed
                                     </span>
@@ -1001,7 +1009,7 @@ const ProfessionalDashboard = () => {
                                     </div>
                                     <div className="flex items-center space-x-1">
                                       <DollarSign className="h-4 w-4" />
-                                      <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                                      <span>{formatCompensation(task.compensation?.task)}</span>
                                     </div>
                                   </div>
                                   <p className="text-gray-600 text-sm">
@@ -1010,7 +1018,7 @@ const ProfessionalDashboard = () => {
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                                    {formatCompensation(task.compensation_amount, task.compensation_type)}
+                                    {formatCompensation(task.compensation?.task)}
                                   </span>
                                 </div>
                               </div>
@@ -1046,7 +1054,7 @@ const ProfessionalDashboard = () => {
                                     </div>
                                     <div className="flex items-center space-x-1">
                                       <DollarSign className="h-4 w-4" />
-                                      <span>{formatCompensation(review.compensation_amount, 'cash')}</span>
+                                      <span>{formatCompensation(review.compensation?.review)}</span>
                                     </div>
                                   </div>
                                   {review.feedback && (
@@ -1057,7 +1065,7 @@ const ProfessionalDashboard = () => {
                                 </div>
                                 <div className="flex items-center space-x-3">
                                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                                    {formatCompensation(review.compensation_amount, 'cash')}
+                                    {formatCompensation(review.compensation?.review)}
                                   </span>
                                 </div>
                               </div>
@@ -1107,7 +1115,7 @@ const ProfessionalDashboard = () => {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                                <span>{formatCompensation(task.compensation?.task)}</span>
                               </div>
                             </div>
                             <p className="text-gray-600 text-sm">
@@ -1178,7 +1186,7 @@ const ProfessionalDashboard = () => {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation_amount, task.compensation_type)}</span>
+                                <span>{formatCompensation(task.compensation?.task)}</span>
                               </div>
                               <div className="flex items-center space-x-1">
                                 <Clock className="h-4 w-4" />

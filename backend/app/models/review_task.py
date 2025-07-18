@@ -18,10 +18,6 @@ class ReviewTask(Base):
     # Skill requirements for reviewers
     skill_requirements = Column(JSON, default={})
     
-    # Compensation details
-    compensation_amount = Column(Numeric(10, 2), default=0)
-    compensation_type = Column(String(50), default="cash")
-    
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
