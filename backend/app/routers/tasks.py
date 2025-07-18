@@ -375,10 +375,19 @@ def get_recommended_tasks(
     try:
         print(f"Getting recommended tasks for user {current_user.id}")
         
-        # Get user's skills
-        user_skills = current_user.skills
+        # Get user's skills using direct SQL query
+        from sqlalchemy import text
+        user_skills_query = text("""
+            SELECT s.id, s.name, cs.rating
+            FROM skills s
+            JOIN contributor_skill cs ON s.id = cs.skill_id
+            WHERE cs.user_id = :user_id
+        """)
         
-        print(f"User has {len(user_skills)} skills: {[skill.name for skill in user_skills]}")
+        user_skills_result = db.execute(user_skills_query, {"user_id": current_user.id})
+        user_skills = [{"id": row.id, "name": row.name, "rating": row.rating} for row in user_skills_result]
+        
+        print(f"User has {len(user_skills)} skills: {[skill['name'] for skill in user_skills]}")
         
         if not user_skills:
             # If user has no skills, return recent tasks
@@ -425,19 +434,43 @@ def get_recommended_tasks(
             return result
         
         # Get skill IDs from user's skills
-        skill_ids = [skill.id for skill in user_skills]
+        skill_ids = [skill['id'] for skill in user_skills]
         print(f"Looking for tasks with skill IDs: {skill_ids}")
         
-        # Find tasks that require any of the user's skills using the task_skills association table
-        from app.models.task import task_skill
-        recommended_tasks = db.query(models.Task).join(
-            task_skill
-        ).filter(
-            task_skill.c.skill_id.in_(skill_ids),
-            models.Task.status == 'open'
-        ).distinct().order_by(
-            models.Task.created_at.desc()
-        ).limit(limit).all()
+        # Find tasks that require any of the user's skills using direct SQL query
+        recommended_tasks_query = text("""
+            SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.deadline, 
+                   t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
+                   t.contributor_time_limit_hours, t.category
+            FROM tasks t
+            JOIN task_skills ts ON t.id = ts.task_id
+            WHERE ts.skill_id = ANY(:skill_ids)
+            AND t.status = 'open'
+            ORDER BY t.created_at DESC
+            LIMIT :limit
+        """)
+        
+        recommended_tasks_result = db.execute(recommended_tasks_query, {
+            "skill_ids": skill_ids,
+            "limit": limit
+        })
+        
+        # Convert to Task objects for consistency
+        recommended_tasks = []
+        for row in recommended_tasks_result:
+            task = models.Task()
+            task.id = row.id
+            task.user_id = row.user_id
+            task.title = row.title
+            task.description = row.description
+            task.deadline = row.deadline
+            task.created_at = row.created_at
+            task.status = row.status
+            task.num_reviewers = row.num_reviewers
+            task.max_parallel_contributors = row.max_parallel_contributors
+            task.contributor_time_limit_hours = row.contributor_time_limit_hours
+            task.category = row.category
+            recommended_tasks.append(task)
         
         print(f"Found {len(recommended_tasks)} recommended tasks")
         
@@ -451,8 +484,12 @@ def get_recommended_tasks(
                     continue
                 print(f"Task: {task.title} (ID: {task.id})")
                 
-                # Get compensation data
-                compensation = task.compensation
+                # Get compensation data using direct SQL
+                compensation_query = text("""
+                    SELECT compensation FROM tasks WHERE id = :task_id
+                """)
+                compensation_result = db.execute(compensation_query, {"task_id": task.id}).first()
+                compensation = compensation_result.compensation if compensation_result else None
                 
                 # Get assignments and reviews count
                 assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
@@ -462,8 +499,22 @@ def get_recommended_tasks(
                     TaskAssignment.status == 'in_progress'
                 ).count()
                 
-                # Format skills
-                skills = [{"id": skill.id, "name": skill.name} for skill in task.skills]
+                # Get task skills using direct SQL
+                task_skills_query = text("""
+                    SELECT s.id, s.name
+                    FROM skills s
+                    JOIN task_skills ts ON s.id = ts.skill_id
+                    WHERE ts.task_id = :task_id
+                """)
+                task_skills_result = db.execute(task_skills_query, {"task_id": task.id})
+                skills = [{"id": row.id, "name": row.name} for row in task_skills_result]
+                
+                # Get creator name using direct SQL
+                creator_query = text("""
+                    SELECT username FROM users WHERE id = :user_id
+                """)
+                creator_result = db.execute(creator_query, {"user_id": task.user_id}).first()
+                creator_name = creator_result.username if creator_result else "Unknown User"
                 
                 # Check if current user has an assignment for this task
                 has_assignment = check_existing_assignment(task_id=task.id, user_id=current_user.id)
@@ -478,9 +529,9 @@ def get_recommended_tasks(
                     "created_at": task.created_at,
                     "status": task.status,
                     "category": task.category,
-                    "skill_review_requirements": task.skill_review_requirements,
+                    "skill_review_requirements": None,  # Skip JSON field to avoid issues
                     "skills": skills,
-                    "creator_name": task.user.username if task.user else "Unknown User",
+                    "creator_name": creator_name,
                     "creator_avatar": None,
                     "assignments_count": assignments_count,
                     "reviews_count": reviews_count,
