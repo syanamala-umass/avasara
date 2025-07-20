@@ -256,3 +256,16 @@ export const fetchPublicReviewTasks = (filters) => api.get('/review-tasks/public
 export const fetchPublicReviewTaskById = (id) => api.get(`/review-tasks/public/${id}`);
 
 export default api;
+
+// Task assignment duration functions
+export const getAssignmentDurationInfo = async (assignmentId) => {
+  return await api.get(`/task-assignments/${assignmentId}/duration-info`);
+};
+
+export const checkAndCancelOverdueAssignments = async () => {
+  return await api.post('/task-assignments/check-and-cancel-overdue');
+};
+
+export const cancelOverdueAssignment = async (assignmentId) => {
+  return await api.post(`/task-assignments/${assignmentId}/cancel-overdue`);
+};

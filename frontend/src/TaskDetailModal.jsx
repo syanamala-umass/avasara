@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask } from './api';
+import TaskDurationInfo from './components/TaskDurationInfo';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -15,7 +16,7 @@ const TaskDetailModal = ({ isOpen, task = {
   has_assignment: false,
   type: 'task',
   id: null
-}, onClose, onUndertake, isReviewTask, onResubmit }) => {
+}, onClose, onUndertake, isReviewTask, onResubmit, onSubmit }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [taskDetails, setTaskDetails] = useState(null);
   const [error, setError] = useState(null);
@@ -34,8 +35,8 @@ const TaskDetailModal = ({ isOpen, task = {
         setActiveTab('overview');
       }
       
-      // Set task details
-      setTaskDetails(task);
+      // Load detailed task information
+      fetchAndSetTaskDetails();
       
       // Only check capability if this is not an already undertaken task
       // Check if the task has assignment information indicating it's already undertaken
@@ -52,6 +53,32 @@ const TaskDetailModal = ({ isOpen, task = {
       console.log('=== END TASK DETAIL MODAL DEBUG ===');
     }
   }, [isOpen, task?.id]);
+
+  const fetchAndSetTaskDetails = async () => {
+    if (!task?.id) return;
+    
+    try {
+      let response;
+      if (task.type === 'review') {
+        response = await fetchReviewTaskDetails(task.id);
+      } else {
+        response = await fetchTaskDetails(task.id);
+      }
+      
+      const taskData = response.data || response;
+      
+      // Add current user ID to task details for duration component
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (userData && userData.id) {
+        taskData.current_user_id = userData.id;
+      }
+      
+      setTaskDetails(taskData);
+    } catch (err) {
+      console.error('Error loading task details:', err);
+      setError('Failed to load task details');
+    }
+  };
 
   const checkTaskCapability = async () => {
     if (!task?.id) return;
@@ -352,6 +379,15 @@ const TaskDetailModal = ({ isOpen, task = {
         <h4 className="text-sm font-medium text-blue-700 mb-2">Status Information</h4>
         <p className="text-sm text-blue-600">{getStatusDescription(task.status)}</p>
       </div>
+
+      {/* Duration Information - Only show for tasks assigned to current user */}
+      {task.has_assignment && task.type === 'task' && taskDetails?.assignments && taskDetails?.current_user_id && (
+        <TaskDurationInfo
+          assignmentId={taskDetails.assignments.find(a => a.user_id === taskDetails.current_user_id)?.id}
+          task={task}
+          onAssignmentCancelled={fetchAndSetTaskDetails}
+        />
+      )}
     </div>
   );
 
@@ -775,9 +811,27 @@ const TaskDetailModal = ({ isOpen, task = {
 
           {/* Footer */}
           <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
-            {(() => {
-              return null;
-            })()}
+            {/* Submit Work Button for Active Tasks assigned to current user */}
+            {onSubmit && task.status === 'in_progress' && task.type === 'task' && task.has_assignment && (
+              <button
+                onClick={() => onSubmit(task)}
+                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+              >
+                Submit Work
+              </button>
+            )}
+            
+            {/* Submit Review Button for Active Review Tasks assigned to current user */}
+            {onSubmit && task.status === 'in_progress' && task.type === 'review' && task.has_assignment && (
+              <button
+                onClick={() => onSubmit(task)}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
+              >
+                Submit Review
+              </button>
+            )}
+            
+            {/* Undertake Task Button */}
             {onUndertake && 
               canUndertake?.can_undertake && 
               ((task.status === 'open' || task.status === 'available' || !task.status) || 
@@ -794,6 +848,8 @@ const TaskDetailModal = ({ isOpen, task = {
                 {task.type === 'review' ? 'Review Task' : 'Undertake Task'}
               </button>
             )}
+            
+            {/* Cannot Undertake Button */}
             {onUndertake && 
               canUndertake && 
               !canUndertake.can_undertake && 
@@ -807,6 +863,8 @@ const TaskDetailModal = ({ isOpen, task = {
                 Cannot Undertake
               </button>
             )}
+            
+            {/* Resubmit Button */}
             {onResubmit && task.status === 'rejected' && (
               <button
                 onClick={() => onResubmit(task)}
@@ -815,6 +873,8 @@ const TaskDetailModal = ({ isOpen, task = {
                 Reset for Resubmission
               </button>
             )}
+            
+            {/* Close Button */}
             <button
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"

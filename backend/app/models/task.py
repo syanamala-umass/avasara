@@ -27,6 +27,9 @@ class Task(Base):
     category = Column(String, default="Other")  # Add category field with default value "task"
     skill_review_requirements = Column(JSON, nullable=True)  # {"skill_name": min_skill_level_required}
     compensation = Column(JSON, nullable=True)  # JSON field for task and review compensation
+    
+    # Duration field
+    task_duration = Column(Integer, nullable=True)  # Duration in hours before penalty applies
 
     # Relationships
     user = relationship("User", back_populates="tasks")

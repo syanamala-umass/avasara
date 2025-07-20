@@ -11,6 +11,8 @@ from app.crud import task_assignment as crud
 from app.database import get_db
 from sqlalchemy.orm import Session
 from app.services.rating_service import rating_service
+from app.services.penalty_service import penalty_service
+from datetime import datetime
 
 router = APIRouter(
     prefix="/task-assignments",
@@ -879,3 +881,136 @@ async def resubmit_task(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error resubmitting task: {str(e)}")
+
+@router.get("/{assignment_id}/duration-info")
+def get_assignment_duration_info(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get duration information for a task assignment.
+    
+    This endpoint returns information about the task duration limits,
+    current progress, and whether the assignment is overdue and should be cancelled.
+    
+    Args:
+        assignment_id: ID of the task assignment
+        db: Database session
+        current_user: Currently authenticated user
+        
+    Returns:
+        Dict containing duration information and overdue status
+    """
+    # Get the assignment
+    assignment = db.query(crud.TaskAssignment).filter(
+        crud.TaskAssignment.id == assignment_id,
+        crud.TaskAssignment.user_id == current_user.id
+    ).first()
+    
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    # Get task details for duration limits
+    task = db.query(crud.Task).filter(crud.Task.id == assignment.task_id).first()
+    
+    # Get duration info
+    duration_info = penalty_service.get_assignment_duration_info(assignment)
+    
+    # Check if assignment is overdue
+    is_overdue = False
+    hours_overdue = 0
+    if task and assignment.status in ["in_progress", "submitted"]:
+        is_overdue, hours_overdue = penalty_service.is_assignment_overdue(task, assignment)
+    
+
+    
+    return {
+        "assignment_id": assignment.id,
+        "task_id": assignment.task_id,
+        "status": assignment.status,
+        "duration_info": duration_info,
+        "task_duration_limits": {
+            "task_duration_hours": task.task_duration if task else None
+        },
+
+        "overdue_info": {
+            "is_overdue": is_overdue,
+            "hours_overdue": hours_overdue,
+            "should_cancel": is_overdue and assignment.status in ["in_progress", "submitted"]
+        }
+    }
+
+@router.post("/check-and-cancel-overdue")
+def check_and_cancel_overdue_assignments(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Check all active assignments and cancel those that are overdue.
+    
+    This endpoint can be called periodically (e.g., by a cron job) to automatically
+    check and cancel assignments that have exceeded their duration limits.
+    
+    Args:
+        db: Database session
+        current_user: Currently authenticated user (admin only)
+        
+    Returns:
+        Dict containing summary of checked and cancelled assignments
+    """
+    # TODO: Add admin check if needed
+    # For now, allow any authenticated user to trigger this
+    
+    try:
+        result = penalty_service.check_and_cancel_overdue_assignments(db)
+        return {
+            "message": f"Checked {result['total_checked']} assignments, cancelled {result['cancelled_count']} overdue assignments",
+            "summary": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking overdue assignments: {str(e)}")
+
+@router.post("/{assignment_id}/cancel-overdue")
+def cancel_overdue_assignment(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Manually cancel an overdue assignment.
+    
+    This endpoint allows users to cancel their own overdue assignments
+    or for the system to automatically cancel them.
+    
+    Args:
+        assignment_id: ID of the assignment to cancel
+        db: Database session
+        current_user: Currently authenticated user
+        
+    Returns:
+        Dict containing cancellation details
+    """
+    # Get the assignment
+    assignment = db.query(crud.TaskAssignment).filter(
+        crud.TaskAssignment.id == assignment_id
+    ).first()
+    
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    
+    # Only allow cancellation if user owns the assignment or it's overdue
+    if assignment.user_id != current_user.id:
+        # Check if assignment is overdue
+        task = db.query(crud.Task).filter(crud.Task.id == assignment.task_id).first()
+        if not task or not penalty_service.is_assignment_overdue(task, assignment)[0]:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this assignment")
+    
+    try:
+        result = penalty_service.cancel_overdue_assignment(db, assignment)
+        return {
+            "message": "Assignment cancelled successfully" if result["cancelled"] else "Assignment not overdue",
+            "details": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error cancelling assignment: {str(e)}")
