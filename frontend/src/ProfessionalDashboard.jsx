@@ -3,8 +3,9 @@ import {
   Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, 
   Trash2, XCircle, Sparkles, ArrowRight, UserCircle, Filter, MapPin, 
   DollarSign, Calendar, TrendingUp, Award, Target, Zap, Briefcase,
-  Eye, Heart, Share2, Bookmark, MessageCircle, Bell, Settings, User
+  Eye, Heart, Share2, Bookmark, MessageCircle, Settings, User
 } from 'lucide-react';
+import NotificationBell from './components/NotificationBell';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 import TaskActionModal from './TaskActionModal';
@@ -98,7 +99,7 @@ const ProfessionalDashboard = () => {
           topSkillsResponse,
           recommendedTasksResponse
         ] = await Promise.allSettled([
-          fetchTasks({ creator_id: userDataFromStorage.id }),
+          fetchTasks({ creator_id: userDataFromStorage.id, task_type: 'task' }),
           fetchMyAssignments('in_progress'),
           fetchMyReviewAssignments('in_progress'),
           fetchTaskAssignments({ status: 'completed' }),
@@ -190,15 +191,31 @@ const ProfessionalDashboard = () => {
         response = await fetchReviewTaskDetails(reviewTaskId);
       } else {
         // For regular tasks, use the regular task endpoint
-        const taskId = (activeTab === 'undertaking' || activeTab === 'pending_review') ? task.task_id : task.id;
+        // Use task_id for completed tasks, otherwise use id or task_id based on tab
+        let taskId;
+        if (activeTab === 'completed') {
+          taskId = task.task_id || task.id;
+        } else if (activeTab === 'undertaking' || activeTab === 'pending_review') {
+          taskId = task.task_id || task.id;
+        } else {
+          taskId = task.id;
+        }
         response = await fetchTaskById(taskId);
       }
       
       const taskData = response.data;
       
+      // For tasks from undertaking or pending_review tabs, use the assignment status instead of task status
+      let displayStatus = taskData.status;
+      if ((activeTab === 'undertaking' || activeTab === 'pending_review') && task.status) {
+        // Use the assignment status from the task list item
+        displayStatus = task.status;
+      }
+      
       // Ensure the task has the correct type for TaskDetailModal
       const taskWithType = {
         ...taskData,
+        status: displayStatus, // Override with assignment status if available
         type: task.type === 'review' || task.parent_task_title ? 'review' : 'task'
       };
       setSelectedTask(taskWithType);
@@ -218,6 +235,12 @@ const ProfessionalDashboard = () => {
     setSelectedTask(task);
     setActionMode(mode);
     setIsTaskActionModalOpen(true);
+  };
+
+  const handleTaskSubmitFromModal = (task) => {
+    // Determine if this is a review task or regular task
+    const mode = task.type === 'review' ? 'review' : 'submit';
+    handleTaskAction(task, mode);
   };
 
   const handleTaskSubmit = async (taskId, formData) => {
@@ -411,9 +434,7 @@ const ProfessionalDashboard = () => {
                 <span>Find Work</span>
               </button>
               
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <Bell className="h-5 w-5" />
-              </button>
+              <NotificationBell />
               
               <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Settings className="h-5 w-5" />
@@ -1192,6 +1213,7 @@ const ProfessionalDashboard = () => {
               setIsTaskModalOpen(false);
               setSelectedTask(null);
             }}
+            onSubmit={handleTaskSubmitFromModal}
           />
         )}
 

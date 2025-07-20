@@ -1,5 +1,6 @@
 import "./App.css";
 import { Routes, Route } from 'react-router-dom';
+import { NotificationProvider } from './contexts/NotificationContext';
 import LandingPage from './LandingPage';
 import ProfessionalDashboard from './ProfessionalDashboard';
 import IdeaDetailPage from './IdeaDetailPage';
@@ -30,19 +31,21 @@ function CheckEmail() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/dashboard" element={<ProfessionalDashboard />} />
-      <Route path="/ideas/:id" element={<IdeaDetailPage />} />
-      <Route path="/profile" element={<ContributorProfile />} />
-      <Route path="/contributor/tasks" element={<TaskBrowser />} />
-      <Route path="/tasks" element={<TasksPage />} />
-      <Route path="/auth/callback" element={<OAuthCallback />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/check-email" element={<CheckEmail />} />
-      <Route path="/onboarding" element={<OnboardingFlow />} />
-      <Route path="/skills/:skillId" element={<SkillDetailPage />} />
-    </Routes>
+    <NotificationProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<ProfessionalDashboard />} />
+        <Route path="/ideas/:id" element={<IdeaDetailPage />} />
+        <Route path="/profile" element={<ContributorProfile />} />
+        <Route path="/contributor/tasks" element={<TaskBrowser />} />
+        <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/auth/callback" element={<OAuthCallback />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/check-email" element={<CheckEmail />} />
+        <Route path="/onboarding" element={<OnboardingFlow />} />
+        <Route path="/skills/:skillId" element={<SkillDetailPage />} />
+      </Routes>
+    </NotificationProvider>
   );
 }
 

@@ -161,6 +161,7 @@ def check_and_complete_task_assignment(db: Session, assignment_id: int):
     try:
         from app.database.connection import get_db_cursor
         from app.routers.task_assignment import update_user_skill_ratings_from_task_completion
+
         from datetime import datetime, timedelta
         
         with get_db_cursor() as cursor:
@@ -220,6 +221,8 @@ def check_and_complete_task_assignment(db: Session, assignment_id: int):
                     SET status = 'completed', completed_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (assignment_id,))
+                
+
                 
                 # Trigger positive rating updates
                 update_user_skill_ratings_from_task_completion(

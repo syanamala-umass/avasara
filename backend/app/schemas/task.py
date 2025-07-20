@@ -9,14 +9,17 @@ class TaskBase(BaseModel):
     deadline: Optional[datetime] = None
     category: str = "Other"  # Add category field with default value "task"
     skill_review_requirements: Optional[Dict[str, float]] = None  # {"skill_name": min_skill_level_required}
+    compensation_type: str = "cash"
+    compensation_amount: float = 0
+    review_compensation_type: str = "cash"
+    review_compensation_amount: float = 0
+    skills: List[int] = []
+    num_reviewers: int = 2
+    # Duration field
+    task_duration: Optional[int] = None  # Duration in hours before penalty applies
 
 class TaskCreate(TaskBase):
-    skills: List[int] = []  # List of skill IDs
-    compensation_type: str  # "cash" or "equity"
-    compensation_amount: float
-    review_compensation_type: str  # "cash" or "equity"
-    review_compensation_amount: float
-    num_reviewers: int
+    pass
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -25,6 +28,7 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
     skills: Optional[List[int]] = None
     skill_review_requirements: Optional[Dict[str, float]] = None
+    task_duration: Optional[int] = None
 
 class Task(TaskBase):
     id: int
