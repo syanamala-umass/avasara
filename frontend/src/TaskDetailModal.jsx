@@ -433,13 +433,7 @@ const TaskDetailModal = ({ isOpen, task = {
       </div>
 
       {/* Duration Information - Only show for tasks assigned to current user */}
-      {task.has_assignment && task.type === 'task' && taskDetails?.assignments && taskDetails?.current_user_id && (
-        <TaskDurationInfo
-          assignmentId={taskDetails.assignments.find(a => a.user_id === taskDetails.current_user_id)?.id}
-          task={task}
-          onAssignmentCancelled={fetchAndSetTaskDetails}
-        />
-      )}
+      
     </div>
   );
 
