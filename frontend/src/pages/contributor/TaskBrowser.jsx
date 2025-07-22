@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TaskDetailModal from '../../TaskDetailModal';
+import ReviewDetailModal from '../../ReviewDetailModal';
 import { fetchTasks, fetchSkills, createTaskAssignment, assignTask, fetchReviewTasks, assignReviewTask } from '../../api';
 
 const TaskBrowser = () => {
@@ -365,13 +366,25 @@ const TaskBrowser = () => {
       </div>
 
       {isModalOpen && selectedTask && (
-        <TaskDetailModal
-          isOpen={isModalOpen}
-          task={selectedTask}
-          onClose={() => setIsModalOpen(false)}
-          onUndertake={() => handleUndertakeTask(selectedTask)}
-          isReviewTask={selectedTask.type === 'review'}
-        />
+        selectedTask.type === 'review' ? (
+          <ReviewDetailModal
+            isOpen={isModalOpen}
+            task={selectedTask}
+            onClose={() => setIsModalOpen(false)}
+            onReview={(task, submission) => {
+              // Handle review submission
+              console.log('Review submission:', task, submission);
+            }}
+          />
+        ) : (
+          <TaskDetailModal
+            isOpen={isModalOpen}
+            task={selectedTask}
+            onClose={() => setIsModalOpen(false)}
+            onUndertake={() => handleUndertakeTask(selectedTask)}
+            isReviewTask={selectedTask.type === 'review'}
+          />
+        )
       )}
     </div>
   );

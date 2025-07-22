@@ -296,7 +296,7 @@ const TaskDetailModal = ({ isOpen, task = {
           <div>
             <p className="text-xs text-blue-600">Time Limit (Hours)</p>
             <p className="text-sm font-medium text-blue-900">
-              {taskDetails?.contributor_time_limit_hours || task.contributor_time_limit_hours || 'No limit'}
+              {taskDetails?.task_duration || task.task_duration || 'No limit'}
             </p>
           </div>
         </div>
@@ -309,6 +309,58 @@ const TaskDetailModal = ({ isOpen, task = {
           <p className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</p>
         </div>
       </div>
+
+      {/* Review Status - Show for contributors and task creators only for submitted tasks */}
+      {taskDetails?.review_status && (task.status === 'submitted' || task.status === 'under_review' || task.status === 'completed') && (
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-purple-700 mb-3">Review Status</h4>
+          {taskDetails.review_status.all_submissions ? (
+            // Task creator view - show all submissions
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">Total Submissions:</span>
+                <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.total_submissions}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">With Review Tasks:</span>
+                <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.submissions_with_reviews}</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-purple-600 font-medium">Individual Submissions:</p>
+                {taskDetails.review_status.all_submissions.map((submission, index) => (
+                  <div key={submission.assignment_id} className="bg-white p-3 rounded border border-purple-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-purple-900">{submission.contributor_name}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${submission.review_tasks_created ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {submission.review_tasks_created ? 'Review Tasks Created' : 'Pending Review Tasks'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-purple-600">
+                      {submission.review_progress} • {submission.review_tasks_count} review tasks
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Contributor view - show individual status
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">Review Tasks Created:</span>
+                <span className={`text-sm font-medium ${taskDetails.review_status.review_tasks_created ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {taskDetails.review_status.review_tasks_created ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-purple-600">Reviews Received:</span>
+                <span className="text-sm font-medium text-purple-900">
+                  {taskDetails.review_status.review_submissions_received} / {taskDetails.review_status.expected_reviewers}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Compensation */}
       <div className="bg-green-50 p-4 rounded-lg">
@@ -393,14 +445,13 @@ const TaskDetailModal = ({ isOpen, task = {
 
   const renderSubmissionsTab = () => {
     
-
-    
     if (!taskDetails?.assignments || taskDetails.assignments.length === 0) {
-      console.log('No assignments found - showing empty state');
       return (
         <div className="text-center py-8">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <p className="mt-2 text-sm text-gray-500">No submissions found</p>
+          <p className="mt-2 text-sm text-gray-500">
+            {task.type === 'review' ? 'No review details found' : 'No submissions found'}
+          </p>
         </div>
       );
     }
@@ -408,18 +459,31 @@ const TaskDetailModal = ({ isOpen, task = {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-gray-700">Submissions ({taskDetails.assignments.length})</h4>
+          <h4 className="text-sm font-medium text-gray-700">
+            {task.type === 'review' ? 'Review Details' : 'Submissions'} ({taskDetails.assignments.length})
+          </h4>
         </div>
         
         {taskDetails.assignments.map((assignment, index) => (
-          <div key={assignment.id} className="bg-white border border-gray-200 rounded-lg p-4">
+          <div key={assignment.id} className={`bg-white border rounded-lg p-4 ${
+            assignment.is_submission_being_reviewed 
+              ? 'border-yellow-300 bg-yellow-50' 
+              : 'border-gray-200'
+          }`}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4 text-gray-400" />
+                  <User className={`h-4 w-4 ${
+                    assignment.is_submission_being_reviewed ? 'text-yellow-600' : 'text-gray-400'
+                  }`} />
                   <span className="text-sm font-medium text-gray-900">
-                    {assignment.contributor_name || 'Unknown Contributor'}
+                    {assignment.contributor_name || assignment.reviewer_name || 'Unknown User'}
                   </span>
+                  {assignment.is_submission_being_reviewed && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Submission Being Reviewed
+                    </span>
+                  )}
                   <span className={getStatusBadge(assignment.status)}>
                     {assignment.status.replace(/_/g, ' ')}
                   </span>
@@ -573,20 +637,19 @@ const TaskDetailModal = ({ isOpen, task = {
                   </div>
                 </div>
 
-                {review.feedback && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Feedback</p>
-                    <div className={`p-3 rounded ${
-                      review.is_approved ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                {/* Always show Feedback cell, even if blank */}
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Feedback</p>
+                  <div className={`p-3 rounded ${
+                    review.is_approved ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                  }`}>
+                    <p className={`text-sm ${
+                      review.is_approved ? 'text-green-800' : 'text-red-800'
                     }`}>
-                      <p className={`text-sm ${
-                        review.is_approved ? 'text-green-800' : 'text-red-800'
-                      }`}>
-                        {review.feedback}
-                      </p>
-                    </div>
+                      {review.feedback && review.feedback.trim() !== '' ? review.feedback : 'No feedback from reviewer'}
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -664,7 +727,7 @@ const TaskDetailModal = ({ isOpen, task = {
             <div className="flex justify-between items-center">
               <span className="text-sm text-indigo-600">Time Limit:</span>
               <span className="text-sm font-medium text-indigo-900">
-                {taskDetails?.contributor_time_limit_hours || task.contributor_time_limit_hours || 'No limit'} hours
+                {taskDetails?.task_duration || task.task_duration || 'No limit'} hours
               </span>
             </div>
           </div>

@@ -37,7 +37,6 @@ class Task(TaskBase):
     status: str
     num_reviewers: Optional[int] = None
     max_parallel_contributors: Optional[int] = None
-    contributor_time_limit_hours: Optional[int] = None
 
     class Config:
         orm_mode = True
