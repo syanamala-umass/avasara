@@ -60,6 +60,8 @@ app.add_middleware(
     allow_origins=[
         "https://avasara-frontend.onrender.com",  # Production frontend
         "http://localhost:3000",                 # Local development
+        "https://theavasara.com",
+        "https://www.theavasara.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
