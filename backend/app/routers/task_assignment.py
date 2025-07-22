@@ -8,11 +8,14 @@ from app.dependencies import get_current_user
 from app.repositories.task_assignment_repository import TaskAssignmentRepository
 from app.repositories.peer_evaluation_repository import PeerEvaluationRepository
 from app.crud import task_assignment as crud
+from app.models.task import Task
+from app.models.task_assignment import TaskAssignment as TaskAssignmentModel
 from app.database import get_db
 from sqlalchemy.orm import Session
 from app.services.rating_service import rating_service
 from app.services.penalty_service import penalty_service
 from datetime import datetime
+import json
 
 router = APIRouter(
     prefix="/task-assignments",
@@ -351,7 +354,7 @@ async def update_assignment_status(
                 LEFT JOIN task_skills ts ON t.id = ts.task_id
                 LEFT JOIN skills s ON ts.skill_id = s.id
                 WHERE t.id = %s
-                GROUP BY t.id, t.num_reviewers, t.title, t.description, t.skill_review_requirements
+                GROUP BY t.id, t.num_reviewers, t.title, t.description
             """, (db_assignment['task_id'],))
             task = cursor.fetchone()
             print(f"DEBUG: Task data: {task}")
@@ -379,16 +382,15 @@ async def update_assignment_status(
                 # Insert the review task into review_tasks table
                 cursor.execute("""
                     INSERT INTO review_tasks (
-                        title, description, status, skill_requirements, 
+                        title, description, status, 
                         parent_task_id, assignment_being_reviewed_id,
                         compensation_amount, compensation_type
                     ) VALUES (
-                        %s, %s, 'open', %s, %s, %s, %s, %s
+                        %s, %s, 'open', %s, %s, %s, %s
                     ) RETURNING id
                 """, (
                     review_task_title,
                     review_task_description,
-                    task['skill_review_requirements'] or '{}',  # Use parent task's skill requirements
                     db_assignment['task_id'],  # Link to parent task
                     assignment_id,  # Link to the assignment being reviewed
                     25,  # Review compensation amount
@@ -491,6 +493,16 @@ def can_undertake_task(
             review_task = cursor.fetchone()
             
             if not review_task or review_task['status'] != 'open':
+                # Check if the user is already assigned to this review task
+                cursor.execute("""
+                    SELECT 1 FROM review_task_assignments WHERE review_task_id = %s AND reviewer_id = %s
+                """, (task_id, current_user.id))
+                already_assigned = cursor.fetchone()
+                if already_assigned:
+                    return {
+                        "can_undertake": False,
+                        "reason": ""
+                    }
                 return {
                     "can_undertake": False,
                     "reason": "This review task is not available for assignment"
@@ -616,37 +628,7 @@ def update_user_skill_ratings_from_task_completion(
     success: bool = True,
     average_score: float = None
 ):
-    """
-    Update user's skill ratings when a task is completed or rejected.
-    
-    This function is called when a task assignment reaches a final state
-    (completed or rejected) to update the user's skill ratings based on
-    their performance. The rating update uses a Bayesian weighted average
-    system to provide fair and accurate skill assessments.
-    
-    The function:
-    1. Retrieves task skill requirements
-    2. Determines performance score based on success/failure
-    3. Updates each required skill rating using the rating service
-    4. Handles errors gracefully without failing the task completion
-    
-    Performance scoring:
-    - Success (approved): Uses average_score if available, otherwise assumes 4.0
-    - Failure (rejected): Uses average_score if available, otherwise assumes 1.5
-    - Score >= 3.0 is considered accepted, < 3.0 is rejected
-    
-    Args:
-        task_id (int): The ID of the completed/rejected task
-        user_id (int): The ID of the user whose ratings should be updated
-        success (bool): Whether the task was approved (True) or rejected (False)
-        average_score (float, optional): The average evaluation score from peer reviews
-        
-    Returns:
-        None: Function completes silently, errors are logged but don't raise exceptions
-        
-    Raises:
-        No exceptions raised - errors are logged and handled gracefully
-    """
+    print(f"DEBUG: Entered update_user_skill_ratings_from_task_completion for task_id={task_id}, user_id={user_id}, success={success}, average_score={average_score}")
     try:
         with get_db_cursor() as cursor:
             # Get task skill requirements
@@ -655,40 +637,33 @@ def update_user_skill_ratings_from_task_completion(
                 FROM tasks
                 WHERE id = %s
             """, (task_id,))
-            
             task_result = cursor.fetchone()
+            print(f"DEBUG: task_result: {task_result}")
             if not task_result:
+                print(f"DEBUG: No task_result found for task_id={task_id}")
                 return
-            
             task_requirements = task_result['skill_review_requirements'] or {}
-            
+            print(f"DEBUG: task_requirements: {task_requirements}")
             # Determine the score based on success/failure
             if success:
-                # Task was approved - use average_score if available, otherwise assume good performance
                 performance_score = average_score if average_score else 4.0
             else:
-                # Task was rejected - use average_score if available, otherwise assume poor performance
                 performance_score = average_score if average_score else 1.5
-            
+            print(f"DEBUG: performance_score: {performance_score}")
             # Update ratings for each skill required by the task
             for skill_name, required_level in task_requirements.items():
+                print(f"DEBUG: Processing skill_name={skill_name}")
                 # Get skill ID
                 cursor.execute("SELECT id FROM skills WHERE name = %s", (skill_name,))
                 skill_result = cursor.fetchone()
-                
+                print(f"DEBUG: skill_result for {skill_name}: {skill_result}")
                 if skill_result:
                     skill_id = skill_result['id']
-                    
-                    # Convert performance score to task_accepted boolean for rating service
-                    # Score >= 3.0 is considered accepted, < 3.0 is rejected
                     task_accepted = performance_score >= 3.0
-                    
-                    # Update the user's rating for this skill
+                    print(f"DEBUG: Updating skill rating for user {user_id}, skill_id {skill_id}, task_accepted={task_accepted}")
                     rating_service.update_skill_rating(user_id, skill_id, task_accepted)
-                    
     except Exception as e:
-        # Log error but don't fail the task completion
-        print(f"Error updating skill ratings: {str(e)}")
+        print(f"DEBUG: Exception in update_user_skill_ratings_from_task_completion: {str(e)}")
 
 def cleanup_expired_task_blocks():
     """
@@ -903,16 +878,16 @@ def get_assignment_duration_info(
         Dict containing duration information and overdue status
     """
     # Get the assignment
-    assignment = db.query(crud.TaskAssignment).filter(
-        crud.TaskAssignment.id == assignment_id,
-        crud.TaskAssignment.user_id == current_user.id
+    assignment = db.query(TaskAssignmentModel).filter(
+        TaskAssignmentModel.id == assignment_id,
+        TaskAssignmentModel.user_id == current_user.id
     ).first()
     
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
     # Get task details for duration limits
-    task = db.query(crud.Task).filter(crud.Task.id == assignment.task_id).first()
+    task = db.query(Task).filter(Task.id == assignment.task_id).first()
     
     # Get duration info
     duration_info = penalty_service.get_assignment_duration_info(assignment)

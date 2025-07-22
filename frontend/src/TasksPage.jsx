@@ -3,6 +3,7 @@ import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertC
 import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks, assignReviewTask } from './api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
+import ReviewDetailModal from './ReviewDetailModal';
 import LoginPopup from './LoginPopup';
 
 // const categories = [
@@ -627,6 +628,26 @@ const TasksPage = () => {
                           <span>{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</span>
                         </div>
                       </div>
+                      
+                      {/* Review Status Indicator - Only for submitted tasks */}
+                      {task.review_status && (task.status === 'submitted' || task.status === 'under_review' || task.status === 'completed') && (
+                        <div className="mb-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-purple-700 font-medium">Review Status:</span>
+                            {task.review_status.all_submissions ? (
+                              // Task creator view
+                              <span className="text-purple-600">
+                                {task.review_status.submissions_with_reviews}/{task.review_status.total_submissions} with reviews
+                              </span>
+                            ) : (
+                              // Contributor view
+                              <span className={`font-medium ${task.review_status.review_tasks_created ? 'text-green-600' : 'text-yellow-600'}`}>
+                                {task.review_status.review_progress}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -662,7 +683,20 @@ const TasksPage = () => {
       </div>
 
       {/* Task Detail Modal */}
-      {selectedTask && (
+      {selectedTask && selectedTask.type === 'review' ? (
+        <ReviewDetailModal
+          task={selectedTask}
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onReview={(task, submission) => {
+            // Handle review submission
+            console.log('Review submission:', task, submission);
+          }}
+        />
+      ) : (
         <TaskDetailModal
           task={selectedTask}
           isOpen={isTaskModalOpen}

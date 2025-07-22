@@ -8,6 +8,7 @@ import {
 import NotificationBell from './components/NotificationBell';
 import { useNavigate } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
+import ReviewDetailModal from './ReviewDetailModal';
 import TaskActionModal from './TaskActionModal';
 import DispatchTaskModal from './DispatchTaskModal';
 import ReviewSubmissionsModal from './ReviewSubmissionsModal';
@@ -181,17 +182,17 @@ const ProfessionalDashboard = () => {
   const handleTaskClick = async (task) => {
     try {
       setLoading(true);
-      
       let response;
-      
       // Check if this is a review task
       if (task.type === 'review' || task.parent_task_title) {
         // For review tasks, use the review task ID and call the review task endpoint
         const reviewTaskId = task.id || task.review_task_id;
         response = await fetchReviewTaskDetails(reviewTaskId);
+        const taskData = response.data || response;
+        setSelectedTask({ ...taskData, type: 'review' });
+        setIsTaskModalOpen(true);
       } else {
         // For regular tasks, use the regular task endpoint
-        // Use task_id for completed tasks, otherwise use id or task_id based on tab
         let taskId;
         if (activeTab === 'completed') {
           taskId = task.task_id || task.id;
@@ -201,26 +202,14 @@ const ProfessionalDashboard = () => {
           taskId = task.id;
         }
         response = await fetchTaskById(taskId);
+        const taskData = response.data || response;
+        let displayStatus = taskData.status;
+        if ((activeTab === 'undertaking' || activeTab === 'pending_review') && task.status) {
+          displayStatus = task.status;
+        }
+        setSelectedTask({ ...taskData, status: displayStatus, type: 'task' });
+        setIsTaskModalOpen(true);
       }
-      
-      const taskData = response.data;
-      
-      // For tasks from undertaking or pending_review tabs, use the assignment status instead of task status
-      let displayStatus = taskData.status;
-      if ((activeTab === 'undertaking' || activeTab === 'pending_review') && task.status) {
-        // Use the assignment status from the task list item
-        displayStatus = task.status;
-      }
-      
-      // Ensure the task has the correct type for TaskDetailModal
-      const taskWithType = {
-        ...taskData,
-        status: displayStatus, // Override with assignment status if available
-        type: task.type === 'review' || task.parent_task_title ? 'review' : 'task'
-      };
-      setSelectedTask(taskWithType);
-      setIsTaskModalOpen(true);
-      
     } catch (error) {
       console.error('Error fetching task details:', error);
       setError('Failed to load task details. Please try again.');
@@ -901,7 +890,7 @@ const ProfessionalDashboard = () => {
 
                     {/* Review Tasks */}
                     {assignedReviewTasks.map(reviewTask => (
-                      <div key={reviewTask.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ id: reviewTask.review_task_id, category: 'review' })}>
+                      <div key={reviewTask.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ ...reviewTask, id: reviewTask.review_task_id, type: 'review' })}>
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-3">
@@ -1083,7 +1072,7 @@ const ProfessionalDashboard = () => {
                 ) : (
                   <div className="grid gap-6">
                     {pendingReviewTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
+                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task.type === 'review' || task.review_task_id ? { ...task, id: task.review_task_id || task.id, type: 'review' } : task)}>
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-3">
@@ -1206,15 +1195,30 @@ const ProfessionalDashboard = () => {
 
         {/* Modals */}
         {isTaskModalOpen && selectedTask && (
-          <TaskDetailModal
-            task={selectedTask}
-            isOpen={isTaskModalOpen}
-            onClose={() => {
-              setIsTaskModalOpen(false);
-              setSelectedTask(null);
-            }}
-            onSubmit={handleTaskSubmitFromModal}
-          />
+          selectedTask.type === 'review' ? (
+            <ReviewDetailModal
+              task={selectedTask}
+              isOpen={isTaskModalOpen}
+              onClose={() => {
+                setIsTaskModalOpen(false);
+                setSelectedTask(null);
+              }}
+              onReview={(task, submission) => {
+                // Handle review submission
+                console.log('Review submission:', task, submission);
+              }}
+            />
+          ) : (
+            <TaskDetailModal
+              task={selectedTask}
+              isOpen={isTaskModalOpen}
+              onClose={() => {
+                setIsTaskModalOpen(false);
+                setSelectedTask(null);
+              }}
+              onSubmit={handleTaskSubmitFromModal}
+            />
+          )
         )}
 
         {isTaskActionModalOpen && selectedTask && (

@@ -46,6 +46,27 @@ def get_top_skills_by_tasks(db: Session = Depends(get_db), limit: int = 5):
                 "task_count": task_count
             })
     
+    # If we don't have enough skills with tasks, fill with other skills
+    if len(result) < limit:
+        remaining_limit = limit - len(result)
+        
+        # Get skills that don't have any tasks associated
+        skills_without_tasks = db.query(
+            models.Skill
+        ).outerjoin(
+            models.Task.skills
+        ).filter(
+            models.Task.id.is_(None)
+        ).limit(remaining_limit).all()
+        
+        # Add skills without tasks to the result
+        for skill in skills_without_tasks:
+            result.append({
+                "id": skill.id,
+                "name": skill.name,
+                "task_count": 0
+            })
+    
     return result
 
 @router.post("/", response_model=Skill)

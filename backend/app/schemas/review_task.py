@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from decimal import Decimal
+from app.schemas.task_assignment import TaskAssignment
 
 class ReviewTaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
@@ -34,10 +35,7 @@ class ReviewTask(ReviewTaskBase):
 class ReviewAssignmentBase(BaseModel):
     status: str = Field(default="assigned", pattern="^(assigned|in_progress|completed|cancelled)$")
     accept_reject: Optional[bool] = None  # TRUE = accept, FALSE = reject, NULL = not decided
-    technical_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    collaboration_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    innovation_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    reliability_score: Optional[Decimal] = Field(None, ge=0, le=5)
+   
     strengths: Optional[str] = None
     areas_for_improvement: Optional[str] = None
     additional_comments: Optional[str] = None
@@ -48,10 +46,7 @@ class ReviewAssignmentCreate(ReviewAssignmentBase):
 class ReviewAssignmentUpdate(BaseModel):
     status: Optional[str] = Field(None, pattern="^(assigned|in_progress|completed|cancelled)$")
     accept_reject: Optional[bool] = None  # TRUE = accept, FALSE = reject, NULL = not decided
-    technical_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    collaboration_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    innovation_score: Optional[Decimal] = Field(None, ge=0, le=5)
-    reliability_score: Optional[Decimal] = Field(None, ge=0, le=5)
+    
     strengths: Optional[str] = None
     areas_for_improvement: Optional[str] = None
     additional_comments: Optional[str] = None
@@ -72,8 +67,12 @@ class ReviewTaskWithDetails(ReviewTask):
     parent_task_title: Optional[str] = None
     assignment_details: Optional[Dict[str, Any]] = None
     review_assignments: Optional[list[ReviewAssignment]] = []
+    assignments: List[TaskAssignment] = []
 
 class ReviewAssignmentWithDetails(ReviewAssignment):
     review_task_title: Optional[str] = None
     reviewer_name: Optional[str] = None
-    parent_task_title: Optional[str] = None 
+    parent_task_title: Optional[str] = None
+    type: str = 'review'  # Add this field
+
+  

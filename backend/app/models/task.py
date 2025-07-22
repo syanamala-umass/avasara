@@ -23,7 +23,6 @@ class Task(Base):
     status = Column(String, default="open")  # open, in_progress, completed, reviewed
     num_reviewers = Column(Integer, nullable=True)  # Optional
     max_parallel_contributors = Column(Integer, nullable=True)
-    contributor_time_limit_hours = Column(Integer, nullable=True)
     category = Column(String, default="Other")  # Add category field with default value "task"
     skill_review_requirements = Column(JSON, nullable=True)  # {"skill_name": min_skill_level_required}
     compensation = Column(JSON, nullable=True)  # JSON field for task and review compensation

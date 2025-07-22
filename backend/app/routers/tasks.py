@@ -7,7 +7,8 @@ import sys
 from datetime import datetime
 
 from app.models.task_assignment import TaskAssignment
-from app.models.review import Review
+# from app.models.review import Review  # Remove this import
+from app.models.review_task import ReviewTask
 from app.database import get_db
 from app.schemas.task import TaskCreate, Task, TaskUpdate, TaskWithDetails
 from app.crud.task import create_task, get_task, get_tasks, update_task
@@ -89,7 +90,7 @@ def get_reviewable_tasks(db: Session = Depends(get_db), current_user=Depends(get
             "startup_name": task.startup.name if task.startup else "",
             "startup_logo": task.startup.logo if task.startup else None,
             "assignments_count": db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count(),
-            "reviews_count": db.query(Review).filter(Review.task_id == task.id).count()
+            "reviews_count": db.query(ReviewTask).filter(ReviewTask.parent_task_id == task.id).count()
         }
         for task in matched_tasks
     ]
@@ -133,8 +134,8 @@ def create_new_task(
     ).count()
     
     # Get reviews count
-    reviews_count = db.query(Review).filter(
-        Review.task_id == db_task.id
+    reviews_count = db.query(ReviewTask).filter(
+        ReviewTask.parent_task_id == db_task.id
     ).count()
 
     # Get number of people currently working on the task
@@ -168,6 +169,7 @@ def create_new_task(
         "skill_review_requirements": db_task.skill_review_requirements,
         "category": db_task.category,
         "type": "task",  # Add type field for consistency
+        "task_duration": db_task.task_duration,  # Add task_duration field
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
@@ -231,10 +233,10 @@ def read_tasks(
         HTTPException: If database query fails or processing errors occur
     """
     try:
-        # Log the full URL and query parameters
-        # logger.info(f"Request URL: {request.url}")
-        # logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
-        # logger.info(f"Current user: {current_user.id}")
+        logger.info(f"=== TASKS ENDPOINT DEBUG ===")
+        logger.info(f"Request URL: {request.url}")
+        logger.info(f"Query parameters: skip={skip}, limit={limit}, status={status}, creator_id={creator_id}, category={category}, title={title}, compensation_type={compensation_type}, min_compensation={min_compensation}, max_compensation={max_compensation}, task_type={task_type}, skill_id={skill_id}, min_skill_rating={min_skill_rating}")
+        logger.info(f"Current user: {current_user.id}")
         
         # Build filter conditions for both tasks and review_tasks
         filters = []
@@ -253,6 +255,8 @@ def read_tasks(
         filter_sql = " AND ".join(filters)
         if filter_sql:
             filter_sql = " AND " + filter_sql
+        
+        logger.info(f"Filter SQL: {filter_sql}")
 
         # Main tasks query
         tasks_sql = f'''
@@ -272,9 +276,10 @@ def read_tasks(
             WHERE 1=1 {filter_sql}
         '''
 
-        # Review tasks query
+        # Review tasks query - group by assignment to show only one review task per submission
+        # Exclude review tasks where current user is the original contributor
         review_sql = f'''
-            SELECT
+            SELECT 
                 rt.id,
                 t.user_id,
                 t.title,
@@ -286,23 +291,47 @@ def read_tasks(
                 t.compensation,
                 t.skill_review_requirements as skill_review_requirements,
                 'review' as type
-            FROM review_tasks rt
+            FROM (
+                SELECT DISTINCT ON (rt.assignment_being_reviewed_id)
+                    rt.id,
+                    rt.assignment_being_reviewed_id,
+                    rt.created_at,
+                    rt.status
+                FROM review_tasks rt
+                JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
+                WHERE ta.user_id != :current_user_id
+                ORDER BY rt.assignment_being_reviewed_id, rt.created_at DESC
+            ) rt_distinct
+            JOIN review_tasks rt ON rt.id = rt_distinct.id
             JOIN tasks t ON rt.parent_task_id = t.id
             WHERE 1=1 {filter_sql}
         '''
 
         # Apply task_type filter to union logic
         union_sql = None
+        query_params = {"limit": limit, "skip": skip, "current_user_id": current_user.id}
+        
+        logger.info(f"Task type: {task_type}")
+        logger.info(f"Query params: {query_params}")
+        
         if task_type == 'task':
             union_sql = f"{tasks_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
         elif task_type == 'review':
             union_sql = f"{review_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
         else:
             union_sql = f"{tasks_sql} UNION ALL {review_sql} ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
-        results = db.execute(text(union_sql), {"limit": limit, "skip": skip}).fetchall()
+        
+        logger.info(f"Union SQL: {union_sql}")
+        logger.info(f"About to execute query...")
+        
+        results = db.execute(text(union_sql), query_params).fetchall()
+        
+        logger.info(f"Query executed successfully, got {len(results)} results")
 
         # Convert results to list of dicts
+        logger.info(f"Converting results to dicts...")
         result = [dict(row._mapping) for row in results]
+        logger.info(f"Converted {len(result)} results to dicts")
 
         # Ensure every task has a 'type' field
         for task in result:
@@ -316,18 +345,22 @@ def read_tasks(
 
         # Filter out tasks missing required fields
         from datetime import datetime
+        logger.info(f"Filtering tasks for missing fields...")
         filtered_result = []
-        for task in result:
+        for i, task in enumerate(result):
+            logger.info(f"Processing task {i+1}/{len(result)}: {task.get('id')} - {task.get('title', 'No title')}")
             if task.get('user_id') is None:
-                # logger.warning(f"Task {task.get('id')} missing user_id, setting to -1")
+                logger.warning(f"Task {task.get('id')} missing user_id, setting to -1")
                 task['user_id'] = -1
             if task.get('created_at') is None:
-                # logger.warning(f"Task {task.get('id')} missing created_at, setting to 1970-01-01T00:00:00Z")
+                logger.warning(f"Task {task.get('id')} missing created_at, setting to 1970-01-01T00:00:00Z")
                 task['created_at'] = datetime(1970, 1, 1)
             if not task.get('creator_name'):
-                # logger.warning(f"Task {task.get('id')} missing creator_name, setting to 'Unknown User'")
+                logger.warning(f"Task {task.get('id')} missing creator_name, setting to 'Unknown User'")
                 task['creator_name'] = 'Unknown User'
             filtered_result.append(task)
+        
+        logger.info(f"Filtered {len(filtered_result)} tasks")
 
         # DEBUG: Log the first returned task
         # if filtered_result:
@@ -336,10 +369,14 @@ def read_tasks(
         # Apply compensation and skill filters in Python (if needed)
         # ... (existing logic for compensation_type, min_compensation, max_compensation, skill_id, min_skill_rating) ...
 
+        logger.info(f"=== TASKS ENDPOINT COMPLETED ===")
+        logger.info(f"Returning {len(filtered_result)} tasks")
         return filtered_result
     except Exception as e:
-        # logger.error(f"Error in read_tasks: {str(e)}")
-        # logger.error("Full traceback:", exc_info=True)
+        logger.error(f"=== TASKS ENDPOINT ERROR ===")
+        logger.error(f"Error in read_tasks: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error("Full traceback:", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
@@ -419,9 +456,9 @@ def get_recommended_tasks(
         
         # Find tasks that require any of the user's skills using direct SQL query
         recommended_tasks_query = text("""
-            SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.deadline, 
+            SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
                    t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                   t.contributor_time_limit_hours, t.category
+                   t.category
             FROM tasks t
             JOIN task_skills ts ON t.id = ts.task_id
             WHERE ts.skill_id = ANY(:skill_ids)
@@ -443,16 +480,60 @@ def get_recommended_tasks(
             task.user_id = row.user_id
             task.title = row.title
             task.description = row.description
-            task.deadline = row.deadline
+            task.task_duration = row.task_duration
             task.created_at = row.created_at
             task.status = row.status
             task.num_reviewers = row.num_reviewers
             task.max_parallel_contributors = row.max_parallel_contributors
-            task.contributor_time_limit_hours = row.contributor_time_limit_hours
             task.category = row.category
             recommended_tasks.append(task)
         
-        # print(f"Found {len(recommended_tasks)} recommended tasks")
+        # print(f"Found {len(recommended_tasks)} skill-matching tasks")
+        
+        # If we don't have enough skill-matching tasks, fill with other open tasks
+        if len(recommended_tasks) < limit:
+            remaining_limit = limit - len(recommended_tasks)
+            
+            # Get additional open tasks that don't match user's skills
+            additional_tasks_query = text("""
+                SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
+                       t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
+                       t.category
+                FROM tasks t
+                LEFT JOIN task_skills ts ON t.id = ts.task_id
+                WHERE t.status = 'open'
+                AND (ts.skill_id IS NULL OR ts.skill_id != ALL(:skill_ids))
+                AND t.id NOT IN (
+                    SELECT DISTINCT t2.id 
+                    FROM tasks t2 
+                    JOIN task_skills ts2 ON t2.id = ts2.task_id 
+                    WHERE ts2.skill_id = ANY(:skill_ids)
+                )
+                ORDER BY t.created_at DESC
+                LIMIT :remaining_limit
+            """)
+            
+            additional_tasks_result = db.execute(additional_tasks_query, {
+                "skill_ids": skill_ids,
+                "remaining_limit": remaining_limit
+            })
+            
+            # Add additional tasks to the list
+            for row in additional_tasks_result:
+                task = models.Task()
+                task.id = row.id
+                task.user_id = row.user_id
+                task.title = row.title
+                task.description = row.description
+                task.task_duration = row.task_duration
+                task.created_at = row.created_at
+                task.status = row.status
+                task.num_reviewers = row.num_reviewers
+                task.max_parallel_contributors = row.max_parallel_contributors
+                task.category = row.category
+                recommended_tasks.append(task)
+            
+            # print(f"Added {remaining_limit} additional tasks, total: {len(recommended_tasks)}")
         
         # Convert to TaskWithDetails format
         result = []
@@ -473,7 +554,7 @@ def get_recommended_tasks(
                 
                 # Get assignments and reviews count
                 assignments_count = db.query(TaskAssignment).filter(TaskAssignment.task_id == task.id).count()
-                reviews_count = db.query(Review).filter(Review.task_id == task.id).count()
+                reviews_count = db.query(ReviewTask).filter(ReviewTask.parent_task_id == task.id).count()
                 num_people_working = db.query(TaskAssignment).filter(
                     TaskAssignment.task_id == task.id,
                     TaskAssignment.status == 'in_progress'
@@ -569,8 +650,8 @@ def read_task(
     ).count()
     
     # Get reviews count
-    reviews_count = db.query(Review).filter(
-        Review.task_id == task_id
+    reviews_count = db.query(ReviewTask).filter(
+        ReviewTask.parent_task_id == task_id
     ).count()
 
     # Get number of people currently working on the task
@@ -608,6 +689,7 @@ def read_task(
         "created_at": db_task.created_at,
         "status": db_task.status,
         "skill_review_requirements": db_task.skill_review_requirements,
+        "task_duration": db_task.task_duration,  # Add task_duration field
         
         # Additional fields required by TaskWithDetails
         "skills": skills,
@@ -925,7 +1007,7 @@ def get_task_details(
         # Task configuration
         "num_reviewers": db_task.num_reviewers,
         "max_parallel_contributors": db_task.max_parallel_contributors,
-        "contributor_time_limit_hours": db_task.contributor_time_limit_hours,
+        "task_duration": db_task.task_duration,  # Add task_duration field
         
         # Skills and skill requirements
         "skills": skills,
@@ -965,35 +1047,104 @@ def get_task_details(
                 "submitted_at": assignment.submitted_at
             })
         
-        # Get all reviews for this task
-        reviews = db.query(models.Review).options(
-            joinedload(models.Review.reviewer)
-        ).filter(models.Review.task_id == task_id).all()
-        
-        # logger.info(f"Found {len(reviews)} reviews for task {task_id}")
-        
-        # Format reviews
-        formatted_reviews = []
-        for review in reviews:
-            formatted_reviews.append({
-                "id": review.id,
-                "reviewer_id": review.reviewer_id,
-                "reviewer_name": review.reviewer.username if review.reviewer else "Unknown Reviewer",
-                "is_approved": review.is_approved,
-                "feedback": review.feedback,
-                "created_at": review.created_at
-            })
-        
-        # Calculate statistics (only for contributor assignments)
-        total_assignments = len(formatted_assignments)
-        active_assignments = len([a for a in formatted_assignments if a["status"] == "in_progress"])
+        # Get all review tasks for this parent task
+        from app.models.review_task import ReviewTask, ReviewTaskAssignment
+        review_task_ids = db.query(ReviewTask.id).filter(
+            ReviewTask.parent_task_id == db_task.id
+        ).all()
+        review_task_ids = [row.id for row in review_task_ids]
+
+        reviews = []
+        if review_task_ids:
+            review_assignments = db.query(ReviewTaskAssignment).filter(
+                ReviewTaskAssignment.review_task_id.in_(review_task_ids),
+                ReviewTaskAssignment.status == 'completed'
+            ).all()
+            for ra in review_assignments:
+                reviews.append({
+                    "id": ra.id,
+                    "reviewer_id": ra.reviewer_id,
+                    "reviewer_name": ra.reviewer.username if ra.reviewer else "Unknown Reviewer",
+                    "is_approved": ra.accept_reject,
+                    "feedback": ra.additional_comments,  # This is already included, ensure frontend uses it
+                    "created_at": ra.completed_at
+                })
+
+        formatted_reviews = reviews
         total_reviews = len(formatted_reviews)
-        
-        # Calculate approval rate instead of average rating
         approved_reviews = len([r for r in formatted_reviews if r["is_approved"]])
         approval_rate = round((approved_reviews / total_reviews) * 100, 1) if total_reviews > 0 else 0
         
+        # Add review status information for contributors and task creators
+        review_status = {}
+        if is_contributor and contributor_assignment:
+            # Check if review tasks have been created for this contributor's submission
+            review_tasks_created = db.query(ReviewTask).filter(
+                ReviewTask.assignment_being_reviewed_id == contributor_assignment.id
+            ).count()
+            
+            # Count completed review assignments for all review tasks for this submission
+            from app.models.review_task import ReviewTaskAssignment
+            review_task_ids = db.query(ReviewTask.id).filter(
+                ReviewTask.assignment_being_reviewed_id == contributor_assignment.id
+            ).all()
+            review_task_ids = [row.id for row in review_task_ids]
+            review_submissions = 0
+            if review_task_ids:
+                review_submissions = db.query(ReviewTaskAssignment).filter(
+                    ReviewTaskAssignment.review_task_id.in_(review_task_ids),
+                    ReviewTaskAssignment.status == 'completed'
+                ).count()
+            
+            review_status = {
+                "review_tasks_created": review_tasks_created > 0,
+                "review_tasks_count": review_tasks_created,
+                "review_submissions_received": review_submissions,
+                "expected_reviewers": db_task.num_reviewers or 2,
+                "review_progress": f"{review_submissions}/{db_task.num_reviewers or 2} reviews received"
+            }
+        elif is_dispatcher:
+            # For task creators, show review status for all submitted assignments to this task
+            all_submitted_assignments = db.query(TaskAssignment).options(
+                joinedload(TaskAssignment.user)
+            ).filter(
+                TaskAssignment.task_id == task_id,
+                TaskAssignment.assignment_type == 'task',
+                TaskAssignment.status == 'submitted'
+            ).all()
+            
+            all_review_status = []
+            for assignment in all_submitted_assignments:
+                # Check if review tasks have been created for this assignment
+                review_tasks_created = db.query(ReviewTask).filter(
+                    ReviewTask.assignment_being_reviewed_id == assignment.id
+                ).count()
+                
+                # Check if any reviewers have submitted their reviews
+                review_submissions = db.query(models.Review).filter(
+                    models.Review.assignment_id == assignment.id
+                ).count()
+                
+                assignment_review_status = {
+                    "assignment_id": assignment.id,
+                    "contributor_name": assignment.user.username if assignment.user else "Unknown User",
+                    "review_tasks_created": review_tasks_created > 0,
+                    "review_tasks_count": review_tasks_created,
+                    "review_submissions_received": review_submissions,
+                    "expected_reviewers": db_task.num_reviewers or 2,
+                    "review_progress": f"{review_submissions}/{db_task.num_reviewers or 2} reviews received"
+                }
+                all_review_status.append(assignment_review_status)
+            
+            review_status = {
+                "all_submissions": all_review_status,
+                "total_submissions": len(all_submitted_assignments),
+                "submissions_with_reviews": len([rs for rs in all_review_status if rs["review_tasks_created"]])
+            }
+        
         # Add detailed information for dispatchers, reviewers, and contributors
+        total_assignments = len(formatted_assignments)
+        active_assignments = len([a for a in formatted_assignments if a["status"] == "in_progress"])
         task_details.update({
             "assignments": formatted_assignments,
             "reviews": formatted_reviews,
@@ -1001,7 +1152,8 @@ def get_task_details(
             "active_assignments": active_assignments,
             "reviews_count": total_reviews,
             "approval_rate": approval_rate,
-            "num_people_working": active_assignments
+            "num_people_working": active_assignments,
+            "review_status": review_status
         })
         
         # logger.info(f"Returning detailed view with {len(formatted_assignments)} contributor assignments and {len(formatted_reviews)} reviews")
