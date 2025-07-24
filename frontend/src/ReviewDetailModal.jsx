@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Star } from 'lucide-react';
-import { fetchReviewTaskDetails, canUndertakeTask } from './api';
+import { fetchReviewTaskDetails, canUndertakeTask, submitReviewAssignment } from './api';
+import TaskActionModal from './TaskActionModal';
 
 const ReviewDetailModal = ({ 
   isOpen, 
@@ -24,6 +25,8 @@ const ReviewDetailModal = ({
   const [error, setError] = useState(null);
   const [canUndertake, setCanUndertake] = useState(null);
   const [capabilityLoading, setCapabilityLoading] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewAssignmentId, setReviewAssignmentId] = useState(null);
 
   useEffect(() => {
     if (isOpen && task?.id) {
@@ -73,6 +76,30 @@ const ReviewDetailModal = ({
       });
     } finally {
       setCapabilityLoading(false);
+    }
+  };
+
+  const handleOpenReviewModal = () => {
+    // Find the current user's in-progress review assignment
+    const userData = JSON.parse(localStorage.getItem('userData'));
+    const assignment = taskDetails?.assignments?.find(
+      a => a.user_id === userData?.id && a.status === 'in_progress' && a.assignment_type === 'review'
+    );
+    if (assignment) {
+      setReviewAssignmentId(assignment.id);
+      setIsReviewModalOpen(true);
+    }
+  };
+
+  const handleSubmitReview = async (assignmentId, reviewData) => {
+    try {
+      await submitReviewAssignment(assignmentId, reviewData);
+      setIsReviewModalOpen(false);
+      // Refresh task details after submission
+      fetchAndSetTaskDetails();
+    } catch (err) {
+      // Optionally handle error
+      console.error('Error submitting review:', err);
     }
   };
 
@@ -650,6 +677,18 @@ const ReviewDetailModal = ({
 
           {/* Footer */}
           <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
+            {(() => {
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                const isSelfAssigned = taskDetails?.assignments?.some(
+                  a => a.user_id === userData?.id && a.status === 'in_progress'
+                );
+                console.log('DEBUG ReviewDetailModal:', {
+                  task_status: task.status,
+                  taskDetails_status: taskDetails?.status,
+                  isSelfAssigned
+                });
+                return null;
+              })()}
             {/* Undertake Review Task Button */}
             {onUndertake && 
               canUndertake?.can_undertake && 
@@ -677,7 +716,28 @@ const ReviewDetailModal = ({
                 Cannot Undertake
               </button>
             )}
-            
+            {/* Submit Review Button: Only show if user has an in-progress assignment */}
+            {(() => {
+              const userData = JSON.parse(localStorage.getItem('userData'));
+              return taskDetails?.assignments?.some(
+                a => a.user_id === userData?.id && a.status === 'in_progress' && a.assignment_type === 'review'
+              );
+            })() && task.status === 'in_progress' && (
+              <button
+                onClick={handleOpenReviewModal}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+              >
+                Submit Review
+              </button>
+            )}
+            {/* Review Modal */}
+            <TaskActionModal
+              isOpen={isReviewModalOpen}
+              task={{ id: reviewAssignmentId }}
+              onClose={() => setIsReviewModalOpen(false)}
+              onSubmit={handleSubmitReview}
+              mode="review"
+            />
             <button
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"

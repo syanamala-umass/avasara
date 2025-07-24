@@ -269,3 +269,6 @@ export const checkAndCancelOverdueAssignments = async () => {
 export const cancelOverdueAssignment = async (assignmentId) => {
   return await api.post(`/task-assignments/${assignmentId}/cancel-overdue`);
 };
+
+// Fetch user's rating history for a skill
+export const fetchUserSkillRatingHistory = (userId, skillId) => api.get(`/ratings/user/${userId}/skill/${skillId}/history`);

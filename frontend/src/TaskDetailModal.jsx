@@ -454,11 +454,13 @@ const TaskDetailModal = ({ isOpen, task = {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium text-gray-700">
-            {task.type === 'review' ? 'Review Details' : 'Submissions'} ({taskDetails.assignments.length})
+            {task.type === 'review' ? 'Review Details' : 'Submissions'} ({taskDetails.assignments.filter(a => a.status !== 'in_progress').length})
           </h4>
         </div>
         
-        {taskDetails.assignments.map((assignment, index) => (
+        {taskDetails.assignments
+          .filter(assignment => assignment.status !== 'in_progress')
+          .map((assignment, index) => (
           <div key={assignment.id} className={`bg-white border rounded-lg p-4 ${
             assignment.is_submission_being_reviewed 
               ? 'border-yellow-300 bg-yellow-50' 

@@ -68,8 +68,10 @@ const TaskBrowser = () => {
   // Filter tasks based on criteria
   const filteredTasks = allTasks.filter(task => {
     // Category filter
-    if (filters.category && filters.category !== 'all' && task.category !== filters.category) {
-      return false;
+    if (filters.category && filters.category !== 'all') {
+      if (filters.category === 'task' && task.type !== 'task') return false;
+      if (filters.category === 'review' && task.type !== 'review') return false;
+      if (filters.category !== 'task' && filters.category !== 'review' && task.category !== filters.category) return false;
     }
     
     // Status filter
