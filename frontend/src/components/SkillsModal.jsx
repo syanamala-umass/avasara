@@ -76,25 +76,21 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   const handleAddNewSkill = () => {
     setError(null); // Clear error on new action
     if (!skillSearch.trim()) return;
-    
     const newSkillName = skillSearch.trim();
-    
     // Check if skill already exists
     if (availableSkills.some(skill => skill.name.toLowerCase() === newSkillName.toLowerCase())) {
       setError('This skill already exists. Please select it from the list.');
       return;
     }
-    
     // Create a temporary skill object (will be created on backend when Continue is clicked)
     const tempSkill = {
-      id: `temp_${Date.now()}`, // Temporary ID
+      id: `temp_${Date.now()}`,
       name: newSkillName,
-      is_new: true // Flag to indicate this is a new skill
+      category: 'Other',
+      is_new: true
     };
-    
     setAvailableSkills(prev => [...prev, tempSkill]);
     setUserSkills(prev => [...prev, tempSkill]);
-    
     setSkillSearch('');
     setShowSkillDropdown(false);
   };

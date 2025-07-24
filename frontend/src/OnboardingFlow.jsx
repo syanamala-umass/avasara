@@ -72,7 +72,7 @@ const OnboardingFlow = () => {
     if (!skillSearch.trim()) return;
     setLoading(true);
     try {
-      const response = await createSkill({ name: skillSearch.trim() });
+      const response = await createSkill({ name: skillSearch.trim(), category: 'Other' });
       const newSkill = response.data;
       setAvailableSkills(prev => [...prev, newSkill]);
       setSelectedSkill(newSkill.name);

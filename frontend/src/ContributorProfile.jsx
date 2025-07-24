@@ -174,7 +174,7 @@ const ContributorProfile = () => {
     setAddingSkill(true);
     try {
       // Create the new skill
-      const response = await createSkill({ name: skillSearch.trim() });
+      const response = await createSkill({ name: skillSearch.trim(), category: 'Other' });
       const newSkill = response.data;
       // Add to availableSkills and select it
       setAvailableSkills(prev => [...prev, newSkill]);
