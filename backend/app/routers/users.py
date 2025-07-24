@@ -235,8 +235,8 @@ def add_new_user_skill(
     if existing_skill:
         skill_id = existing_skill.id
     else:
-        # Create new skill
-        new_skill = Skill(name=skill_name)
+        # Create new skill with default category
+        new_skill = Skill(name=skill_name, category='Other')
         db.add(new_skill)
         db.commit()
         db.refresh(new_skill)
@@ -315,10 +315,10 @@ def add_user_skills_bulk(
         if existing_skill:
             new_skill_ids.append(existing_skill.id)
         else:
-            # Create new skill
-            new_skill = Skill(name=skill_name.strip())
+            # Create new skill with default category
+            new_skill = Skill(name=skill_name.strip(), category='Other')
             db.add(new_skill)
-            db.flush()  # Get the ID without committing
+            db.flush()
             new_skill_ids.append(new_skill.id)
     
     # Combine all skill IDs
