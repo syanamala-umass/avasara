@@ -14,7 +14,7 @@ class EmailService:
         self.smtp_username = os.getenv("SMTP_USERNAME")
         self.smtp_password = os.getenv("SMTP_PASSWORD")
         self.from_email = os.getenv("FROM_EMAIL", "noreply@avasara.com")
-        self.app_url = os.getenv("APP_URL", "https://avasara-frontend.onrender.com")
+        self.app_url = os.getenv("APP_URL", "https://theavasara.com")
         
     def generate_verification_token(self) -> str:
         """Generate a secure verification token"""
