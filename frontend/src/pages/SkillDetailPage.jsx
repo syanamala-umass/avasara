@@ -6,7 +6,7 @@ import {
   fetchTopRatedContributors,
   fetchTopJobPosters,
   fetchOpenJobsForSkill,
-  fetchUserSkillHistory,
+  fetchUserSkillRatingHistory,
 } from '../api';
 import { 
   ArrowLeft, Award, Edit3, Save, X, Plus, Star, 
@@ -54,7 +54,7 @@ const SkillDetailPage = () => {
           fetchTopRatedContributors(skillId),
           fetchTopJobPosters(skillId),
           fetchOpenJobsForSkill(skillId),
-          userDataFromStorage ? fetchUserSkillHistory(userDataFromStorage.id, skillId) : Promise.resolve({ data: [] })
+          userDataFromStorage ? fetchUserSkillRatingHistory(userDataFromStorage.id, skillId) : Promise.resolve({ data: [] })
         ]);
 
         setTopTaskContributors(taskContributorsRes.status === 'fulfilled' ? taskContributorsRes.value.data : []);
@@ -66,7 +66,7 @@ const SkillDetailPage = () => {
         // Find current user's rating if they have one
         if (userDataFromStorage && userHistoryRes.status === 'fulfilled' && userHistoryRes.value.data.length > 0) {
           const latestRating = userHistoryRes.value.data[userHistoryRes.value.data.length - 1];
-          setCurrentUserRating(latestRating.rating);
+          setCurrentUserRating(latestRating.new_rating);
         }
 
       } catch (err) {
@@ -183,7 +183,7 @@ const SkillDetailPage = () => {
                 {currentUserRating && (
                   <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(currentUserRating)}`}>
                     <Star className="h-4 w-4 mr-1" />
-                    Your Rating: {currentUserRating.toFixed(1)} ({getRatingLabel(currentUserRating)})
+                    Your Rating: {currentUserRating.toFixed(1)}
                   </div>
                 )}
               </div>
@@ -243,24 +243,26 @@ const SkillDetailPage = () => {
 
                 <div className="space-y-4">
                   {userSkillHistory.map((entry, index) => {
-                    const previousRating = index > 0 ? userSkillHistory[index - 1].rating : null;
-                    const trendIcon = getTrendIcon(entry.rating, previousRating);
-                    
+                    const previousRating = index > 0 ? userSkillHistory[index - 1].new_rating : null;
+                    const trendIcon = getTrendIcon(entry.new_rating, previousRating);
                     return (
-                      <div key={entry.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center space-x-4">
+                      <div key={entry.id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center space-x-4 mb-2 md:mb-0">
                           <div className="flex items-center space-x-2">
                             {trendIcon}
                             <span className="font-medium text-gray-900">
-                              {formatDate(entry.updated_at)}
+                              {formatDate(entry.created_at)}
                             </span>
                           </div>
-                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(entry.rating)}`}>
-                            {entry.rating.toFixed(1)} ({getRatingLabel(entry.rating)})
+                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(entry.new_rating)}`}>
+                            {entry.new_rating.toFixed(2)}
                           </div>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {entry.num_tasks || 0} tasks completed
+                        <div className="flex flex-col md:flex-row md:items-center md:space-x-4 text-sm text-gray-500">
+                          <span>Old: {entry.old_rating?.toFixed ? entry.old_rating.toFixed(2) : entry.old_rating}</span>
+                          <span>Change: {entry.change_amount > 0 ? '+' : ''}{entry.change_amount?.toFixed ? entry.change_amount.toFixed(2) : entry.change_amount}</span>
+                          <span>Type: {entry.change_type}</span>
+                          {entry.related_task_id && <span>Task: {entry.related_task_id}</span>}
                         </div>
                       </div>
                     );

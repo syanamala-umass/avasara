@@ -10,6 +10,7 @@ from app.schemas.review_task import (
 from app.database.connection import get_db_cursor
 from app.routers.task_assignment import check_user_skills_match_task_requirements
 from app.services.rating_service import rating_service
+from app.services.reviewer_quality_service import reviewer_quality_service
 
 router = APIRouter(
     prefix="/review-tasks",
@@ -732,6 +733,34 @@ def check_and_aggregate_reviews(cursor, assignment_id: int):
                     if skill_result:
                         skill_id = skill_result['id']
                         print(f"DEBUG: Updating skill rating for user {user_id}, skill_id {skill_id}, task_accepted={task_accepted}")
-                        rating_service.update_skill_rating(user_id, skill_id, task_accepted)
+                        rating_service.update_task_skill_rating(user_id, skill_id, task_accepted, related_task_id=assignment_id)
+                # --- Review Quality Assessment ---
+                # For each reviewer, compare their accept_reject to the majority
+                for review_task in review_tasks:
+                    cursor.execute("SELECT reviewer_id, accept_reject FROM review_task_assignments WHERE review_task_id = %s AND status = 'completed'", (review_task['id'],))
+                    reviewer_assignments = cursor.fetchall()
+                    print(f"DEBUG: reviewer_assignments for review_task_id={review_task['id']}: {reviewer_assignments}")
+                    for ra in reviewer_assignments:
+                        reviewer_id = ra['reviewer_id']
+                        reviewer_decision = ra['accept_reject']
+                        print(f"DEBUG: Reviewer {reviewer_id} decision: {reviewer_decision}")
+                        if reviewer_decision is None:
+                            print(f"DEBUG: Reviewer {reviewer_id} has no decision, skipping.")
+                            continue
+                        # Use the service to determine alignment
+                        aligned = reviewer_quality_service.is_aligned_with_majority(reviewer_decision, task_accepted)
+                        print(f"DEBUG: Reviewer {reviewer_id} alignment with majority: {aligned}")
+                        # reviewer_quality_service.update_reviewer_quality_rating(reviewer_id, aligned)
+                        # Update each skill rating for the reviewer as well
+                        for skill_name in skill_requirements.keys():
+                            cursor.execute("SELECT id FROM skills WHERE name = %s", (skill_name,))
+                            skill_result = cursor.fetchone()
+                            if skill_result:
+                                skill_id = skill_result['id']
+                                # Use a different scoring system for reviewer skill: +2 if aligned, -2 if not
+                                reviewer_skill_score = 2.0 if aligned else -2.0
+                                print(f"DEBUG: About to call update_reviewer_skill_rating: reviewer_id={reviewer_id}, skill_id={skill_id}, reviewer_skill_score={reviewer_skill_score}, assignment_id={assignment_id}, aligned={aligned}")
+                                result = rating_service.update_reviewer_skill_rating(reviewer_id, skill_id, reviewer_skill_score, related_task_id=assignment_id)
+                                print(f"DEBUG: update_reviewer_skill_rating result: {result}")
             except Exception as e:
                 print(f"DEBUG: Exception while updating skill ratings: {str(e)}") 

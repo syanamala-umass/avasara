@@ -56,9 +56,7 @@ const SkillDisplay = ({ skills = [], showRatings = true, showTaskCount = true, c
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <span className="font-medium text-gray-900">{skill.name}</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-white/50 font-medium">
-                  {getRatingLabel(skill.rating)}
-                </span>
+                {/* Removed skill rating label */}
               </div>
               {showRatings && (
                 <div className="flex items-center space-x-1">

@@ -9,6 +9,7 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
   const [error, setError] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectFeedback, setRejectFeedback] = useState('');
+  const [reviewerComments, setReviewerComments] = useState('');
 
   if (!isOpen || !task) return null;
 
@@ -31,7 +32,8 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
         await onSubmit(assignmentId, {
           rating,
           feedback,
-          status: 'completed'
+          status: 'completed',
+          additional_comments: reviewerComments
         });
         onClose();
       }
@@ -52,7 +54,8 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
         rating: 5, // Default high rating for acceptance
         feedback: 'Task accepted and completed successfully.',
         status: 'completed',
-        accept_reject: true
+        accept_reject: true,
+        additional_comments: reviewerComments
       });
       onClose();
     } catch (err) {
@@ -81,7 +84,8 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
         rating: 1, // Low rating for rejection
         feedback: rejectFeedback,
         status: 'completed',
-        accept_reject: false
+        accept_reject: false,
+        additional_comments: reviewerComments
       });
       setShowRejectModal(false);
       onClose();
@@ -230,12 +234,13 @@ const TaskActionModal = ({ isOpen, task, onClose, onSubmit, mode }) => {
           // Review mode - show accept/reject buttons
           <div>
             <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Review Decision
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Please review the submitted work and choose to accept or reject it.
-              </p>
+              <textarea
+                value={reviewerComments}
+                onChange={(e) => setReviewerComments(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows="4"
+                placeholder="Add any comments or feedback for the contributor..."
+              />
             </div>
 
             <div className="flex justify-end space-x-3">

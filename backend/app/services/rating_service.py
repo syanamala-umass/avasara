@@ -70,13 +70,12 @@ class RatingService:
         """
         with get_db_cursor(commit=True) as cursor:
             cursor.execute("""
-                INSERT INTO contributor_skill (user_id, skill_id, rating, num_tasks, total_score, 
-                                             confidence_constant, baseline_rating)
-                VALUES (%s, %s, %s, 0, 0.0, %s, %s)
+                INSERT INTO contributor_skill (user_id, skill_id, rating, num_tasks, baseline_rating)
+                VALUES (%s, %s, %s, 0, %s)
                 ON CONFLICT (user_id, skill_id) DO NOTHING
-            """, (user_id, skill_id, self.baseline_rating, self.confidence_constant, self.baseline_rating))
+            """, (user_id, skill_id, self.baseline_rating,  self.baseline_rating))
     
-    def update_skill_rating(self, user_id: int, skill_id: int, task_accepted: bool) -> Dict:
+    def update_task_skill_rating(self, user_id: int, skill_id: int, task_accepted: bool, related_task_id: int = None) -> Dict:
         """
         Update user's skill rating based on task outcome.
         
@@ -108,7 +107,7 @@ class RatingService:
             
             # Update totals
             new_num_tasks = current['num_tasks'] + 1
-            new_total_score = current['total_score'] + task_score
+            new_total_score = float(current['total_score']) + float(task_score)
             
             # Calculate new rating
             new_rating = self.calculate_bayesian_rating(new_total_score, new_num_tasks)
@@ -119,6 +118,13 @@ class RatingService:
                 SET rating = %s, num_tasks = %s, total_score = %s
                 WHERE user_id = %s AND skill_id = %s
             """, (new_rating, new_num_tasks, new_total_score, user_id, skill_id))
+            # Log to rating_history
+            cursor.execute("""
+                INSERT INTO rating_history (user_id, skill_id, old_rating, new_rating, change_amount, change_type, related_task_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id, skill_id, float(current['rating']), new_rating, float(new_rating) - float(current['rating']), 'task_completion', related_task_id
+            ))
             
             # Get skill name for response
             cursor.execute("SELECT name FROM skills WHERE id = %s", (skill_id,))
@@ -208,6 +214,64 @@ class RatingService:
             'confidence_constant': rating_data['confidence_constant'],
             'baseline_rating': rating_data['baseline_rating']
         }
+
+    def update_reviewer_skill_rating(self, user_id: int, skill_id: int, reviewer_skill_score: float, related_task_id: int = None) -> dict:
+        """
+        Update reviewer's skill rating for a skill based on review alignment (different scoring system).
+        Args:
+            user_id: Reviewer user ID
+            skill_id: Skill ID
+            reviewer_skill_score: Score to apply (+2 if aligned, -2 if not)
+        Returns:
+            Dict with updated rating information
+        """
+        # Initialize skill if it doesn't exist
+        self.initialize_user_skill(user_id, skill_id)
+        print(f"[ReviewerRating] user_id={user_id}, skill_id={skill_id}, reviewer_skill_score={reviewer_skill_score}, related_task_id={related_task_id}")
+        with get_db_cursor(commit=True) as cursor:
+            # Get current rating data
+            cursor.execute("""
+                SELECT rating, num_tasks, total_score, confidence_constant, baseline_rating
+                FROM contributor_skill
+                WHERE user_id = %s AND skill_id = %s
+            """, (user_id, skill_id))
+            current = cursor.fetchone()
+            if not current:
+                raise ValueError(f"No rating found for user {user_id} and skill {skill_id}")
+            # Update totals
+            new_num_tasks = current['num_tasks'] + 1
+            new_total_score = float(current['total_score']) + float(reviewer_skill_score)
+            new_rating = self.calculate_bayesian_rating(new_total_score, new_num_tasks)
+            # Clamp rating between 0 and 5
+            new_rating = max(0.0, min(5.0, new_rating))
+            print(f"[ReviewerRating] old_rating={current['rating']}, new_rating={new_rating}, num_tasks={new_num_tasks}, total_score={new_total_score}")
+            # Update database
+            cursor.execute("""
+                UPDATE contributor_skill
+                SET rating = %s, num_tasks = %s, total_score = %s
+                WHERE user_id = %s AND skill_id = %s
+            """, (new_rating, new_num_tasks, new_total_score, user_id, skill_id))
+            # Log to rating_history
+            cursor.execute("""
+                INSERT INTO rating_history (user_id, skill_id, old_rating, new_rating, change_amount, change_type, related_task_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id, skill_id, float(current['rating']), new_rating, float(new_rating) - float(current['rating']), 'review', related_task_id
+            ))
+            # Get skill name for response
+            cursor.execute("SELECT name FROM skills WHERE id = %s", (skill_id,))
+            skill_name = cursor.fetchone()['name']
+            return {
+                'user_id': user_id,
+                'skill_id': skill_id,
+                'skill_name': skill_name,
+                'old_rating': current['rating'],
+                'new_rating': new_rating,
+                'num_tasks': new_num_tasks,
+                'reviewer_skill_score': reviewer_skill_score,
+                'confidence_constant': current['confidence_constant'],
+                'baseline_rating': current['baseline_rating']
+            }
 
 # Global rating service instance
 rating_service = RatingService(confidence_constant=20, baseline_rating=2.5) 

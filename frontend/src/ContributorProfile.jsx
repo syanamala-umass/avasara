@@ -572,16 +572,15 @@ const ContributorProfile = () => {
                       </div>
                     ) : (
                       filteredUserSkills.map(skill => (
-                  <div
-                    key={skill.id}
-                          className={`flex items-center justify-between p-4 rounded-lg border ${getRatingColor(skill.rating)}`}
+                        <div
+                          key={skill.id}
+                          className={`flex items-center justify-between p-4 rounded-lg border ${getRatingColor(skill.rating)} cursor-pointer hover:bg-indigo-50 transition`}
+                          onClick={() => navigate(`/skills/${skill.id}`)}
                         >
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2">
-                              <span className="font-medium text-gray-900">{skill.name}</span>
-                              <span className="text-xs px-2 py-1 rounded-full bg-white/50 font-medium">
-                                {getRatingLabel(skill.rating)}
-                              </span>
+                              <span className="font-medium text-gray-900 underline underline-offset-2">{skill.name}</span>
+                              {/* Removed skill rating label */}
                             </div>
                             <div className="flex items-center space-x-1">
                               <Star className="h-4 w-4 fill-current" />
@@ -595,13 +594,13 @@ const ContributorProfile = () => {
                                 <span>{skill.num_tasks || 0} tasks</span>
                               </div>
                             </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(skill.id)}
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); handleRemoveSkill(skill.id); }}
                               className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
+                            >
                               <X className="h-4 w-4" />
-                    </button>
+                            </button>
                           </div>
                         </div>
                       ))

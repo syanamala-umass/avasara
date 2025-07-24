@@ -661,7 +661,7 @@ def update_user_skill_ratings_from_task_completion(
                     skill_id = skill_result['id']
                     task_accepted = performance_score >= 3.0
                     print(f"DEBUG: Updating skill rating for user {user_id}, skill_id {skill_id}, task_accepted={task_accepted}")
-                    rating_service.update_skill_rating(user_id, skill_id, task_accepted)
+                    rating_service.update_task_skill_rating(user_id, skill_id, task_accepted, related_task_id=task_id)
     except Exception as e:
         print(f"DEBUG: Exception in update_user_skill_ratings_from_task_completion: {str(e)}")
 

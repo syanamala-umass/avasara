@@ -241,11 +241,11 @@ def read_tasks(
         # Build filter conditions for both tasks and review_tasks
         filters = []
         if status:
-            filters.append(f"status = '{status}'")
+            filters.append(f"t.status = '{status}'")
         if creator_id:
             filters.append(f"user_id = {creator_id}")
         if title:
-            filters.append(f"title ILIKE '%{title}%' ")
+            filters.append(f"t.title ILIKE '%{title}%' ")
         if category and category != 'All':
             # For minimal change, just filter on category string
             filters.append(f"category = '{category}'")
@@ -278,6 +278,8 @@ def read_tasks(
 
         # Review tasks query - group by assignment to show only one review task per submission
         # Exclude review tasks where current user is the original contributor
+        # For review_sql, filter_sql may contain t.status, so we need to replace it with rt.status
+        review_filter_sql = filter_sql.replace('t.status', 'rt.status')
         review_sql = f'''
             SELECT 
                 rt.id,
@@ -300,11 +302,12 @@ def read_tasks(
                 FROM review_tasks rt
                 JOIN task_assignments ta ON rt.assignment_being_reviewed_id = ta.id
                 WHERE ta.user_id != :current_user_id
+                  AND rt.status = 'open'
                 ORDER BY rt.assignment_being_reviewed_id, rt.created_at DESC
             ) rt_distinct
             JOIN review_tasks rt ON rt.id = rt_distinct.id
             JOIN tasks t ON rt.parent_task_id = t.id
-            WHERE 1=1 {filter_sql}
+            WHERE 1=1 {review_filter_sql}
         '''
 
         # Apply task_type filter to union logic
@@ -413,17 +416,14 @@ def get_recommended_tasks(
                 models.Task.status == 'open'
             ).order_by(models.Task.created_at.desc()).limit(limit).all()
             # print(f"Found {len(tasks)} recent tasks")
-            
             # Convert to TaskWithDetails format
             result = []
             for task in tasks:
                 try:
                     # Get compensation data
                     compensation = task.compensation
-                    
                     # Format skills
                     skills = [{"id": skill.id, "name": skill.name} for skill in task.skills]
-                    
                     task_dict = {
                         "id": task.id,
                         "user_id": task.user_id,
@@ -447,7 +447,6 @@ def get_recommended_tasks(
                 except Exception as e:
                     # print(f"Error processing task {task.id}: {str(e)}")
                     continue
-            
             return result
         
         # Get skill IDs from user's skills

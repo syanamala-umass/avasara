@@ -3,6 +3,7 @@ from typing import List, Dict
 from app.services.rating_service import rating_service
 from app.routers.auth import get_current_user
 from app.schemas.user import User
+from app.database.connection import get_db_cursor
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
 
@@ -79,14 +80,14 @@ async def get_skill_rating_summary(user_id: int, skill_id: int, current_user: Us
         )
 
 @router.post("/user/{user_id}/skill/{skill_id}/update", response_model=Dict)
-async def update_skill_rating(
+async def update_task_skill_rating(
     user_id: int, 
     skill_id: int, 
     task_accepted: bool, 
     current_user: User = Depends(get_current_user)
 ):
     """
-    Update user's skill rating based on task outcome.
+    Update user's skill rating based on task outcome (task completion).
     
     Args:
         user_id: User ID
@@ -105,7 +106,7 @@ async def update_skill_rating(
                 detail="Not authorized to update this user's ratings"
             )
         
-        updated_rating = rating_service.update_skill_rating(user_id, skill_id, task_accepted)
+        updated_rating = rating_service.update_task_skill_rating(user_id, skill_id, task_accepted, related_task_id=None)
         return updated_rating
     except HTTPException:
         raise
@@ -177,7 +178,6 @@ async def get_my_skill_summaries(current_user: User = Depends(get_current_user))
     """
     try:
         # Get all user's skills first
-        from app.database.connection import get_db_cursor
         with get_db_cursor() as cursor:
             cursor.execute("SELECT id FROM skills ORDER BY name")
             skills = cursor.fetchall()
@@ -192,4 +192,25 @@ async def get_my_skill_summaries(current_user: User = Depends(get_current_user))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get your skill summaries: {str(e)}"
+        ) 
+
+@router.get("/user/{user_id}/skill/{skill_id}/history", response_model=List[Dict])
+async def get_user_skill_rating_history(user_id: int, skill_id: int, current_user: User = Depends(get_current_user)):
+    """
+    Get the full rating history for a user's skill from the rating_history table.
+    """
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT id, old_rating, new_rating, change_amount, change_type, related_task_id, created_at, notes
+                FROM rating_history
+                WHERE user_id = %s AND skill_id = %s
+                ORDER BY created_at ASC
+            """, (user_id, skill_id))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get rating history: {str(e)}"
         ) 
