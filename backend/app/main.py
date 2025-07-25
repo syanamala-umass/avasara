@@ -58,7 +58,7 @@ async def log_requests(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://avasara-frontend.onrender.com",  # Production frontend
+         # Production frontend
         "http://localhost:3000",                 # Local development
         "https://theavasara.com",
         "https://www.theavasara.com",
