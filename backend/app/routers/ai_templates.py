@@ -1,37 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List
-import sys
 import os
 import json
-from pathlib import Path
 from dotenv import load_dotenv
 import re
+from app.AI.suggestion_engine.core import generate_template, rewrite_task
+from app.AI.suggestion_engine.clients import OpenAIClient
 
-# Add the AI directory to the Python path
-ai_path = Path(__file__).resolve().parent.parent.parent.parent / "AI"
-sys.path.append(str(ai_path))
-
-print(f"[INFO] Added AI directory to Python path: {ai_path}")
-
-# Load environment variables
+# Load environment variables (if needed)
 load_dotenv()
-# Also load AI environment file
-ai_env_path = Path(__file__).resolve().parent.parent.parent.parent / "AI" / "env" / ".env"
-if ai_env_path.exists():
-    load_dotenv(ai_env_path)
-    print(f"[INFO] Loaded AI environment from: {ai_env_path}")
-else:
-    print(f"[WARNING] AI environment file not found at: {ai_env_path}")
-print("[INFO] Loaded environment variables")
 
-try:
-    from suggestion_engine.core import generate_template, rewrite_task
-    from suggestion_engine.clients import OpenAIClient
-    print("[INFO] Successfully imported AI modules")
-except ImportError as e:
-    print(f"[ERROR] Failed to import AI modules: {str(e)}")
-    raise
 
 from app.dependencies import get_current_user
 
