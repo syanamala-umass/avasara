@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus } from 'lucide-react';
-import { createTask, fetchSkills } from './api';
+import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus, RefreshCw } from 'lucide-react';
+import { createTask, fetchSkills, generateTaskDescriptionTemplate, rewriteTaskDescription } from './api';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -25,6 +25,8 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [skillSearch, setSkillSearch] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [allowSubmission, setAllowSubmission] = useState(false);
+  const [descriptionTemplate, setDescriptionTemplate] = useState('');
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
   const skillDropdownRef = useRef(null);
   const skillInputRef = useRef(null);
 
@@ -193,6 +195,79 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     }));
   };
 
+  const generateDescriptionTemplate = async () => {
+    if (!isStep1Valid()) return;
+    
+    setIsGeneratingTemplate(true);
+    try {
+      const templateData = {
+        title: formData.title,
+        category: formData.category,
+        skills: formData.skills.map(skill => skill.name)
+      };
+      
+      const response = await generateTaskDescriptionTemplate(templateData);
+      setDescriptionTemplate(response.data.template);
+      
+      // Pre-fill the description if it's empty
+      if (!formData.description.trim()) {
+        setFormData(prev => ({
+          ...prev,
+          description: response.data.template
+        }));
+      }
+    } catch (error) {
+      console.error('Error generating template:', error);
+      setError('Failed to generate description template. Please fill in the description manually.');
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
+  };
+
+  const rewriteDescription = async () => {
+    if (!formData.description.trim() || !formData.category) {
+      setError('Please provide a description and select a category first.');
+      return;
+    }
+
+    setIsGeneratingTemplate(true);
+    setError('');
+
+    try {
+      const rewriteData = {
+        description: formData.description,
+        category: formData.category
+      };
+
+      const response = await rewriteTaskDescription(rewriteData);
+      setFormData(prev => ({
+        ...prev,
+        description: response.data.rewritten_description
+      }));
+      
+      // Show success message
+      setError('');
+      setTimeout(() => {
+        setError('Description rewritten successfully!');
+        setTimeout(() => setError(''), 3000);
+      }, 100);
+    } catch (error) {
+      console.error('Error rewriting description:', error);
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          const errorMessages = error.response.data.detail.map(err => err.msg).join(', ');
+          setError(errorMessages);
+        } else {
+          setError(error.response.data.detail);
+        }
+      } else {
+        setError('Failed to rewrite description. Please try again.');
+      }
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
+  };
+
   const renderSkillLevelStars = (level) => {
     const numLevel = parseFloat(level);
     return (
@@ -245,7 +320,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     return isValid;
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     console.log("nextStep called at step:", currentStep);
     if (currentStep === 1 && !isStep1Valid()) {
       console.log("Step 1 validation failed");
@@ -259,6 +334,12 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       console.log("Step 3 validation failed");
       return;
     }
+    
+    // If moving from step 1 to step 2, generate template
+    if (currentStep === 1) {
+      await generateDescriptionTemplate();
+    }
+    
     console.log("Moving to next step from:", currentStep);
     setCurrentStep(prev => Math.min(prev + 1, 3));
   };
@@ -388,10 +469,36 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
 
   const renderStep2 = () => (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Target className="w-5 h-5 text-blue-500" />
-        <h3 className="text-lg font-semibold">Detailed Description</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-blue-500" />
+          <h3 className="text-lg font-semibold">Detailed Description</h3>
+        </div>
+        
+        <div className="flex gap-2">
+          
+          {/* Rewrite Description Button */}
+          <button
+            type="button"
+            onClick={rewriteDescription}
+            disabled={isGeneratingTemplate || !formData.description.trim() || !formData.category}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {isGeneratingTemplate ? 'Rewriting...' : 'Rewrite Description'}
+          </button>
+        </div>
       </div>
+      
+      {/* AI processing status */}
+      {isGeneratingTemplate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span className="text-blue-700 text-sm">AI is processing your description...</span>
+          </div>
+        </div>
+      )}
       
       <div>
         <label htmlFor="description" className="block text-sm font-medium text-gray-700">
@@ -407,6 +514,11 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-3 px-4 min-h-[120px]"
           placeholder="Describe the task in detail. Include goals, deliverables, expectations, and any relevant context."
         />
+        {descriptionTemplate && !isGeneratingTemplate && (
+          <p className="mt-2 text-sm text-gray-600">
+            💡 AI template generated based on your task details. Feel free to edit and customize it.
+          </p>
+        )}
       </div>
     </div>
   );

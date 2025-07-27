@@ -24,3 +24,5 @@ starlette==0.46.1
 typing_extensions==4.12.2
 uvicorn==0.34.0
 httpx>=0.23.0
+openai==1.95.1
+python-dotenv==1.1.1

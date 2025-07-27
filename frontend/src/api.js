@@ -272,3 +272,8 @@ export const cancelOverdueAssignment = async (assignmentId) => {
 
 // Fetch user's rating history for a skill
 export const fetchUserSkillRatingHistory = (userId, skillId) => api.get(`/ratings/user/${userId}/skill/${skillId}/history`);
+
+// AI Template services
+export const generateTaskDescriptionTemplate = (templateData) => api.post('/ai-templates/generate-task-description', templateData);
+
+export const rewriteTaskDescription = (rewriteData) => api.post('/ai-templates/rewrite-task-description', rewriteData);
