@@ -28,4 +28,3 @@ uvicorn==0.34.0
 gunicorn==21.2.0
 httpx>=0.23.0
 openai==1.95.1
-python-dotenv==1.1.1
