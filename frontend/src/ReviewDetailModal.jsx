@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Star } from 'lucide-react';
 import { fetchReviewTaskDetails, canUndertakeTask, submitReviewAssignment } from './api';
 import TaskActionModal from './TaskActionModal';
+import ReactMarkdown from 'react-markdown';
 
 const ReviewDetailModal = ({ 
   isOpen, 
@@ -280,9 +281,7 @@ const ReviewDetailModal = ({
       {/* Description */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</p>
-        </div>
+        <ReactMarkdown className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</ReactMarkdown>
       </div>
 
       {/* Skills Required */}

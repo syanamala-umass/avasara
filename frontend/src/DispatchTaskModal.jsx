@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus, RefreshCw } from 'lucide-react';
 import { createTask, fetchSkills, generateTaskDescriptionTemplate, rewriteTaskDescription } from './api';
+import ReactMarkdown from 'react-markdown';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -437,21 +438,18 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                   type="number"
                   min="0"
                   max="5"
-                  value={formData.skill_review_requirements[skill.name] ?? ''}
+                  value={String(formData.skill_review_requirements[skill.name] ?? '')}
                   onChange={(e) => {
                     const value = e.target.value;
                     if (value === '') {
-                      updateSkillLevelRequirement(skill.name, 1.8);
+                      updateSkillLevelRequirement(skill.name, '');
                     } else {
-                      updateSkillLevelRequirement(skill.name, parseFloat(value) || 0);
+                      updateSkillLevelRequirement(skill.name, value);
                     }
                   }}
                   className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-blue-500 w-16 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   placeholder="0.0"
                 />
-              </div>
-              <div className="text-xs text-gray-500 ml-2">
-                {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1.8)}
               </div>
               <button
                 type="button"
@@ -512,13 +510,9 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           onChange={handleChange}
           rows={8}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-3 px-4 min-h-[120px]"
-          placeholder="Describe the task in detail. Include goals, deliverables, expectations, and any relevant context."
+          placeholder="Describe the task in detail. Markdown formatting is supported!"
         />
-        {descriptionTemplate && !isGeneratingTemplate && (
-          <p className="mt-2 text-sm text-gray-600">
-            💡 AI template generated based on your task details. Feel free to edit and customize it.
-          </p>
-        )}
+        
       </div>
     </div>
   );
@@ -636,7 +630,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
             placeholder="e.g., 8"
           />
           <p className="mt-2 text-sm text-gray-600">
-            Maximum time allowed to complete this task. Late completion will result in penalties.
+            Maximum time allowed to complete this task.
           </p>
         </div>
       </div>
@@ -660,6 +654,15 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         onClick={onClose}
       ></div>
       
+      {isGeneratingTemplate && currentStep === 1 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-blue-500 mb-4"></div>
+            <span className="text-lg text-blue-700 font-semibold">Generating task template</span>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl p-10 z-10 max-h-[95vh] overflow-y-auto text-[1.15rem]">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -676,9 +679,15 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
+          error === 'Description rewritten successfully!' ? (
+            <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          ) : (
+            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )
         )}
 
         <form

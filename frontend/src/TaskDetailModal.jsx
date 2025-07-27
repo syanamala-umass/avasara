@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask } from './api';
 import TaskDurationInfo from './components/TaskDurationInfo';
+import ReactMarkdown from 'react-markdown';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -305,9 +306,7 @@ const TaskDetailModal = ({ isOpen, task = {
       {/* Description */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</p>
-        </div>
+        <ReactMarkdown className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</ReactMarkdown>
       </div>
 
       {/* Review Status - Show for contributors and task creators only for submitted tasks */}

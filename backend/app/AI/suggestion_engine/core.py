@@ -84,22 +84,18 @@ def generate_template(title: str, category: str, llm_client: LLMClient, subcateg
 
     print("[INFO] Building final markdown template")
     try:
-        # build final markdown template
-        md_template = f"# {title}\n\n"
-        md_template += f"**Category:** {category}\n"
+        # Plain text template (no Markdown)
+        md_template = f"Title: {title}\n\n"
+        md_template += f"Category: {category}\n"
         if subcategory:
-            md_template += f"**Subcategory:** {subcategory}\n"
-        
-        md_template += f"\n## Background\n"
+            md_template += f"Subcategory: {subcategory}\n"
+        md_template += f"\nBackground\n"
         md_template += f"{background if background else '(Please describe the project background and goals here.)'}\n"
-
         for heading in headings_list:
-            md_template += f"\n## {heading}\n"
+            md_template += f"\n{heading}\n"
             md_template += "(Please fill in the details here.)\n\n\n"
-        
         print(f"[INFO] Successfully generated template. Length: {len(md_template)} characters")
         print(f"[DEBUG] Generated template: {md_template}")
-        
         return md_template
         
     except Exception as e:
