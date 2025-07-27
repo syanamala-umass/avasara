@@ -1,0 +1,75 @@
+{
+    "Title": "Design a Modern Mobile App UI/UX",
+    "Brief Description": "Create a complete UI/UX design system for a fitness tracking mobile app with intuitive navigation, engaging visual design, and seamless user experience.",
+    "Category": "Design",
+    "Background": "We're developing a fitness tracking app that helps users monitor workouts, track nutrition, and achieve their fitness goals. The app needs a modern, engaging design that motivates users while being easy to navigate and use. The target audience includes fitness enthusiasts of all levels, from beginners to advanced users.",
+    "Objectives": [
+        "Create a cohesive design system and brand identity",
+        "Design intuitive user interface for all app screens",
+        "Develop engaging user experience flows",
+        "Create responsive design for different screen sizes",
+        "Design accessible and inclusive user interface"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Research and Discovery: \n - Conduct user research and create personas \n - Analyze competitor apps and identify opportunities \n - Define user journey maps and pain points \n - Create user stories and requirements \n - Establish design principles and brand guidelines"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Design System Creation: \n - Develop color palette and typography system \n - Create component library (buttons, forms, cards) \n - Design icon set and illustration style \n - Establish spacing and layout guidelines \n - Create design tokens for consistency"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Wireframing and Information Architecture: \n - Create low-fidelity wireframes for all screens \n - Design navigation structure and user flows \n - Plan information hierarchy and content organization \n - Map out user interactions and transitions \n - Validate wireframes with user testing"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "High-Fidelity Design: \n - Design detailed mockups for all app screens \n - Create interactive prototypes for key user flows \n - Design micro-interactions and animations \n - Implement accessibility features and guidelines \n - Create responsive designs for different devices"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "User Experience Optimization: \n - Conduct usability testing and gather feedback \n - Iterate designs based on user insights \n - Optimize for performance and loading times \n - Ensure cross-platform consistency \n - Create design handoff documentation"
+        }
+    ],
+    "Technical Requirements": {
+        "Design Tools": "Figma, Sketch, or Adobe XD for design creation",
+        "Prototyping": "Framer, InVision, or Figma for interactive prototypes",
+        "Design System": "Component library with design tokens",
+        "Other": [
+            "Responsive design for iOS and Android",
+            "Accessibility compliance (WCAG 2.1)",
+            "Design handoff specifications",
+            "Asset export in multiple formats",
+            "Animation and interaction guidelines"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Modern, engaging visual design",
+            "Intuitive and user-friendly interface",
+            "Consistent design system implementation",
+            "Accessible design for all users",
+            "Smooth and engaging user interactions"
+        ],
+        "Success Metrics": [
+            "User engagement and retention rates",
+            "Task completion rates in usability testing",
+            "Design consistency across all screens",
+            "Accessibility compliance score",
+            "User satisfaction and feedback scores"
+        ],
+        "Review Checklist": [
+            "All app screens are designed and complete",
+            "Design system is consistent and well-documented",
+            "User flows are intuitive and efficient",
+            "Visual design is modern and engaging",
+            "Accessibility guidelines are followed",
+            "Responsive design works on all screen sizes",
+            "Interactive prototypes demonstrate key flows",
+            "Design handoff documentation is complete",
+            "Brand guidelines are consistently applied",
+            "User testing feedback has been incorporated"
+        ]
+    }
+} 

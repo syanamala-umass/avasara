@@ -1,0 +1,63 @@
+{
+    "Title": "Professional Portrait Retouching for Corporate Headshots",
+    "Brief Description": "Retouch 50 corporate headshot portraits to achieve professional, polished appearance while maintaining natural look and authenticity.",
+    "Category": "Photo Editing",
+    "Background": "We're providing professional headshot services for corporate clients. Your retouching will enhance the portraits while maintaining authenticity and professional standards. The goal is to make subjects look their best while preserving their natural appearance.",
+    "Objectives": [
+        "Retouch 50 corporate headshot portraits",
+        "Achieve professional, polished appearance",
+        "Maintain natural look and authenticity",
+        "Ensure consistent quality across all images"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Skin Retouching: \n - Remove blemishes, acne, and temporary skin imperfections \n - Smooth skin texture while preserving natural pores and features \n - Even out skin tone and reduce redness \n - DO NOT remove moles, freckles, or permanent features \n - Maintain natural skin texture and avoid over-smoothing"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Eye Enhancement: \n - Brighten and enhance eye whites naturally \n - Sharpen eyelashes and eyebrows \n - Remove under-eye circles and bags \n - Enhance eye color subtly \n - Ensure eyes remain natural and engaging"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Hair and Beard: \n - Clean up stray hairs and flyaways \n - Enhance hair texture and shine \n - Tame unruly hair while maintaining natural flow \n - Groom beards and mustaches professionally \n - Maintain natural hair color and texture"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Color Correction: \n - Adjust white balance for natural skin tones \n - Enhance overall color harmony \n - Ensure consistent lighting across face \n - Maintain professional color palette"
+        }
+    ],
+    "Technical Requirements": {
+        "Tool": "Use Adobe Photoshop or equivalent professional software",
+        "Format": "Save in both PSD (layered) and high-quality JPEG formats",
+        "Other": [
+            "Work in 16-bit color depth",
+            "Maintain original file resolution (minimum 300 DPI)",
+            "Use non-destructive editing techniques"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Natural, professional appearance",
+            "Consistent retouching quality across all images",
+            "Preservation of subject's authentic features",
+            "Professional color and lighting balance"
+        ],
+        "Success Metrics": [
+            "Complete all 50 portraits within time limit",
+            "Maintain >95% client satisfaction rate",
+            "Consistent quality across all images",
+            "Professional appearance standards met"
+        ],
+        "Review Checklist": [
+            "Skin retouching is natural and professional",
+            "Eyes are enhanced without being artificial",
+            "Hair and beard are groomed professionally",
+            "Color correction is accurate and natural",
+            "No over-retouching or artificial appearance",
+            "Consistent quality across all images",
+            "Original features and character preserved",
+            "Professional lighting and color balance achieved"
+        ]
+    }
+}

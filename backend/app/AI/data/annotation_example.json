@@ -1,0 +1,66 @@
+{
+    "Title": "Annotate Traffic Images with Vehicle Bounding Boxes",
+    "Brief Description": "Draw bounding boxes around all vehicles (cars, trucks, motorcycles, buses) in traffic surveillance images to train autonomous driving systems.",
+    "Category": "Annotation",
+    "Subcategory": "Object Detection",
+    "Class Descriptions": {
+        "CAR": ["Sedans", "SUVs", "Hatchbacks", "Sports cars"],
+        "TRUCK": ["Pickup trucks", "Delivery trucks", "Semi-trucks"],
+        "MOTORCYCLE": ["Motorcycles", "Scooters", "Mopeds"],
+        "BUS": ["City buses", "School buses", "Coaches"]
+    },
+    "Background": "We're developing computer vision systems for autonomous vehicles and traffic monitoring. Your annotations will help train AI models to accurately detect and classify vehicles in real-world traffic scenarios.",
+    "Objectives": [
+        "Draw precise bounding boxes around all vehicles in 100 traffic images",
+        "Classify each vehicle by type (car, truck, motorcycle, bus)",
+        "Ensure complete coverage of all visible vehicles",
+        "Maintain consistent annotation quality"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Examine each image carefully to identify all vehicles"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "For each vehicle, draw a bounding box that: \n 1. Completely encloses the vehicle \n 2. Follows the vehicle's orientation \n 3. Includes the entire vehicle (no parts cut off) \n 4. Is as tight as possible around the vehicle"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Classify each vehicle using the provided categories: CAR, TRUCK, MOTORCYCLE, BUS"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Handle overlapping vehicles by drawing separate boxes"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "Include partially visible vehicles if more than 50% is visible"
+        }
+    ],
+    "Technical Requirements": {
+        "Tool": "Use the provided annotation tool (LabelImg, CVAT, or similar)",
+        "Format": "Save annotations in YOLO format (.txt files).",
+        "Other": [
+            "Complete all 100 images in the dataset",
+            "Maintain consistent box quality throughout"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "All vehicles properly bounded with accurate boxes",
+            "Correct vehicle classification for each box",
+            "Consistent box quality across all images",
+            "Proper handling of overlapping and occluded vehicles"
+        ],
+        "Review Checklist": [
+            "All visible vehicles have bounding boxes",
+            "Boxes completely enclose vehicles without gaps",
+            "Vehicle classifications are accurate",
+            "Overlapping vehicles handled properly",
+            "Partially visible vehicles appropriately included/excluded",
+            "Box quality is consistent across all images",
+            "No duplicate or missing annotations"
+        ]
+    }
+}

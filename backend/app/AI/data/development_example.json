@@ -1,0 +1,75 @@
+{
+    "Title": "Build a React E-commerce Dashboard",
+    "Brief Description": "Develop a comprehensive admin dashboard for an e-commerce platform using React, Node.js, and MongoDB with real-time analytics and order management.",
+    "Category": "Development",
+    "Background": "We're building a modern e-commerce platform that needs a powerful admin dashboard for store owners to manage products, orders, customers, and view analytics. The dashboard should be responsive, user-friendly, and provide real-time insights into business performance.",
+    "Objectives": [
+        "Create a responsive React admin dashboard",
+        "Implement real-time order management system",
+        "Build comprehensive analytics and reporting",
+        "Develop secure user authentication and authorization",
+        "Create product and inventory management interface"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Project Setup and Architecture: \n - Set up React project with TypeScript \n - Configure routing with React Router \n - Set up state management with Redux Toolkit \n - Configure build tools (Webpack/Vite) \n - Set up ESLint and Prettier for code quality"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Authentication System: \n - Implement JWT-based authentication \n - Create login/logout functionality \n - Set up role-based access control (Admin, Manager, Staff) \n - Implement password reset functionality \n - Add session management and security"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Dashboard Layout and Navigation: \n - Design responsive sidebar navigation \n - Create header with user profile and notifications \n - Implement breadcrumb navigation \n - Design main content area with grid layout \n - Add mobile-responsive design"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Analytics and Reporting: \n - Create sales analytics dashboard with charts \n - Implement real-time order tracking \n - Build customer analytics and insights \n - Create inventory and stock reports \n - Add export functionality for reports"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "Order Management System: \n - Build order listing with filtering and search \n - Create detailed order view and editing \n - Implement order status updates \n - Add order fulfillment tracking \n - Create customer communication system"
+        }
+    ],
+    "Technical Requirements": {
+        "Frontend": "React 18+, TypeScript, Redux Toolkit, React Router, Material-UI or Tailwind CSS",
+        "Backend": "Node.js, Express.js, MongoDB, JWT authentication",
+        "APIs": "RESTful API design, WebSocket for real-time updates",
+        "Other": [
+            "Responsive design for mobile and desktop",
+            "Progressive Web App (PWA) features",
+            "Real-time notifications",
+            "Data visualization with Chart.js or D3.js",
+            "File upload and image management"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Clean, maintainable code with TypeScript",
+            "Responsive design that works on all devices",
+            "Fast loading times and optimized performance",
+            "Secure authentication and data handling",
+            "Comprehensive error handling and user feedback"
+        ],
+        "Success Metrics": [
+            "Dashboard loads in under 3 seconds",
+            "All CRUD operations work seamlessly",
+            "Real-time updates function properly",
+            "Mobile responsiveness score > 90",
+            "Zero critical security vulnerabilities"
+        ],
+        "Review Checklist": [
+            "All features implemented as specified",
+            "Code follows best practices and conventions",
+            "Proper error handling and validation",
+            "Responsive design works on all screen sizes",
+            "Authentication and authorization work correctly",
+            "Real-time features function properly",
+            "Performance meets requirements",
+            "Security measures are properly implemented",
+            "Documentation is complete and clear",
+            "Testing coverage is adequate"
+        ]
+    }
+} 

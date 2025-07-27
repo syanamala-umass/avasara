@@ -1,0 +1,75 @@
+{
+    "Title": "Code Review and Quality Assurance",
+    "Brief Description": "Conduct comprehensive code review and quality assurance for a React-based web application, ensuring code quality, security, performance, and maintainability standards.",
+    "Category": "Review",
+    "Background": "We have a React web application that has been developed and is ready for production deployment. Before launching, we need a thorough code review to ensure the code meets industry standards, follows best practices, is secure, performant, and maintainable. The review should identify potential issues and provide recommendations for improvements.",
+    "Objectives": [
+        "Ensure code quality and adherence to best practices",
+        "Identify and fix security vulnerabilities",
+        "Optimize performance and user experience",
+        "Verify code maintainability and documentation",
+        "Ensure accessibility and cross-browser compatibility"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Code Structure and Architecture Review: \n - Review overall project structure and organization \n - Analyze component architecture and design patterns \n - Check for proper separation of concerns \n - Review file naming conventions and organization \n - Assess code modularity and reusability"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Code Quality and Best Practices: \n - Review code for readability and maintainability \n - Check adherence to coding standards and conventions \n - Analyze variable naming and function structure \n - Review error handling and edge cases \n - Assess code complexity and potential refactoring needs"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Security and Performance Review: \n - Identify potential security vulnerabilities \n - Review authentication and authorization logic \n - Check for SQL injection and XSS vulnerabilities \n - Analyze performance bottlenecks and optimization opportunities \n - Review API security and data validation"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Testing and Documentation Review: \n - Review test coverage and test quality \n - Check for unit tests, integration tests, and e2e tests \n - Assess documentation completeness and clarity \n - Review README files and API documentation \n - Verify deployment and setup instructions"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "User Experience and Accessibility: \n - Review UI/UX consistency and usability \n - Check accessibility compliance (WCAG guidelines) \n - Test cross-browser compatibility \n - Review responsive design implementation \n - Assess error messages and user feedback"
+        }
+    ],
+    "Technical Requirements": {
+        "Review Tools": "ESLint, Prettier, SonarQube, security scanning tools",
+        "Testing": "Jest, React Testing Library, Cypress for e2e testing",
+        "Documentation": "JSDoc, Storybook, README documentation",
+        "Other": [
+            "Code coverage analysis tools",
+            "Performance profiling and monitoring",
+            "Security vulnerability scanning",
+            "Accessibility testing tools",
+            "Cross-browser testing platforms"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Clean, readable, and maintainable code",
+            "Comprehensive test coverage (>80%)",
+            "Security best practices implementation",
+            "Performance optimization and optimization",
+            "Accessibility compliance and user experience"
+        ],
+        "Success Metrics": [
+            "Zero critical security vulnerabilities",
+            "Code coverage > 80%",
+            "Performance score > 90 (Lighthouse)",
+            "Accessibility score > 95",
+            "All identified issues resolved or documented"
+        ],
+        "Review Checklist": [
+            "Code follows established coding standards",
+            "All security vulnerabilities are identified and addressed",
+            "Performance bottlenecks are identified and optimized",
+            "Test coverage is comprehensive and tests are meaningful",
+            "Documentation is complete and up-to-date",
+            "Accessibility guidelines are followed",
+            "Cross-browser compatibility is verified",
+            "Error handling is robust and user-friendly",
+            "Code is modular and maintainable",
+            "Deployment process is documented and tested"
+        ]
+    }
+} 
