@@ -1,0 +1,505 @@
+[ 
+    {
+        "Title": "Image Annotation",
+        "Brief Description": "Draw boxes around vehicles.",
+        "Category": "Annotation",
+        "Subcategory": "Object Detection",
+        "Class Descriptions": {
+            "CAR": [],
+            "TRUCK": [],
+            "MOTORCYCLE": [],
+            "BUS": []
+        },
+        "Background": "This is for a project.",
+        "Objectives": [
+            "Annotate the images",
+            "Be accurate"
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Look at the pictures."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Draw boxes."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Label the boxes."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Handle overlapping objects."
+            },
+            {
+                "stepNumber": "5",
+                "instruction": "Do not exclude partially visible objects."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "",
+            "Format": "standard",
+            "Other": [
+                "Complete all the images."
+            ]
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Good boxes",
+                "Correct labels"
+            ],
+            "Review Checklist": [
+                "Boxes should be present correctly",
+                "Labels should be correct"
+            ]
+        }
+    },
+    {
+        "Title": "Edit Photos",
+        "Brief Description": "Make these photos look better.",
+        "Category": "Photo Editing",
+        "Background": "We need these for our website.",
+        "Objectives": [
+            "Edit all the pictures",
+            "Make them look professional",
+            "Keep them looking real"
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Fix the skin."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Make the eyes better."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Clean up the hair."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Adjust the colors."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Photoshop",
+            "Format": "Send JPEGs.",
+            "Other": [
+                "Keep the files high quality."
+            ]
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Looks good",
+                "Not fake"
+            ],
+            "Success Metrics": [
+                "Get them done on time",
+                "Clients should like them"
+            ],
+            "Review Checklist": [
+                "Skin should be fixed",
+                "Eyes should look good",
+                "Hair should be neat",
+                "Color should be okay"
+            ]
+        }
+    },
+    {
+        "Title": "Real Estate Photos",
+        "Brief Description": "Edit the house pictures.",
+        "Category": "Photo Editing",
+        "Background": "Need these for a Zillow listing.",
+        "Objectives": [
+            "Make the house look good",
+            "Brighten them up"
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Fix the lighting on all photos."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Make the colors pop."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Make the grass look green."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Any",
+            "Format": "JPEG",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Looks professional"
+            ],
+            "Success Metrics": [],
+            "Review Checklist": [
+                "Are they bright?",
+                "Do they look good?"
+            ]
+        }
+    },
+    {
+        "Title": "Transcribe Podcast Interviews",
+        "Brief Description": "Create a word-for-word text transcript of podcast audio files.",
+        "Category": "Annotation",
+        "Subcategory": "Transcription",
+        "Class Descriptions": {},
+        "Background": "We are making our podcast episodes accessible and searchable by providing text transcripts.",
+        "Objectives": [
+            "Transcribe 10 hours of audio.",
+            "Achieve >98% accuracy.",
+            "Identify different speakers."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Listen to the audio and type what is said."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Do not correct grammar, transcribe verbatim (e.g., include 'um', 'uh')."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Prefix each new speaker's dialogue with '[SPEAKER 1]', '[SPEAKER 2]', etc."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Use '[MUSIC]' or '[LAUGHTER]' for non-speech sounds."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Any text editor",
+            "Format": "Plain text (.txt) file",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Transcript must be accurate.",
+                "All speakers must be identified."
+            ],
+            "Review Checklist": [
+                "Does the text match the audio?",
+                "Are speakers labeled?"
+            ]
+        }
+    },
+    {
+        "Title": "Retouch Watch Photos for E-commerce",
+        "Brief Description": "Retouch photos of our new watch model for an online store.",
+        "Category": "Photo Editing",
+        "Background": "We are launching a new product and need clean, professional images for our Shopify store.",
+        "Objectives": [
+            "Retouch 15 product photos",
+            "Remove dust and fingerprints",
+            "Ensure consistent lighting"
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Clean up the background to be pure white (#FFFFFF)."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Remove any small scratches, dust, or smudges from the watch surface."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Enhance reflections on the metal and crystal to make it look sharp."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Correct colors to match the real product."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Adobe Photoshop",
+            "Format": "PNG with transparent background",
+            "Other": [
+                "Final image size should be 2048x2048."
+            ]
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Product looks realistic",
+                "Background is pure white"
+            ],
+            "Success Metrics": [],
+            "Review Checklist": [
+                "Is the background gone?",
+                "Are smudges removed?",
+                "Does it look shiny?"
+            ]
+        }
+    },
+    {
+        "Title": "Tumor Segmentation in MRI Scans",
+        "Brief Description": "Delineate tumor boundaries in a dataset of brain MRIs.",
+        "Category": "Annotation",
+        "Subcategory": "Image Segmentation",
+        "Class Descriptions": {
+            "TUMOR": ["Glioblastoma multiforme regions"],
+            "EDEMA": ["Peritumoral edematous tissue"]
+        },
+        "Background": "Data is for training a new deep learning model for automated oncological analysis.",
+        "Objectives": [
+            "Segment all specified tissues in 300 MRI slices.",
+            "Ensure high fidelity to the ground truth."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Load each DICOM file."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "On the T2-FLAIR sequence, create a polygonal mask for the edema class. Similarly for ependymomas."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "On the T1-Gd sequence, create a mask for oligodendrogliomas and glioblastomas."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Ensure Dice score would be > 0.9 on review."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "ITK-SNAP or 3D Slicer",
+            "Format": "NIfTI (.nii.gz)",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Masks must be voxel-perfect.",
+                "Correct class assignment per sequence."
+            ],
+            "Review Checklist": [
+                "Is the edema mask correct?",
+                "Is the tumor mask correct?"
+            ]
+        }
+    },
+    {
+        "Title": "School Photos",
+        "Brief Description": "Edit the student pictures from picture day.",
+        "Category": "Photo Editing",
+        "Background": "Annual school photos for parents to purchase.",
+        "Objectives": [
+            "Make all the kids look their best."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Remove pimples."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Whiten teeth if they are yellow."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Fix messy hair."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Photoshop",
+            "Format": "JPEG",
+            "Other": [
+                "Need them back quickly."
+            ]
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Parents should be happy with the photos."
+            ],
+            "Success Metrics": [
+                "High purchase rate"
+            ],
+            "Review Checklist": [
+                "Does the student look good?"
+            ]
+        }
+    },
+    {
+        "Title": "Color Grading for 'Urban Grit' Ad Campaign",
+        "Brief Description": "Apply a stylistic color grade to a series of photos for a new fashion ad campaign.",
+        "Category": "Photo Editing",
+        "Background": "The campaign is called 'Urban Grit' and needs a consistent, moody aesthetic.",
+        "Objectives": [
+            "Color grade 25 images.",
+            "Create a cinematic, desaturated look.",
+            "Ensure consistency across the set."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Apply the provided LUT as a base."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Crush the blacks and lift the gamma slightly."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Introduce a cyan shift in the midtones and warmth in the highlights."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "Add a subtle vignetting and film grain effect."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Photoshop or Lightroom Classic",
+            "Format": "High-res TIFF",
+            "Other": [
+                "Work in ProPhoto RGB color space."
+            ]
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "The mood should match the 'Urban Grit' theme.",
+                "Color grade must be consistent."
+            ],
+            "Success Metrics": [],
+            "Review Checklist": [
+                "Is the LUT applied?",
+                "Are the color shifts correct?",
+                "Is there grain?"
+            ]
+        }
+    },
+    {
+        "Title": "Summarize Legal Docs",
+        "Brief Description": "Read legal contracts and summarize them.",
+        "Category": "Annotation",
+        "Subcategory": "Text Summarization",
+        "Class Descriptions": {},
+        "Background": "We have too many documents and need short versions.",
+        "Objectives": [
+            "Summarize 50 contracts.",
+            "Pull out the important parts."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Read the document."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Write a summary."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Text editor",
+            "Format": "Text file",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Summary should be good."
+            ],
+            "Review Checklist": [
+                "Is the summary done?"
+            ]
+        }
+    },
+    {
+        "Title": "Emotion Tagging for Call Center Audio",
+        "Brief Description": "Listen to audio clips from a call center and tag the primary emotion.",
+        "Category": "Annotation",
+        "Subcategory": "Audio Classification",
+        "Class Descriptions": {
+            "HAPPY": [],
+            "ANGRY": [],
+            "SAD": [],
+            "NEUTRAL": []
+        },
+        "Background": "We are training a model to understand customer sentiment from phone calls.",
+        "Objectives": [
+            "Tag 500 audio clips.",
+            "Assign one emotion per clip."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Listen to the entire audio clip."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Determine the most dominant emotion of the primary speaker."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Assign one tag: HAPPY, ANGRY, SAD, or NEUTRAL."
+            },
+            {
+                "stepNumber": "4",
+                "instruction": "If you cannot determine the emotion, tag it as UNKNOWN."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Audacity or provided web tool",
+            "Format": "CSV file with filename and emotion tag",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Tag should reflect the overall tone of the clip."
+            ],
+            "Review Checklist": [
+                "Has every file been tagged?"
+            ]
+        }
+    },
+    {
+        "Title": "Find Faces in Videos",
+        "Brief Description": "Go through videos and identify when a person appears.",
+        "Category": "Annotation",
+        "Subcategory": "Object Tracking",
+        "Class Descriptions": {
+            "PERSON_A": [],
+            "PERSON_B": [],
+            "UNKNOWN": []
+        },
+        "Background": "Security project.",
+        "Objectives": [
+            "Track people across video frames."
+        ],
+        "Step-by-Step Instructions": [
+            {
+                "stepNumber": "1",
+                "instruction": "Watch the video."
+            },
+            {
+                "stepNumber": "2",
+                "instruction": "Draw a box around the faces of Person A and Person B."
+            },
+            {
+                "stepNumber": "3",
+                "instruction": "Give each box a unique ID that stays the same for the whole video."
+            }
+        ],
+        "Technical Requirements": {
+            "Tool": "Any video annotation tool",
+            "Format": "XML",
+            "Other": []
+        },
+        "Evaluation Criteria": {
+            "Quality Standards": [
+                "Don't miss any appearances."
+            ],
+            "Review Checklist": [
+                "Are the people tagged?"
+            ]
+        }
+    }
+]

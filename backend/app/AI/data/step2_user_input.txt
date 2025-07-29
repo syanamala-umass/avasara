@@ -1,0 +1,26 @@
+# Annotate my MRI Scans
+
+**Category:** Annotation
+**Subcategory:** Image Segmentation
+
+## Background
+This is for a research project on medical AI.
+
+## Class Descriptions
+- TUMOR
+- EDEMA
+
+## Objectives
+- Segment the tumors
+- Be accurate
+
+## Step-by-Step Instructions
+- Look at the DICOM files.
+- Draw masks for the tumor and the swelling around it.
+
+## Technical Requirements
+- Use a good tool for this.
+- Save as NIfTI files.
+
+## Evaluation Criteria
+- The masks should be good.

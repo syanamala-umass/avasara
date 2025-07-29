@@ -1,0 +1,75 @@
+{
+    "Title": "Market Research for SaaS Product Launch",
+    "Brief Description": "Conduct comprehensive market research to validate product-market fit for a new project management SaaS tool targeting small to medium businesses.",
+    "Category": "Research",
+    "Background": "We're developing a new project management SaaS tool designed specifically for small to medium businesses (SMBs). Before launching, we need to validate the product-market fit, understand customer needs, analyze competitors, and identify the best go-to-market strategy. The research should provide actionable insights to guide product development and marketing decisions.",
+    "Objectives": [
+        "Validate product-market fit and customer demand",
+        "Identify target customer segments and personas",
+        "Analyze competitive landscape and market positioning",
+        "Understand customer pain points and needs",
+        "Develop pricing strategy and go-to-market recommendations"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Research Planning and Methodology: \n - Define research objectives and key questions \n - Identify target audience and sampling strategy \n - Choose research methods (surveys, interviews, focus groups) \n - Create research timeline and budget \n - Develop data collection and analysis framework"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Secondary Research and Market Analysis: \n - Analyze industry reports and market data \n - Research competitor products and positioning \n - Study market trends and growth projections \n - Review pricing strategies in the market \n - Identify market gaps and opportunities"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Primary Research - Customer Interviews: \n - Conduct 20-30 customer interviews with target users \n - Use structured interview guide with open-ended questions \n - Record and transcribe interviews for analysis \n - Identify common pain points and needs \n - Gather feedback on product concept and features"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Survey Research and Data Collection: \n - Design and distribute online survey to 500+ respondents \n - Include questions about current tools, pain points, and preferences \n - Collect demographic and firmographic data \n - Analyze survey responses and identify patterns \n - Validate findings from interviews"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "Data Analysis and Insights Development: \n - Analyze qualitative and quantitative data \n - Create customer personas and journey maps \n - Identify key insights and actionable recommendations \n - Develop competitive positioning strategy \n - Create comprehensive research report"
+        }
+    ],
+    "Technical Requirements": {
+        "Research Tools": "Survey platforms (SurveyMonkey, Typeform), Interview recording tools",
+        "Data Analysis": "Excel, SPSS, or R for statistical analysis",
+        "Reporting": "PowerPoint, Google Slides for presentation",
+        "Other": [
+            "Customer interview scheduling and management",
+            "Data visualization and chart creation",
+            "Competitive analysis framework",
+            "Statistical analysis and significance testing",
+            "Professional report formatting and presentation"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Methodologically sound research design",
+            "Comprehensive data collection and analysis",
+            "Clear and actionable insights",
+            "Professional presentation and documentation",
+            "Ethical research practices and data privacy"
+        ],
+        "Success Metrics": [
+            "Minimum 20 customer interviews completed",
+            "Survey response rate > 15%",
+            "Clear product-market fit validation",
+            "Comprehensive competitive analysis",
+            "Actionable go-to-market recommendations"
+        ],
+        "Review Checklist": [
+            "Research methodology is sound and appropriate",
+            "Sample size is adequate for statistical significance",
+            "Data collection methods are ethical and compliant",
+            "Analysis is thorough and unbiased",
+            "Insights are clear and actionable",
+            "Competitive analysis is comprehensive",
+            "Customer personas are well-defined",
+            "Recommendations are specific and implementable",
+            "Report is professionally formatted and presented",
+            "All research objectives have been addressed"
+        ]
+    }
+} 

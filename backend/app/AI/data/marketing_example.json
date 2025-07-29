@@ -1,0 +1,75 @@
+{
+    "Title": "Digital Marketing Campaign for Product Launch",
+    "Brief Description": "Develop and execute a comprehensive digital marketing campaign to launch a new mobile app, including social media, content marketing, influencer partnerships, and paid advertising.",
+    "Category": "Marketing",
+    "Background": "We're launching a new productivity mobile app targeting young professionals and entrepreneurs. The campaign needs to create buzz, drive app downloads, and establish brand awareness in a competitive market. The target audience is tech-savvy professionals aged 25-40 who value efficiency and work-life balance.",
+    "Objectives": [
+        "Achieve 10,000 app downloads in the first month",
+        "Build brand awareness and social media presence",
+        "Generate 500+ qualified leads for enterprise version",
+        "Establish thought leadership in productivity space",
+        "Create engaging content that drives user engagement"
+    ],
+    "Step-by-Step Instructions": [
+        {
+            "stepNumber": "1",
+            "instruction": "Campaign Strategy and Planning: \n - Define target audience personas and segments \n - Set campaign goals, KPIs, and success metrics \n - Develop brand messaging and value propositions \n - Create campaign timeline and budget allocation \n - Plan multi-channel marketing approach"
+        },
+        {
+            "stepNumber": "2",
+            "instruction": "Content Marketing and SEO: \n - Create blog content about productivity tips and trends \n - Develop video content for YouTube and social media \n - Write guest posts for industry publications \n - Optimize website and app store listings for SEO \n - Create downloadable resources and lead magnets"
+        },
+        {
+            "stepNumber": "3",
+            "instruction": "Social Media Marketing: \n - Develop social media content calendar for all platforms \n - Create engaging posts for LinkedIn, Twitter, Instagram \n - Run social media contests and giveaways \n - Engage with industry influencers and thought leaders \n - Monitor and respond to social media mentions"
+        },
+        {
+            "stepNumber": "4",
+            "instruction": "Paid Advertising and Influencer Marketing: \n - Set up Google Ads and Facebook/Instagram ads \n - Create targeted ad campaigns for different audiences \n - Partner with relevant influencers and micro-influencers \n - Run sponsored content and product placement \n - Optimize ad performance and budget allocation"
+        },
+        {
+            "stepNumber": "5",
+            "instruction": "Email Marketing and Lead Nurturing: \n - Build email list through website and social media \n - Create email sequences for different user segments \n - Develop lead nurturing campaigns \n - Set up marketing automation workflows \n - Track email performance and optimize campaigns"
+        }
+    ],
+    "Technical Requirements": {
+        "Marketing Tools": "HubSpot, Mailchimp, Hootsuite, Google Analytics, Facebook Ads Manager",
+        "Content Creation": "Canva, Adobe Creative Suite, video editing software",
+        "Analytics": "Google Analytics, social media analytics, conversion tracking",
+        "Other": [
+            "Email marketing platform and automation",
+            "Social media management tools",
+            "Ad campaign management and optimization",
+            "Content management system (CMS)",
+            "Customer relationship management (CRM)"
+        ]
+    },
+    "Evaluation Criteria": {
+        "Quality Standards": [
+            "Professional and engaging content creation",
+            "Strategic campaign planning and execution",
+            "Data-driven decision making and optimization",
+            "Consistent brand messaging across channels",
+            "Effective audience targeting and segmentation"
+        ],
+        "Success Metrics": [
+            "10,000 app downloads in first month",
+            "500+ qualified leads generated",
+            "50% increase in social media followers",
+            "25% email open rate and 5% click-through rate",
+            "Positive ROI on paid advertising campaigns"
+        ],
+        "Review Checklist": [
+            "Campaign strategy is comprehensive and well-planned",
+            "Content is engaging and aligned with brand voice",
+            "Social media presence is active and growing",
+            "Paid advertising campaigns are optimized and performing",
+            "Email marketing sequences are automated and effective",
+            "Analytics and tracking are properly implemented",
+            "Brand messaging is consistent across all channels",
+            "Target audience is clearly defined and reached",
+            "Campaign budget is managed effectively",
+            "All campaign objectives are being met or exceeded"
+        ]
+    }
+} 
