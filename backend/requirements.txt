@@ -27,7 +27,6 @@ typing_extensions==4.12.2
 uvicorn==0.34.0
 gunicorn==21.2.0
 httpx>=0.23.0
-<<<<<<< HEAD
-=======
+
 openai==1.95.1
->>>>>>> 29211951d769e31797b4368958ca7c7c2797318b
+
