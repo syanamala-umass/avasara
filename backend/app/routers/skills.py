@@ -12,8 +12,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-<<<<<<< HEAD
-=======
+
 def to_camel_case(s):
     s = s.strip()
     if not s:
@@ -21,7 +20,7 @@ def to_camel_case(s):
     parts = s.split()
     return parts[0].lower() + ''.join(word.capitalize() for word in parts[1:])
 
->>>>>>> 29211951d769e31797b4368958ca7c7c2797318b
+
 @router.get("/", response_model=List[Skill])
 def read_skills(db: Session = Depends(get_db)):
     """Get all skills"""
@@ -88,11 +87,10 @@ def create_skill(skill: SkillCreate, db: Session = Depends(get_db)):
     # Ensure category is set
     if not skill_data.get('category'):
         skill_data['category'] = 'Other'
-<<<<<<< HEAD
-=======
+
     # Enforce camel casing for skill name
     skill_data['name'] = to_camel_case(skill_data['name'])
->>>>>>> 29211951d769e31797b4368958ca7c7c2797318b
+
     db_skill = models.Skill(**skill_data)
     db.add(db_skill)
     db.commit()
