@@ -84,10 +84,9 @@ app.include_router(oauth.router)
 app.include_router(onboarding.router)
 app.include_router(rating.router)
 app.include_router(review_tasks.router)
-<<<<<<< HEAD
-=======
+
 app.include_router(ai_templates.router)
->>>>>>> 29211951d769e31797b4368958ca7c7c2797318b
+
 
 @app.get("/")
 async def root():
