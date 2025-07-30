@@ -4,11 +4,9 @@ import logging
 import time
 import sys
 
-<<<<<<< HEAD
-from app.routers import auth, startups, tasks, task_assignment, reviews, skills, landing_page, peer_evaluation, users, oauth, onboarding, rating, review_tasks
-=======
+
 from app.routers import auth, startups, tasks, task_assignment, reviews, skills, landing_page, peer_evaluation, users, oauth, onboarding, rating, review_tasks, ai_templates
->>>>>>> 29211951d769e31797b4368958ca7c7c2797318b
+
 from app.database import engine, Base
 from app import models
 
