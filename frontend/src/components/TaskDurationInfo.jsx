@@ -158,7 +158,7 @@ const TaskDurationInfo = ({ assignmentId, task, onAssignmentCancelled }) => {
   const timeRemaining = getTimeRemaining();
 
   return (
-    <div className="bg-white border rounded-lg p-4 space-y-4">
+    <div className="bg-white border rounded-lg p-3 sm:p-4 space-y-4 w-full max-w-full sm:max-w-lg mx-1 sm:mx-0">
       <div className="flex items-center gap-2">
         <Clock className="w-5 h-5 text-blue-500" />
         <h3 className="text-lg font-semibold text-gray-800">Duration Information</h3>
@@ -277,7 +277,7 @@ const TaskDurationInfo = ({ assignmentId, task, onAssignmentCancelled }) => {
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-full sm:max-w-md w-full mx-2 sm:mx-4">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="h-6 w-6 text-orange-500" />
               <h3 className="text-lg font-semibold text-gray-900">Confirm Cancellation</h3>

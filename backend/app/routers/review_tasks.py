@@ -758,7 +758,9 @@ def check_and_aggregate_reviews(cursor, assignment_id: int):
                             if skill_result:
                                 skill_id = skill_result['id']
                                 # Use a different scoring system for reviewer skill: +2 if aligned, -2 if not
+
                                 reviewer_skill_score = 6.0 if aligned else -6.0
+
                                 print(f"DEBUG: About to call update_reviewer_skill_rating: reviewer_id={reviewer_id}, skill_id={skill_id}, reviewer_skill_score={reviewer_skill_score}, assignment_id={assignment_id}, aligned={aligned}")
                                 result = rating_service.update_reviewer_skill_rating(reviewer_id, skill_id, reviewer_skill_score, related_task_id=assignment_id)
                                 print(f"DEBUG: update_reviewer_skill_rating result: {result}")

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Star } from 'lucide-react';
 import { fetchReviewTaskDetails, canUndertakeTask, submitReviewAssignment } from './api';
 import TaskActionModal from './TaskActionModal';
-import ReactMarkdown from 'react-markdown';
 
 const ReviewDetailModal = ({ 
   isOpen, 

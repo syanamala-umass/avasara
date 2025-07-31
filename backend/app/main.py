@@ -4,7 +4,9 @@ import logging
 import time
 import sys
 
+
 from app.routers import auth, startups, tasks, task_assignment, reviews, skills, landing_page, peer_evaluation, users, oauth, onboarding, rating, review_tasks, ai_templates
+
 from app.database import engine, Base
 from app import models
 
@@ -82,7 +84,9 @@ app.include_router(oauth.router)
 app.include_router(onboarding.router)
 app.include_router(rating.router)
 app.include_router(review_tasks.router)
+
 app.include_router(ai_templates.router)
+
 
 @app.get("/")
 async def root():
