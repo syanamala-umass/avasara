@@ -9,6 +9,7 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSkillsModal, setShowSkillsModal] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -185,6 +186,17 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div className="flex justify-between items-center">
+              <button
+                type="button"
+                className="text-blue-600 hover:underline text-sm"
+                onClick={() => setShowForgotPassword(true)}
+              >
+                Forgot Password?
+              </button>
+            </div>
+
             {/* Login Button */}
             <button
               type="submit"
@@ -294,6 +306,22 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
         onClose={handleSkillsModalClose}
         onComplete={handleSkillsModalComplete}
       />
+
+      {/* Placeholder for forgot password modal/page */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
+            <h2 className="text-xl font-bold mb-4">Reset Password</h2>
+            <p className="mb-4">Password reset functionality coming soon.</p>
+            <button
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

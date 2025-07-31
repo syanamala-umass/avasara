@@ -281,7 +281,9 @@ const ReviewDetailModal = ({
       {/* Description */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-        <ReactMarkdown className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</ReactMarkdown>
+        <div className="text-sm text-gray-900 whitespace-pre-wrap">
+          <ReactMarkdown>{task.description}</ReactMarkdown>
+        </div>
       </div>
 
       {/* Skills Required */}

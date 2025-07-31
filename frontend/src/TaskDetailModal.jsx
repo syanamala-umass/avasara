@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
-import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask } from './api';
+import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask, fetchUserSkills } from './api';
 import TaskDurationInfo from './components/TaskDurationInfo';
 import ReactMarkdown from 'react-markdown';
 
@@ -23,6 +23,7 @@ const TaskDetailModal = ({ isOpen, task = {
   const [error, setError] = useState(null);
   const [canUndertake, setCanUndertake] = useState(null);
   const [capabilityLoading, setCapabilityLoading] = useState(false);
+  const [userSkills, setUserSkills] = useState([]);
 
   useEffect(() => {
     if (isOpen && task?.id) {
@@ -49,6 +50,14 @@ const TaskDetailModal = ({ isOpen, task = {
       } else {
         console.log('DEBUG: Skipping capability check for already undertaken task');
         setCanUndertake(null); // Clear any previous capability data
+      }
+      
+      // Fetch user skills
+      const userData = JSON.parse(localStorage.getItem('userData'));
+      if (userData && userData.id) {
+        fetchUserSkills(userData.id).then(res => {
+          setUserSkills(res.data || []);
+        });
       }
       
       console.log('=== END TASK DETAIL MODAL DEBUG ===');
@@ -306,7 +315,9 @@ const TaskDetailModal = ({ isOpen, task = {
       {/* Description */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-        <ReactMarkdown className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</ReactMarkdown>
+        <div className="text-sm text-gray-900 whitespace-pre-wrap">
+          <ReactMarkdown>{task.description}</ReactMarkdown>
+        </div>
       </div>
 
       {/* Review Status - Show for contributors and task creators only for submitted tasks */}
@@ -402,26 +413,28 @@ const TaskDetailModal = ({ isOpen, task = {
         </div>
       </div>
 
-      {/* Skills */}
-      {task.skills && task.skills.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
+      {/* Skills with required rating and user match indicator */}
+      {(taskDetails?.skills?.length || task.skills?.length) > 0 && (
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-green-700 mb-3">Required Skills</h4>
           <div className="flex flex-wrap gap-2">
-            {task.skills.map((skill, index) => {
-              const minLevel = task.skill_review_requirements?.[skill.name] || 0.0;
+            {(taskDetails?.skills || task.skills).map((skill) => {
+              const minLevel = (taskDetails?.skill_review_requirements || task.skill_review_requirements || {})[skill.name] ?? 0.0;
+              // Use case-insensitive matching for user skills
+              const userSkill = userSkills.find(s => s.name.toLowerCase() === skill.name.toLowerCase());
+              const userSkillRating = userSkill ? userSkill.rating : null;
+              const meetsRequirement = userSkillRating !== null && userSkillRating >= minLevel;
               return (
-                <div key={index} className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200">
-                  <span className="text-sm font-medium text-blue-800">{skill.name}</span>
-                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                    {typeof minLevel === 'number' ? minLevel.toFixed(1) : minLevel}
-                  </span>
-                </div>
+                <span
+                  key={skill.id || skill.name}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200
+                    ${meetsRequirement ? 'bg-green-100 text-green-800 border-green-600' : 'bg-red-100 text-red-800 border-red-600'}`}
+                >
+                  {skill.name} (Min {typeof minLevel === 'number' ? minLevel.toFixed(1) : minLevel})
+                </span>
               );
             })}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            You need to meet or exceed these minimum skill levels to undertake this task.
-          </p>
         </div>
       )}
 

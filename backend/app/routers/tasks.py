@@ -271,9 +271,15 @@ def read_tasks(
                 t.category,
                 t.compensation,
                 t.skill_review_requirements,
-                'task' as type
+                'task' as type,
+                COALESCE(
+                    json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]'
+                ) as skills
             FROM tasks t
+            LEFT JOIN task_skills ts ON t.id = ts.task_id
+            LEFT JOIN skills s ON ts.skill_id = s.id
             WHERE 1=1 {filter_sql}
+            GROUP BY t.id
         '''
 
         # Review tasks query - group by assignment to show only one review task per submission
@@ -292,7 +298,8 @@ def read_tasks(
                 t.category,
                 t.compensation,
                 t.skill_review_requirements as skill_review_requirements,
-                'review' as type
+                'review' as type,
+                t.skills
             FROM (
                 SELECT DISTINCT ON (rt.assignment_being_reviewed_id)
                     rt.id,
@@ -306,7 +313,22 @@ def read_tasks(
                 ORDER BY rt.assignment_being_reviewed_id, rt.created_at DESC
             ) rt_distinct
             JOIN review_tasks rt ON rt.id = rt_distinct.id
-            JOIN tasks t ON rt.parent_task_id = t.id
+            JOIN (SELECT
+                    t.id as task_id,
+                    t.user_id,
+                    t.title,
+                    t.description,
+                    t.deadline,
+                    t.category,
+                    t.compensation,
+                    t.skill_review_requirements,
+                    COALESCE(
+                        json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]'
+                    ) as skills
+                FROM tasks t
+                LEFT JOIN task_skills ts ON t.id = ts.task_id
+                LEFT JOIN skills s ON ts.skill_id = s.id
+                GROUP BY t.id) t ON rt.parent_task_id = t.task_id
             WHERE 1=1 {review_filter_sql}
         '''
 
@@ -371,6 +393,9 @@ def read_tasks(
 
         # Apply compensation and skill filters in Python (if needed)
         # ... (existing logic for compensation_type, min_compensation, max_compensation, skill_id, min_skill_rating) ...
+
+        # Populate skills for each task as a list of objects with id and name
+        
 
         logger.info(f"=== TASKS ENDPOINT COMPLETED ===")
         logger.info(f"Returning {len(filtered_result)} tasks")

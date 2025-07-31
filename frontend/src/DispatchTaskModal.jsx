@@ -514,6 +514,16 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         />
         
       </div>
+      {descriptionTemplate && !isGeneratingTemplate && (
+        <div className="mt-2 text-sm text-gray-600">
+          <span>💡 AI template generated based on your task details. Feel free to edit and customize it.</span>
+          <div className="border rounded p-3 mt-2 bg-gray-50">
+            <div className="whitespace-pre-wrap">
+              <ReactMarkdown>{descriptionTemplate}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
