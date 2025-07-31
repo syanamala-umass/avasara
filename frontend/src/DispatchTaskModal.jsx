@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus } from 'lucide-react';
 import { createTask, fetchSkills } from './api';
+import ReactMarkdown from 'react-markdown';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,6 +28,8 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [allowSubmission, setAllowSubmission] = useState(false);
   const skillDropdownRef = useRef(null);
   const skillInputRef = useRef(null);
+  const [descriptionTemplate, setDescriptionTemplate] = useState('');
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
 
   useEffect(() => {
     const loadSkills = async () => {
@@ -264,6 +267,25 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
+  const generateTemplate = async () => {
+    setIsGeneratingTemplate(true);
+    setError('');
+    try {
+      // Replace this with your backend call if available
+      // Example: const response = await fetchAiTemplate({ title: formData.title, category: formData.category, skills: formData.skills });
+      // setDescriptionTemplate(response.data.template);
+      // setFormData(prev => ({ ...prev, description: response.data.template }));
+      await new Promise(res => setTimeout(res, 1200)); // Simulate delay
+      const template = `# ${formData.title}\n\nCategory: ${formData.category}\n\n## Background\n(Describe the project background and goals here.)\n\n## Brief Description\n(Fill in the details here.)\n\n## Objectives\n(Fill in the details here.)\n\n## Step-by-Step Instructions\n(Fill in the details here.)\n\n## Technical Requirements\n(Fill in the details here.)\n\n## Evaluation Criteria\n(Fill in the details here.)`;
+      setDescriptionTemplate(template);
+      setFormData(prev => ({ ...prev, description: template }));
+    } catch (err) {
+      setError('Failed to generate template.');
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const renderStep1 = () => (
@@ -407,6 +429,14 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-3 px-4 min-h-[120px]"
           placeholder="Describe the task in detail. Include goals, deliverables, expectations, and any relevant context."
         />
+        <button
+          type="button"
+          className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 disabled:opacity-50"
+          onClick={generateTemplate}
+          disabled={isGeneratingTemplate || !formData.title || !formData.category}
+        >
+          {isGeneratingTemplate ? 'Generating Template...' : 'Generate AI Template'}
+        </button>
       </div>
       {descriptionTemplate && !isGeneratingTemplate && (
         <div className="mt-2 text-sm text-gray-600">

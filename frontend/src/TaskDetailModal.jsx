@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask, fetchUserSkills } from './api';
 import TaskDurationInfo from './components/TaskDurationInfo';
+import ReactMarkdown from 'react-markdown';
 
 const TaskDetailModal = ({ isOpen, task = {
   title: 'Untitled Task',
@@ -314,13 +315,8 @@ const TaskDetailModal = ({ isOpen, task = {
       {/* Description */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-<<<<<<< HEAD
         <div className="text-sm text-gray-900 whitespace-pre-wrap">
           <ReactMarkdown>{task.description}</ReactMarkdown>
-=======
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-900 whitespace-pre-wrap">{task.description}</p>
->>>>>>> ad7ed3c5860052bc9f451e9e8d1499b1b96e6d9c
         </div>
       </div>
 
