@@ -619,14 +619,18 @@ const TasksPage = () => {
                           <Tag className="h-4 w-4" />
                           <span>{task.category || 'Other'}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4" />
-                          <span>{formatCompensation(task)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</span>
-                        </div>
+                        {formatCompensation(task) && formatCompensation(task) !== 'Not specified' && (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-4 w-4" />
+                            <span>{formatCompensation(task)}</span>
+                          </div>
+                        )}
+                        {task.deadline && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Review Status Indicator - Only for submitted tasks */}

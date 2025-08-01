@@ -424,6 +424,10 @@ const TaskDetailModal = ({ isOpen, task = {
               const userSkill = userSkills.find(s => s.name.toLowerCase() === skill.name.toLowerCase());
               const userSkillRating = userSkill ? userSkill.rating : null;
               const meetsRequirement = userSkillRating !== null && userSkillRating >= minLevel;
+              // Debug logging
+              console.log('userSkills:', userSkills);
+              console.log('taskDetails.skills:', taskDetails?.skills || task.skills);
+              console.log('skill:', skill.name, 'userSkillRating:', userSkillRating, 'minLevel:', minLevel, 'meetsRequirement:', meetsRequirement);
               return (
                 <span
                   key={skill.id || skill.name}

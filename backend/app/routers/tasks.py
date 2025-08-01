@@ -263,6 +263,7 @@ def read_tasks(
             SELECT
                 t.id,
                 t.user_id,
+                u.username AS creator_name,
                 t.title,
                 t.description,
                 t.deadline,
@@ -276,10 +277,11 @@ def read_tasks(
                     json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]'
                 ) as skills
             FROM tasks t
+            LEFT JOIN users u ON t.user_id = u.id
             LEFT JOIN task_skills ts ON t.id = ts.task_id
             LEFT JOIN skills s ON ts.skill_id = s.id
             WHERE 1=1 {filter_sql}
-            GROUP BY t.id
+            GROUP BY t.id, u.username
         '''
 
         # Review tasks query - group by assignment to show only one review task per submission
@@ -290,6 +292,7 @@ def read_tasks(
             SELECT 
                 rt.id,
                 t.user_id,
+                t.creator_name,
                 t.title,
                 t.description,
                 t.deadline,
@@ -316,6 +319,7 @@ def read_tasks(
             JOIN (SELECT
                     t.id as task_id,
                     t.user_id,
+                    u.username AS creator_name,
                     t.title,
                     t.description,
                     t.deadline,
@@ -326,9 +330,10 @@ def read_tasks(
                         json_agg(json_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]'
                     ) as skills
                 FROM tasks t
+                LEFT JOIN users u ON t.user_id = u.id
                 LEFT JOIN task_skills ts ON t.id = ts.task_id
                 LEFT JOIN skills s ON ts.skill_id = s.id
-                GROUP BY t.id) t ON rt.parent_task_id = t.task_id
+                GROUP BY t.id, u.username) t ON rt.parent_task_id = t.task_id
             WHERE 1=1 {review_filter_sql}
         '''
 
