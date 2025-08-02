@@ -471,7 +471,8 @@ def get_recommended_tasks(
                         "assignments_count": 0,
                         "reviews_count": 0,
                         "num_people_working": 0,
-                        "has_assignment": False
+                        "has_assignment": False,
+                        "matching_skills_count": 0
                     }
                     result.append(task_dict)
                 except Exception as e:
@@ -485,14 +486,16 @@ def get_recommended_tasks(
         
         # Find tasks that require any of the user's skills using direct SQL query
         recommended_tasks_query = text("""
-            SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
+            SELECT t.id, t.user_id, t.title, t.description, t.task_duration, 
                    t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                   t.category
+                   t.category,
+                   COUNT(ts.skill_id) AS matching_skills_count
             FROM tasks t
             JOIN task_skills ts ON t.id = ts.task_id
             WHERE ts.skill_id = ANY(:skill_ids)
             AND t.status = 'open'
-            ORDER BY t.created_at DESC
+            GROUP BY t.id, t.user_id, t.title, t.description, t.task_duration, t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors, t.category
+            ORDER BY matching_skills_count DESC, t.created_at DESC
             LIMIT :limit
         """)
         
@@ -515,6 +518,7 @@ def get_recommended_tasks(
             task.num_reviewers = row.num_reviewers
             task.max_parallel_contributors = row.max_parallel_contributors
             task.category = row.category
+            task.matching_skills_count = row.matching_skills_count
             recommended_tasks.append(task)
         
         # print(f"Found {len(recommended_tasks)} skill-matching tasks")
@@ -527,7 +531,7 @@ def get_recommended_tasks(
             additional_tasks_query = text("""
                 SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
                        t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                       t.category
+                       t.category, 0 as matching_skills_count
                 FROM tasks t
                 LEFT JOIN task_skills ts ON t.id = ts.task_id
                 WHERE t.status = 'open'
@@ -560,6 +564,7 @@ def get_recommended_tasks(
                 task.num_reviewers = row.num_reviewers
                 task.max_parallel_contributors = row.max_parallel_contributors
                 task.category = row.category
+                task.matching_skills_count = row.matching_skills_count
                 recommended_tasks.append(task)
             
             # print(f"Added {remaining_limit} additional tasks, total: {len(recommended_tasks)}")
@@ -626,7 +631,8 @@ def get_recommended_tasks(
                     "assignments_count": assignments_count,
                     "reviews_count": reviews_count,
                     "num_people_working": num_people_working,
-                    "has_assignment": has_assignment
+                    "has_assignment": has_assignment,
+                    "matching_skills_count": task.matching_skills_count
                 }
                 result.append(task_dict)
             except Exception as e:

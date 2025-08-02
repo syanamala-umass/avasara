@@ -53,6 +53,7 @@ class TaskWithDetails(Task):
     review_compensation_type: Optional[str] = None  # "cash" or "equity"
     review_compensation_amount: Optional[float] = None
     has_assignment: bool = False  # Whether the current user has an assignment for this task
+    matching_skills_count: Optional[int] = 0
     type: str = "task"  # "task" or "review"
     
     class Config:
