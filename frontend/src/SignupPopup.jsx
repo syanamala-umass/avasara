@@ -93,42 +93,41 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
         className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
         onClick={onClose}
       ></div>
-      
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 z-10 mx-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-4 sm:p-8 z-10 mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Close Button at Top Right */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-20"
+          aria-label="Close signup form"
+        >
+          <X className="w-6 h-6" />
+        </button>
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 sm:gap-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Join the Community
               </h2>
-              <p className="text-sm text-gray-600">Start your journey with Avasara</p>
+              <p className="text-xs sm:text-sm text-gray-600">Start your journey with Avasara</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
         </div>
-
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-xs sm:text-base">
             <div className="flex items-center">
               <X className="w-4 h-4 mr-2" />
               {error}
             </div>
           </div>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="full_name">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="full_name">
               Full Name
             </label>
             <div className="relative">
@@ -139,16 +138,15 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
                 type="text"
                 value={formData.full_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
                 placeholder="Enter your full name"
                 required
               />
             </div>
           </div>
-
           {/* Username */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="username">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="username">
               Username
             </label>
             <div className="relative">
@@ -159,16 +157,15 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
                 type="text"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
                 placeholder="Choose a username"
                 required
               />
             </div>
           </div>
-
           {/* Email */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="email">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="email">
               Email Address
             </label>
             <div className="relative">
@@ -179,16 +176,15 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
                 placeholder="Enter your email"
                 required
               />
             </div>
           </div>
-
           {/* Password */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="password">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="password">
               Password
             </label>
             <div className="relative">
@@ -199,16 +195,15 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
                 placeholder="••••••••"
                 required
               />
             </div>
           </div>
-
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2" htmlFor="confirmPassword">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="confirmPassword">
               Confirm Password
             </label>
             <div className="relative">
@@ -219,19 +214,18 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
                 type="password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
                 placeholder="••••••••"
                 required
               />
             </div>
           </div>
-          
           {/* Submit Button */}
-          <div className="pt-4">
+          <div className="pt-2 sm:pt-4">
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center items-center py-3 px-6 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white transition-all duration-200 ${
+              className={`w-full flex justify-center items-center py-2 sm:py-3 px-6 border border-transparent rounded-xl shadow-lg text-xs sm:text-sm font-semibold text-white transition-all duration-200 ${
                 loading 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl transform hover:scale-105'
@@ -251,10 +245,9 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
             </button>
           </div>
         </form>
-        
         {/* Footer */}
-        <div className="mt-8 text-center">
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 mb-4">
+        <div className="mt-6 sm:mt-8 text-center">
+          <div className="flex items-center justify-center space-x-2 text-xs sm:text-sm text-gray-500 mb-4">
             <Users className="w-4 h-4" />
             <span>Already part of our community?</span>
           </div>
@@ -263,7 +256,7 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
               onClose();
               if (onShowLogin) onShowLogin();
             }}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
+            className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors text-xs sm:text-base"
           >
             Sign in to your account
           </button>
