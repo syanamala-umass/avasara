@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from datetime import timedelta, datetime
+import logging
 
 from app.database import get_db
 from app.schemas.user import UserCreate, User, Token, RegistrationResponse
@@ -20,6 +21,8 @@ router = APIRouter(
     tags=["authentication"],
     responses={401: {"description": "Unauthorized"}},
 )
+
+logger = logging.getLogger("app.routers.auth")
 
 @router.post("/register", response_model=RegistrationResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -133,9 +136,10 @@ def verify_email(token: str = Query(...), db: Session = Depends(get_db)):
 @router.post("/request-password-reset")
 def request_password_reset(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
     """Request a password reset (send email with token)"""
+    print(f"Password reset requested for email: {email}")
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Don't reveal if user exists
+        print(f"No user found for email: {email}")
         return {"message": "If an account with that email exists, a reset link has been sent."}
     # Generate token and expiry
     email_service = EmailService()
@@ -144,8 +148,10 @@ def request_password_reset(email: str = Body(..., embed=True), db: Session = Dep
     user.reset_password_token = token
     user.reset_password_expires = expires
     db.commit()
+    print(f"Generated reset token for user {user.email}: {token} (expires {expires})")
     # Send email
-    email_service.send_reset_password_email(user.email, user.username or user.email, token)
+    email_sent = email_service.send_reset_password_email(user.email, user.username or user.email, token)
+    print(f"Reset email sent to {user.email}: {email_sent}")
     return {"message": "If an account with that email exists, a reset link has been sent."}
 
 @router.post("/reset-password")
