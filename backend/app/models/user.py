@@ -37,6 +37,10 @@ class User(Base):
     email_verification_expires = Column(DateTime, nullable=True)
     email_verification_sent_at = Column(DateTime, nullable=True)
 
+    # Reset password fields
+    reset_password_token = Column(String, nullable=True)
+    reset_password_expires = Column(DateTime, nullable=True)
+
     # Contributor fields
     # name = Column(String, index=True)
     # bio = Column(String, nullable=True)

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { loginUser, getOAuthUrl, fetchUserSkills } from './api';
 import { X, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 import SkillsModal from './components/SkillsModal';
+import axios from 'axios';
 
 const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [email, setEmail] = useState('');
@@ -10,6 +11,10 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [error, setError] = useState('');
   const [showSkillsModal, setShowSkillsModal] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -309,15 +314,91 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
 
       {/* Placeholder for forgot password modal/page */}
       {showForgotPassword && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-4">Reset Password</h2>
-            <p className="mb-4">Password reset functionality coming soon.</p>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => {
+            setShowForgotPassword(false);
+            setForgotEmail('');
+            setForgotError('');
+            setForgotSuccess('');
+          }}></div>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 z-10 relative animate-fadeIn">
+            {/* Close Button */}
             <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={() => setShowForgotPassword(false)}
+              onClick={() => {
+                setShowForgotPassword(false);
+                setForgotEmail('');
+                setForgotError('');
+                setForgotSuccess('');
+              }}
+              className="absolute top-6 right-6 text-gray-400 hover:text-indigo-600 transition-colors"
+              aria-label="Close forgot password"
             >
-              Close
+              <X className="h-6 w-6" />
+            </button>
+            <h2 className="text-xl font-bold mb-6 text-center">Reset Password</h2>
+            {forgotSuccess ? (
+              <div className="mb-6 text-green-700 bg-green-50 border border-green-200 px-4 py-3 rounded-xl w-full text-center text-sm">{forgotSuccess}</div>
+            ) : (
+              <>
+                <p className="mb-6 text-gray-600 text-center text-sm">Enter your email address and we'll send you a link to reset your password.</p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setForgotLoading(true);
+                    setForgotError('');
+                    setForgotSuccess('');
+                    try {
+                      await axios.post('/auth/request-password-reset', { email: forgotEmail });
+                      setForgotSuccess('If an account with that email exists, a reset link has been sent.');
+                    } catch (err) {
+                      setForgotError('Failed to send reset email. Please try again.');
+                    } finally {
+                      setForgotLoading(false);
+                    }
+                  }}
+                  className="space-y-6 w-full"
+                >
+                  <div>
+                    <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3 border border-indigo-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all">
+                      <Mail className="h-5 w-5 text-indigo-400 mr-3" />
+                      <input
+                        type="email"
+                        id="forgot-email"
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500"
+                        placeholder="Enter your email"
+                        required
+                        disabled={forgotLoading}
+                      />
+                    </div>
+                  </div>
+                  {forgotError && <div className="mb-2 text-red-600 text-sm w-full text-center">{forgotError}</div>}
+                  <button
+                    type="submit"
+                    className={`w-full flex justify-center items-center py-3 px-6 rounded-xl font-semibold text-white shadow-lg transition-all duration-200 ${
+                      forgotLoading
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl transform hover:-translate-y-0.5'
+                    }`}
+                    disabled={forgotLoading || !forgotEmail}
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+                </form>
+              </>
+            )}
+            <button
+              className="mt-8 text-indigo-600 hover:underline text-sm w-full text-center"
+              onClick={() => {
+                setShowForgotPassword(false);
+                setForgotEmail('');
+                setForgotError('');
+                setForgotSuccess('');
+              }}
+            >
+              Back to Login
             </button>
           </div>
         </div>
