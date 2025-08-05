@@ -278,3 +278,5 @@ export const fetchUserSkillRatingHistory = (userId, skillId) => api.get(`/rating
 export const generateTaskDescriptionTemplate = (templateData) => api.post('/ai-templates/generate-task-description', templateData);
 
 export const rewriteTaskDescription = (rewriteData) => api.post('/ai-templates/rewrite-task-description', rewriteData);
+
+export const requestPasswordReset = (email) => api.post('/auth/request-password-reset', { email });

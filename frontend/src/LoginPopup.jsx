@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { loginUser, getOAuthUrl, fetchUserSkills } from './api';
+import { loginUser, getOAuthUrl, fetchUserSkills, requestPasswordReset } from './api';
 import { X, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 import SkillsModal from './components/SkillsModal';
-import axios from 'axios';
 
 const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [email, setEmail] = useState('');
@@ -348,7 +347,7 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
                     setForgotError('');
                     setForgotSuccess('');
                     try {
-                      await axios.post('/auth/request-password-reset', { email: forgotEmail });
+                      await requestPasswordReset(forgotEmail);
                       setForgotSuccess('If an account with that email exists, a reset link has been sent.');
                     } catch (err) {
                       setForgotError('Failed to send reset email. Please try again.');
