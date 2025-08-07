@@ -577,24 +577,23 @@ const TasksPage = () => {
                     {renderSkillRequirements(task)}
                     
                     <div className="flex space-x-3 mt-4">
-                      <button
-                        onClick={(e) => handleUndertakeTask(e, task)}
-                        className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                          taskCapabilities[task.id] === 'can_undertake'
-                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
-                            : 'bg-gradient-to-r from-gray-600 to-gray-700 text-gray-300 cursor-not-allowed'
-                        }`}
-                        disabled={taskCapabilities[task.id] !== 'can_undertake'}
-                      >
-                        {taskCapabilities[task.id] === 'can_undertake' ? 'Undertake Task' : 'Cannot Undertake'}
-                      </button>
+                      {taskCapabilities[task.id] === 'can_undertake' && (
+                        <button
+                          onClick={(e) => handleUndertakeTask(e, task)}
+                          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-colors"
+                        >
+                          Undertake Task
+                        </button>
+                      )}
                       
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewDetails(task);
                         }}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                        className={`bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors ${
+                          taskCapabilities[task.id] === 'can_undertake' ? 'flex-1' : 'w-full'
+                        }`}
                       >
                         View Details
                       </button>

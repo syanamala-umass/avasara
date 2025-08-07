@@ -91,197 +91,191 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
+      {/* Clean background overlay */}
       <div 
-        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
         onClick={onClose}
       ></div>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-4 sm:p-8 z-10 mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Close Button at Top Right */}
+      
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 z-10 mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-20"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-2"
           aria-label="Close signup form"
         >
           <X className="w-6 h-6" />
         </button>
+        
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 sm:gap-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Join the Community
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-600">Start your journey with Avasara</p>
-            </div>
-          </div>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Join Avasara
+          </h2>
+          <p className="text-gray-600">Create your account to get started</p>
         </div>
+        
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-xs sm:text-base">
-            <div className="flex items-center">
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="flex items-center text-red-700">
               <X className="w-4 h-4 mr-2" />
-              {error}
+              <span className="text-sm">{error}</span>
             </div>
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          {/* Full Name */}
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="first_name">
-              First Name
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Name Fields */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="first_name">
+                First Name
+              </label>
               <input
                 id="first_name"
                 name="first_name"
                 type="text"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
-                placeholder="Enter your first name"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder="John"
                 required
                 disabled={loading}
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="last_name">
-              Last Name
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="last_name">
+                Last Name
+              </label>
               <input
                 id="last_name"
                 name="last_name"
                 type="text"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
-                placeholder="Enter your last name"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder="Doe"
                 required
                 disabled={loading}
               />
             </div>
           </div>
+          
           {/* Username */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="username">
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="username">
               Username
             </label>
             <div className="relative">
-              <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 id="username"
                 name="username"
                 type="text"
                 value={formData.username}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
-                placeholder="Choose a username"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder="johndoe"
                 required
+                disabled={loading}
               />
             </div>
           </div>
+          
           {/* Email */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="email">
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="email">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 id="email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
-                placeholder="Enter your email"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder="john@example.com"
                 required
+                disabled={loading}
               />
             </div>
           </div>
+          
           {/* Password */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="password">
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="password">
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 id="password"
                 name="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
           </div>
+          
           {/* Confirm Password */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="confirmPassword">
+            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="confirmPassword">
               Confirm Password
             </label>
             <div className="relative">
-              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
           </div>
+          
           {/* Submit Button */}
-          <div className="pt-2 sm:pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full flex justify-center items-center py-2 sm:py-3 px-6 border border-transparent rounded-xl shadow-lg text-xs sm:text-sm font-semibold text-white transition-all duration-200 ${
-                loading 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl transform hover:scale-105'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Creating Account...
-                </>
-              ) : (
-                <>
-                  Join the Community
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-        {/* Footer */}
-        <div className="mt-6 sm:mt-8 text-center">
-          <div className="flex items-center justify-center space-x-2 text-xs sm:text-sm text-gray-500 mb-4">
-            <Users className="w-4 h-4" />
-            <span>Already part of our community?</span>
-          </div>
           <button
-            onClick={() => {
-              onClose();
-              if (onShowLogin) onShowLogin();
-            }}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors text-xs sm:text-base"
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
           >
-            Sign in to your account
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <Users className="w-5 h-5" />
+                <span>Create Account</span>
+              </>
+            )}
           </button>
+        </form>
+        
+        {/* Login Link */}
+        <div className="mt-8 text-center">
+          <p className="text-gray-600 text-sm">
+            Already have an account?{' '}
+            <button
+              onClick={onShowLogin}
+              className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+            >
+              Sign in here
+            </button>
+          </p>
         </div>
       </div>
     </div>
