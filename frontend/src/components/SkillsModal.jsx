@@ -153,24 +153,14 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
       ></div>
       
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-full sm:max-w-2xl md:max-w-4xl p-4 sm:p-6 md:p-8 z-10 mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <Sparkles className="h-7 w-7 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Welcome to Avasara!</h2>
-              <p className="text-gray-600">Let's set up your skills to get you started</p>
-            </div>
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+        {/* Close Button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
+          aria-label="Close skills modal"
+        >
+          <X className="w-6 h-6" />
+        </button>
 
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
