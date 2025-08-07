@@ -128,11 +128,11 @@ const TaskManagement = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate('/dashboard')}
                 className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium">Back to Profile</span>
+                <span className="font-medium">Back to Dashboard</span>
               </button>
             </div>
             <div className="flex items-center space-x-4">
