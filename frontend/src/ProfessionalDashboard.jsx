@@ -628,7 +628,7 @@ const ProfessionalDashboard = () => {
                     <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Completed</span> Tasks & Reviews
                   </h2>
                   
-                  {completedTasks.length === 0 && completedReviews.length === 0 ? (
+                  {completedTasks.length === 0 && completedReviews.length === 0 && pendingReviewTasks.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Award className="h-8 w-8 text-white" />
@@ -638,6 +638,41 @@ const ProfessionalDashboard = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Under Review Tasks */}
+                      {pendingReviewTasks.slice(0, 3).map(task => (
+                        <div
+                          key={task.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-orange-500/20 rounded-2xl p-6"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">{task.task_title}</h3>
+                            <div className="flex items-center space-x-2">
+                              <span className="px-3 py-1 bg-gradient-to-r from-orange-500 to-yellow-500 text-white text-xs rounded-full font-medium">
+                                Under Review
+                              </span>
+                              <span className="text-orange-400 text-sm font-medium">
+                                Task #{task.task_id}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                            {task.notes || 'No additional notes provided'}
+                          </p>
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <span className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>Submitted {formatDate(task.submitted_at || task.completed_at)}</span>
+                            </span>
+                            <button
+                              onClick={() => handleTaskClick({ id: task.task_id })}
+                              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
                       {/* Completed Tasks */}
                       {completedTasks.slice(0, 5).map(task => (
                         <div
@@ -718,10 +753,10 @@ const ProfessionalDashboard = () => {
                       ))}
 
                       {/* View All Button */}
-                      {(completedTasks.length > 5 || completedReviews.length > 3) && (
+                      {(completedTasks.length > 5 || completedReviews.length > 3 || pendingReviewTasks.length > 3) && (
                         <div className="text-center pt-4">
                           <button
-                            onClick={() => navigate('/tasks')}
+                            onClick={() => navigate('/profile')}
                             className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center justify-center space-x-2 mx-auto"
                           >
                             <span>View All Completed Work</span>
