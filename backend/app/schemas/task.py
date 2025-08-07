@@ -32,8 +32,8 @@ class TaskUpdate(BaseModel):
 
 class Task(TaskBase):
     id: int
-    user_id: int
-    created_at: datetime
+    user_id: Optional[int] = None
+    created_at: Optional[datetime] = None
     status: str
     num_reviewers: Optional[int] = None
     max_parallel_contributors: Optional[int] = None

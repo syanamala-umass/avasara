@@ -541,7 +541,7 @@ def get_recommended_tasks(
             additional_tasks_query = text("""
                 SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
                        t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                       t.category, t.deadline, t.skill_review_requirements, 0 as matching_skills_count
+                       t.category, t.deadline, t.skill_review_requirements::jsonb, 0 as matching_skills_count
                 FROM tasks t
                 LEFT JOIN task_skills ts ON t.id = ts.task_id
                 WHERE t.status = 'open'
@@ -617,11 +617,13 @@ def get_recommended_tasks(
                 skills = [{"id": row.id, "name": row.name} for row in task_skills_result]
                 
                 # Get creator name using direct SQL
-                creator_query = text("""
-                    SELECT username FROM users WHERE id = :user_id
-                """)
-                creator_result = db.execute(creator_query, {"user_id": task.user_id}).first()
-                creator_name = creator_result.username if creator_result else "Unknown User"
+                creator_name = "Unknown User"
+                if task.user_id is not None:
+                    creator_query = text("""
+                        SELECT username FROM users WHERE id = :user_id
+                    """)
+                    creator_result = db.execute(creator_query, {"user_id": task.user_id}).first()
+                    creator_name = creator_result.username if creator_result else "Unknown User"
                 
                 # Check if current user has an assignment for this task
                 has_assignment = check_existing_assignment(task_id=task.id, user_id=current_user.id)
