@@ -348,341 +348,262 @@ const TasksPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Back</span>
-              </button>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-2xl font-bold text-gray-900">Find Tasks</h1>
-            </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Filter className="h-4 w-4" />
-              <span>{showFilters ? 'Hide' : 'Show'} Filters</span>
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-5 animate-spin-slow"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Info Banner */}
-        <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <div className="flex items-center gap-2 text-blue-800">
-            <AlertCircle className="h-5 w-5" />
-            <span className="font-medium">Task Availability</span>
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg border-b border-purple-500/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center space-x-2 text-white hover:text-gray-200 transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span>Back</span>
+                </button>
+                <div className="h-6 w-px bg-purple-500/30"></div>
+                <h1 className="text-2xl font-bold text-white">Find Tasks</h1>
+              </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center space-x-2"
+              >
+                <Filter className="h-5 w-5" />
+                <span>{showFilters ? 'Hide' : 'Show'} Filters</span>
+              </button>
+            </div>
           </div>
-          <p className="text-blue-700 text-sm mt-1">
-            You can view all tasks, but you can only undertake tasks that match your skills. 
-            Look for the green checkmark to see which tasks you're qualified for.
-          </p>
-        </div>
+        </header>
 
-        {/* Filters Section */}
-        {showFilters && (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Filter className="h-5 w-5 text-indigo-500" />
-              Search Filters
-            </h2>
-            
-            <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Title Search */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <Search className="h-5 w-5 text-indigo-400 mr-3" />
-                <input
-                  type="text"
-                  name="title"
-                  value={filters.title}
-                  onChange={handleChange}
-                  placeholder="Search by title..."
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500"
-                />
-              </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Info Banner */}
+          <div className="mb-6 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6">
+            <div className="flex items-center gap-3 text-blue-300">
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-medium">Task Availability</span>
+            </div>
+            <p className="text-blue-200 text-sm mt-2">
+              You can view all tasks, but you can only undertake tasks that match your skills. 
+              Look for the green checkmark to see which tasks you're qualified for.
+            </p>
+          </div>
+
+          {/* Filters Section */}
+          {showFilters && (
+            <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8 mb-8">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <Filter className="h-5 w-5 text-purple-400" />
+                Search Filters
+              </h2>
               
-              {/* Category */}
-              {/* <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <Tag className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="category"
-                  value={filters.category}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div> */}
-              
-              {/* Task Type */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <Users className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="taskType"
-                  value={filters.taskType}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  {taskTypes.map(type => (
-                    <option key={type} value={type}>
-                      {type === 'All' ? 'All Task Types' : type.charAt(0).toUpperCase() + type.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Compensation Type */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <DollarSign className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="compensationType"
-                  value={filters.compensationType}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  {compensationTypes.map(type => (
-                    <option key={type} value={type}>
-                      {type === 'All' ? 'Any Compensation' : type.charAt(0).toUpperCase() + type.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Skill Category */}
-              {/* <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <Tag className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="skillCategory"
-                  value={filters.skillCategory}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  <option value="All">All Skill Categories</option>
-                  {Object.keys(skillCategories).filter(cat => cat !== 'All').map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div> */}
-              
-              {/* Skill Filter */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <Tag className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="skillId"
-                  value={filters.skillId}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  <option value="">All Skills</option>
-                  {availableSkills.map(skill => (
-                    <option key={skill.id} value={skill.id.toString()}>{skill.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Minimum Skill Rating - Only show when a skill is selected */}
-              {filters.skillId && (
-                <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                  <Tag className="h-5 w-5 text-indigo-400 mr-3" />
+              <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Title Search */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <Search className="h-5 w-5 text-purple-400 mr-3" />
                   <input
-                    type="number"
-                    name="minSkillRating"
-                    value={filters.minSkillRating}
+                    type="text"
+                    name="title"
+                    value={filters.title}
                     onChange={handleChange}
-                    placeholder="Min skill level (0.0-5.0)"
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="Search by title..."
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white placeholder-gray-400"
                   />
                 </div>
-              )}
+                
+                {/* Task Type */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <Users className="h-5 w-5 text-purple-400 mr-3" />
+                  <select
+                    name="taskType"
+                    value={filters.taskType}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white"
+                  >
+                    {taskTypes.map(type => (
+                      <option key={type} value={type}>
+                        {type === 'All' ? 'All Task Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Compensation Type */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <DollarSign className="h-5 w-5 text-purple-400 mr-3" />
+                  <select
+                    name="compensationType"
+                    value={filters.compensationType}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white"
+                  >
+                    {compensationTypes.map(type => (
+                      <option key={type} value={type}>
+                        {type === 'All' ? 'All Compensation Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Skill Filter */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <Tag className="h-5 w-5 text-purple-400 mr-3" />
+                  <select
+                    name="skillId"
+                    value={filters.skillId}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white"
+                  >
+                    <option value="">All Skills</option>
+                    {availableSkills.map(skill => (
+                      <option key={skill.id} value={skill.id}>
+                        {skill.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Min Compensation */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <DollarSign className="h-5 w-5 text-purple-400 mr-3" />
+                  <input
+                    type="number"
+                    name="minCompensation"
+                    value={filters.minCompensation}
+                    onChange={handleChange}
+                    placeholder="Min compensation..."
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white placeholder-gray-400"
+                  />
+                </div>
+                
+                {/* Capability Filter */}
+                <div className="flex items-center bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl px-4 py-3">
+                  <CheckCircle className="h-5 w-5 text-purple-400 mr-3" />
+                  <select
+                    name="capability"
+                    value={filters.capability}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-white"
+                  >
+                    {capabilityTypes.map(type => (
+                      <option key={type} value={type}>
+                        {type === 'All' ? 'All Tasks' : type === 'can_undertake' ? 'Can Undertake' : 'Cannot Undertake'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </form>
               
-              {/* Capability Filter */}
-              <div className="flex items-center bg-indigo-50 rounded-xl px-4 py-3">
-                <CheckCircle className="h-5 w-5 text-indigo-400 mr-3" />
-                <select
-                  name="capability"
-                  value={filters.capability}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-900"
-                >
-                  {capabilityTypes.map(type => (
-                    <option key={type} value={type}>
-                      {type === 'All' ? 'All Tasks' : 
-                       type === 'can_undertake' ? 'Can Undertake' : 
-                       'Cannot Undertake'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Search Button */}
-              <div className="flex items-center">
+              <div className="flex justify-end mt-6">
                 <button
                   type="submit"
-                  className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center"
-                  disabled={loading}
+                  onClick={handleSearch}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center space-x-2"
                 >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Searching...
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <Search className="h-5 w-5 mr-2" />
-                      Search Tasks
-                    </div>
-                  )}
+                  <Search className="h-5 w-5" />
+                  <span>Search Tasks</span>
                 </button>
               </div>
-            </form>
-
-            {/* Compensation Range - Only show when cash is selected */}
-            {filters.compensationType === 'cash' && (
-              <div className="mt-4">
-                <div className="bg-indigo-50 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="h-5 w-5 text-indigo-400" />
-                    <span className="text-sm font-medium text-indigo-700">Minimum Compensation</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-indigo-600 mb-1">Minimum Amount</label>
-                      <input
-                        type="number"
-                        name="minCompensation"
-                        value={filters.minCompensation}
-                        onChange={handleChange}
-                        placeholder="0"
-                        min="0"
-                        className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Results Section */}
-        <div className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              <span>{error}</span>
             </div>
           )}
 
-          {getFilteredResults().length === 0 && !loading ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-gray-400" />
+          {/* Results Section */}
+          <div className="space-y-6">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+                <p className="text-gray-300">Searching for tasks...</p>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-              <p className="text-gray-600">Try adjusting your filters or search criteria.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {getFilteredResults().map(task => (
-                <div
-                  key={task.id}
-                  className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">{task.title}</h3>
-                        {getCapabilityIcon(task.id)}
-                        {task.type === 'review' && (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
-                            Review Task
-                          </span>
+            ) : error ? (
+              <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 backdrop-blur-sm border border-red-500/20 rounded-2xl p-6">
+                <p className="text-red-300">{error}</p>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="h-8 w-8 text-white" />
+                </div>
+                <p className="text-gray-400 text-lg">No tasks found</p>
+                <p className="text-gray-500 text-sm mt-2">Try adjusting your search filters</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {getFilteredResults().map(task => (
+                  <div
+                    key={task.id}
+                    className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6 cursor-pointer hover:border-purple-400/40 transition-all duration-300"
+                    onClick={() => handleViewDetails(task)}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">{task.title}</h3>
+                      <div className="flex items-center space-x-2">
+                        {taskCapabilities[task.id] && (
+                          <div className={`p-1 rounded-full ${getCapabilityClass(task.id)}`}>
+                            {getCapabilityIcon(task.id)}
+                          </div>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600 mb-2">{task.creator_name || 'Unknown Creator'}</div>
-                      <div className="flex items-center text-xs text-gray-500 gap-4 mb-3">
-                        <div className="flex items-center gap-1">
+                    </div>
+                    
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">{task.description}</p>
+                    
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center justify-between text-sm text-gray-400">
+                        <span className="flex items-center space-x-2">
                           <Tag className="h-4 w-4" />
-                          <span>{task.category || 'Other'}</span>
-                        </div>
-                        {formatCompensation(task) && formatCompensation(task) !== 'Not specified' && (
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-4 w-4" />
-                            <span>{formatCompensation(task)}</span>
-                          </div>
-                        )}
-                        {task.deadline && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(task.deadline).toLocaleDateString()}</span>
-                          </div>
-                        )}
+                          <span>{task.category || 'General'}</span>
+                        </span>
+                        <span className="flex items-center space-x-2">
+                          <DollarSign className="h-4 w-4" />
+                          <span>{formatCompensation(task)}</span>
+                        </span>
                       </div>
                       
-                      {/* Review Status Indicator - Only for submitted tasks */}
-                      {task.review_status && (task.status === 'submitted' || task.status === 'under_review' || task.status === 'completed') && (
-                        <div className="mb-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-purple-700 font-medium">Review Status:</span>
-                            {task.review_status.all_submissions ? (
-                              // Task creator view
-                              <span className="text-purple-600">
-                                {task.review_status.submissions_with_reviews}/{task.review_status.total_submissions} with reviews
-                              </span>
-                            ) : (
-                              // Contributor view
-                              <span className={`font-medium ${task.review_status.review_tasks_created ? 'text-green-600' : 'text-yellow-600'}`}>
-                                {task.review_status.review_progress}
-                              </span>
-                            )}
-                          </div>
+                      {task.deadline && (
+                        <div className="flex items-center space-x-2 text-sm text-gray-400">
+                          <Calendar className="h-4 w-4" />
+                          <span>Due {new Date(task.deadline).toLocaleDateString()}</span>
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {renderSkillRequirements(task)}
-
-                  <div className={`text-sm font-medium mb-4 ${getCapabilityClass(task.id)}`}>
-                    {getCapabilityText(task.id)}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleViewDetails(task)}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold shadow hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      View Details
-                    </button>
-                    {taskCapabilities[task.id]?.can_undertake && (
+                    
+                    {renderSkillRequirements(task)}
+                    
+                    <div className="flex space-x-3 mt-4">
                       <button
                         onClick={(e) => handleUndertakeTask(e, task)}
-                        className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold shadow hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center gap-2"
+                        className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          taskCapabilities[task.id] === 'can_undertake'
+                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                            : 'bg-gradient-to-r from-gray-600 to-gray-700 text-gray-300 cursor-not-allowed'
+                        }`}
+                        disabled={taskCapabilities[task.id] !== 'can_undertake'}
                       >
-                        <Plus className="h-4 w-4" />
-                        Undertake
+                        {taskCapabilities[task.id] === 'can_undertake' ? 'Undertake Task' : 'Cannot Undertake'}
                       </button>
-                    )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetails(task);
+                        }}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-blue-700 hover:to-cyan-700 transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

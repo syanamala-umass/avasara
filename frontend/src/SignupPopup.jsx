@@ -18,7 +18,8 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    full_name: '',
+    first_name: '',
+    last_name: '',
     username: ''
   });
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,8 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
         email: formData.email,
         password: formData.password,
         username: formData.username,
-        full_name: formData.full_name
+        first_name: formData.first_name,
+        last_name: formData.last_name
       });
 
       if (response.data) {
@@ -127,20 +129,40 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Full Name */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="full_name">
-              Full Name
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="first_name">
+              First Name
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
-                id="full_name"
-                name="full_name"
+                id="first_name"
+                name="first_name"
                 type="text"
-                value={formData.full_name}
+                value={formData.first_name}
                 onChange={handleChange}
                 className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
-                placeholder="Enter your full name"
+                placeholder="Enter your first name"
                 required
+                disabled={loading}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2" htmlFor="last_name">
+              Last Name
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                id="last_name"
+                name="last_name"
+                type="text"
+                value={formData.last_name}
+                onChange={handleChange}
+                className="w-full pl-10 pr-3 py-2 sm:py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-xs sm:text-base"
+                placeholder="Enter your last name"
+                required
+                disabled={loading}
               />
             </div>
           </div>

@@ -363,6 +363,14 @@ def read_tasks(
         result = [dict(row._mapping) for row in results]
         logger.info(f"Converted {len(result)} results to dicts")
 
+        # Filter by skill_id if provided
+        if skill_id:
+            result = [
+                task for task in result
+                if any(str(skill.get('id')) == str(skill_id) for skill in (task.get('skills') or []))
+            ]
+            logger.info(f"Filtered by skill_id={skill_id}, {len(result)} tasks remain")
+
         # Ensure every task has a 'type' field
         for task in result:
             if 'type' not in task:
@@ -464,7 +472,7 @@ def get_recommended_tasks(
                         "created_at": task.created_at,
                         "status": task.status,
                         "category": task.category,
-                        "skill_review_requirements": task.skill_review_requirements,
+                        
                         "skills": skills,
                         "creator_name": task.user.username if task.user else "Unknown User",
                         "creator_avatar": None,
@@ -488,13 +496,13 @@ def get_recommended_tasks(
         recommended_tasks_query = text("""
             SELECT t.id, t.user_id, t.title, t.description, t.task_duration, 
                    t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                   t.category,
+                   t.category, t.deadline, t.skill_review_requirements,
                    COUNT(ts.skill_id) AS matching_skills_count
             FROM tasks t
             JOIN task_skills ts ON t.id = ts.task_id
             WHERE ts.skill_id = ANY(:skill_ids)
             AND t.status = 'open'
-            GROUP BY t.id, t.user_id, t.title, t.description, t.task_duration, t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors, t.category
+            GROUP BY t.id, t.user_id, t.title, t.description, t.task_duration, t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors, t.category, t.deadline, t.skill_review_requirements::text
             ORDER BY matching_skills_count DESC, t.created_at DESC
             LIMIT :limit
         """)
@@ -518,6 +526,8 @@ def get_recommended_tasks(
             task.num_reviewers = row.num_reviewers
             task.max_parallel_contributors = row.max_parallel_contributors
             task.category = row.category
+            task.deadline = row.deadline
+            task.skill_review_requirements = row.skill_review_requirements
             task.matching_skills_count = row.matching_skills_count
             recommended_tasks.append(task)
         
@@ -531,7 +541,7 @@ def get_recommended_tasks(
             additional_tasks_query = text("""
                 SELECT DISTINCT t.id, t.user_id, t.title, t.description, t.task_duration, 
                        t.created_at, t.status, t.num_reviewers, t.max_parallel_contributors,
-                       t.category, 0 as matching_skills_count
+                       t.category, t.deadline, t.skill_review_requirements, 0 as matching_skills_count
                 FROM tasks t
                 LEFT JOIN task_skills ts ON t.id = ts.task_id
                 WHERE t.status = 'open'
@@ -564,6 +574,8 @@ def get_recommended_tasks(
                 task.num_reviewers = row.num_reviewers
                 task.max_parallel_contributors = row.max_parallel_contributors
                 task.category = row.category
+                task.deadline = row.deadline
+                task.skill_review_requirements = row.skill_review_requirements
                 task.matching_skills_count = row.matching_skills_count
                 recommended_tasks.append(task)
             
@@ -624,7 +636,7 @@ def get_recommended_tasks(
                     "created_at": task.created_at,
                     "status": task.status,
                     "category": task.category,
-                    "skill_review_requirements": None,  # Skip JSON field to avoid issues
+                    "skill_review_requirements": task.skill_review_requirements,
                     "skills": skills,
                     "creator_name": creator_name,
                     "creator_avatar": None,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { loginUser, getOAuthUrl, fetchUserSkills, requestPasswordReset } from './api';
 import { X, Mail, Lock, LogIn, AlertCircle, ArrowRight } from 'lucide-react';
 import SkillsModal from './components/SkillsModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,8 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -58,9 +61,14 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
           // If we can't check skills, proceed to dashboard anyway
         }
         
-        // Close popup and redirect
+        // Close popup and redirect to return URL or dashboard
         onClose();
-        window.location.href = '/dashboard';
+        const returnUrl = location.state?.returnUrl;
+        if (returnUrl) {
+          navigate(returnUrl, { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       } else {
         throw new Error('Invalid response from server');
       }
@@ -88,16 +96,26 @@ const LoginPopup = ({ isOpen, onClose, onShowSignup }) => {
   };
 
   const handleSkillsModalComplete = () => {
-    // Close popup and redirect to dashboard
+    // Close popup and redirect to return URL or dashboard
     onClose();
-    window.location.href = '/dashboard';
+    const returnUrl = location.state?.returnUrl;
+    if (returnUrl) {
+      navigate(returnUrl, { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   const handleSkillsModalClose = () => {
-    // Close skills modal and redirect to dashboard
+    // Close skills modal and redirect to return URL or dashboard
     setShowSkillsModal(false);
     onClose();
-    window.location.href = '/dashboard';
+    const returnUrl = location.state?.returnUrl;
+    if (returnUrl) {
+      navigate(returnUrl, { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   const handleOAuthLogin = async (provider) => {

@@ -3,7 +3,7 @@ import {
   Search, CheckCircle, Clock, Star, Clipboard, Lightbulb, Users, LogOut, 
   Trash2, XCircle, Sparkles, ArrowRight, UserCircle, Filter, MapPin, 
   DollarSign, Calendar, TrendingUp, Award, Target, Zap, Briefcase,
-  Eye, Heart, Share2, Bookmark, MessageCircle, Settings, User
+  Eye, Heart, Share2, Bookmark, MessageCircle, Settings, User, Plus, ChevronDown, Tag
 } from 'lucide-react';
 import NotificationBell from './components/NotificationBell';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +32,7 @@ import {
   fetchReviewTaskDetails,
   submitReviewAssignment
 } from './api';
+import Logo from './components/Logo';
 
 const ProfessionalDashboard = () => {
   const navigate = useNavigate();
@@ -298,7 +299,7 @@ const ProfessionalDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    navigate('/');
+    window.location.href = '/';
   };
 
   const formatDate = (dateString) => {
@@ -373,818 +374,551 @@ const ProfessionalDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Professional Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Brand */}
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+    <>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg border-b border-purple-500/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20">
+              {/* Logo and Brand */}
+              <div className="flex items-center space-x-4">
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
+                  Avasara
+                </span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Avasara</h1>
-                <p className="text-xs text-gray-500">Professional Task Platform</p>
-              </div>
+
+                          {/* Navigation */}
+            <div className="hidden md:flex items-center space-x-8">
+              {/* Empty for now - removed Post Task and Profile buttons */}
             </div>
 
-            {/* Search Bar */}
-            {/* Removed search bar */}
-
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/tasks')}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center space-x-2"
-              >
-                <Briefcase className="h-4 w-4" />
-                <span>Find Work</span>
-              </button>
-              
-              <NotificationBell />
-              
-              {/* Removed Settings icon button */}
-              
-              <div className="relative profile-dropdown">
-                <button 
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  onClick={toggleProfileDropdown}
+                            {/* User Menu */}
+              <div className="flex items-center space-x-4">
+                <NotificationBell />
+                
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="text-white hover:text-gray-200 transition-colors p-2"
+                  title="Profile"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <UserCircle className="h-5 w-5 text-white" />
-                  </div>
+                  <UserCircle className="h-5 w-5" />
                 </button>
                 
-                {/* Profile Dropdown */}
-                {showProfileDropdown && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-                    <div className="p-6">
-                      {/* User Info Header */}
-                      <div className="flex items-center space-x-4 mb-6">
-                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
-                          <UserCircle className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {userData?.full_name || userData?.username || 'User'}
-                          </h3>
-                          <p className="text-sm text-gray-500">{userData?.email}</p>
-                          <p className="text-xs text-gray-400">Member since {userData?.created_at ? formatDate(userData.created_at) : 'Recently'}</p>
-                        </div>
-                      </div>
-
-                      {/* Stats Summary */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-xs font-medium text-gray-500">Tasks Completed</p>
-                          <p className="text-lg font-bold text-gray-900">{completedTasks.length}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-xs font-medium text-gray-500">Total Earnings</p>
-                          <p className="text-lg font-bold text-gray-900">${totalEarnings}</p>
-                        </div>
-                      </div>
-
-                      {/* Skills */}
-                      {/* This block is now removed */}
-
-                      {/* Actions */}
-                      <div className="space-y-2">
-                        <button
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                            navigate('/profile');
-                          }}
-                          className="w-full flex items-center space-x-3 px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                          <UserCircle className="h-4 w-4" />
-                          <span>View Full Profile</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                            setIsSkillsModalOpen(true);
-                          }}
-                          className="w-full flex items-center space-x-3 px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                          <Settings className="h-4 w-4" />
-                          <span>Update Skills</span>
-                        </button>
-                        <hr className="my-2" />
-                        <button
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                            handleLogout();
-                          }}
-                          className="w-full flex items-center space-x-3 px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-white hover:text-red-200 transition-colors p-2"
+                  title="Sign Out"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="w-full px-0 sm:px-0 lg:px-0 py-8">
-        {/* Error/Success Messages */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mx-4 sm:mx-6 lg:mx-8">
-            <p className="font-medium">Error</p>
-            <p className="text-sm">{error}</p>
+        {/* Main Content */}
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+          {/* Animated background elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-5 animate-spin-slow"></div>
           </div>
-        )}
 
-        {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mx-4 sm:mx-6 lg:mx-8">
-            <p className="font-medium">Success</p>
-            <p className="text-sm">{success}</p>
-          </div>
-        )}
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mb-6 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl">
+                {success}
+              </div>
+            )}
 
-        <div className="flex">
-          {/* Skills in Demand Sidebar */}
-          <div className="w-80 flex-shrink-0 pl-4 sm:pl-6 lg:pl-8">
-            <div className="space-y-6">
-              {/* Recommended Tasks */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommended Tasks</h3>
-                <div className="space-y-3">
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
-                  ) : recommendedTasks.length === 0 ? (
-                    <p className="text-center text-gray-500 text-sm">No recommended tasks found.</p>
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-white mb-2">
+                Welcome back, <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{userData?.username || 'User'}</span>
+              </h1>
+              <p className="text-gray-300">Here's what's happening with your tasks today</p>
+            </div>
+
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Active Tasks</p>
+                    <p className="text-3xl font-bold text-white">{assignedTasks.length}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
+                    <Briefcase className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Completed</p>
+                    <p className="text-3xl font-bold text-white">{completedTasks.length}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Reviews</p>
+                    <p className="text-3xl font-bold text-white">{completedReviews.length}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl">
+                    <Star className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm font-medium">Earnings</p>
+                    <p className="text-3xl font-bold text-white">${totalEarnings}</p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Recommended Tasks */}
+              <div className="lg:col-span-2">
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8 mb-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white">
+                      <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Tasks</span> Recommended for You
+                    </h2>
+                    <button
+                      onClick={() => navigate('/tasks')}
+                      className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center space-x-1"
+                    >
+                      <span>View All</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  {recommendedTasks.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Briefcase className="h-8 w-8 text-white" />
+                      </div>
+                      <p className="text-gray-400 text-lg">No recommended tasks available</p>
+                      <p className="text-gray-500 text-sm mt-2">Complete your profile to get personalized recommendations</p>
+                    </div>
                   ) : (
-                    recommendedTasks.slice(0, 3).map(task => (
-                      <div 
-                        key={task.id} 
-                        className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors cursor-pointer"
-                        onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Briefcase className="h-4 w-4 text-indigo-600" />
+                    <div className="space-y-4">
+                      {recommendedTasks.slice(0, 3).map(task => (
+                        <div
+                          key={task.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6 cursor-pointer hover:border-purple-400/40 transition-all duration-300"
+                          onClick={() => handleTaskClick(task)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">{task.title}</h3>
+                            {task.matching_skills_count > 0 && (
+                              <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs rounded-full font-medium">
+                                {task.matching_skills_count} skills match
+                              </span>
+                            )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 text-sm truncate">{task.title}</p>
-                            <p className="text-xs text-gray-500 mt-1">{task.creator_name || 'Unknown'}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-xs font-medium text-indigo-600">
-                                ${task.compensation_amount || 0}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {task.skills?.length || 0} skills match
-                              </span>
-                            </div>
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">{task.description}</p>
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <span className="flex items-center space-x-2">
+                              <Tag className="h-4 w-4" />
+                              <span>{task.category || 'General'}</span>
+                            </span>
+                            <span className="flex items-center space-x-2">
+                              <DollarSign className="h-4 w-4" />
+                              <span>{formatCompensation(task.compensation)}</span>
+                            </span>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
-                {recommendedTasks.length > 3 && (
-                  <button
-                    onClick={() => navigate('/tasks')}
-                    className="w-full mt-4 text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
-                    View all recommendations →
-                  </button>
-                )}
-              </div>
 
-              {/* Skills in Demand */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 sticky top-24">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Skills in Demand</h3>
-                
-                <div className="space-y-3">
-                  {(() => {
-                    if (loading) {
-                      return (
-                        <div className="flex items-center justify-center py-6">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></div>
-                        </div>
-                      );
-                    } else if (!topSkills || topSkills.length === 0) {
-                      return (
-                        <p className="text-center text-gray-500 text-sm py-6">No skills data available</p>
-                      );
-                    } else {
-                      return topSkills.slice(0, 5).map((skill, index) => (
-                        <button
-                          key={skill.id}
-                          onClick={() => navigate(`/skills/${skill.id}`)}
-                          className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-indigo-50 hover:border-indigo-200 border border-transparent transition-all duration-200 text-left group cursor-pointer"
+                {/* Active Tasks Section */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8 mb-8">
+                  <h2 className="text-2xl font-bold text-white mb-6">
+                    Your Active
+                    <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> Tasks</span>
+                  </h2>
+                  {assignedTasks.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="h-8 w-8 text-white" />
+                      </div>
+                      <p className="text-gray-400 text-lg">No active tasks</p>
+                      <p className="text-gray-500 text-sm mt-2">Start by browsing available tasks</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {assignedTasks.map(task => (
+                        <div
+                          key={task.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
                         >
-                          <span className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">{skill.name}</span>
-                          <span className="text-sm text-gray-500">{skill.task_count} tasks</span>
-                        </button>
-                      ));
-                    }
-                  })()}
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">{task.task_title}</h3>
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                              {formatStatus(task.status)}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                            {task.notes || 'No additional notes provided'}
+                          </p>
+                          <div className="flex items-center justify-between text-sm text-gray-400 mb-4">
+                            <span className="flex items-center space-x-2">
+                              <Tag className="h-4 w-4" />
+                              <span>Task #{task.task_id}</span>
+                            </span>
+                            <span className="flex items-center space-x-2">
+                              <User className="h-4 w-4" />
+                              <span>{task.user_name}</span>
+                            </span>
+                          </div>
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskAction(task, 'submit');
+                              }}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium"
+                            >
+                              Submit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskClick({ id: task.task_id });
+                              }}
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-medium"
+                            >
+                              View
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Completed Tasks & Reviews Section */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8">
+                  <h2 className="text-2xl font-bold text-white mb-6">
+                    <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Completed</span> Tasks & Reviews
+                  </h2>
+                  
+                  {completedTasks.length === 0 && completedReviews.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Award className="h-8 w-8 text-white" />
+                      </div>
+                      <p className="text-gray-400 text-lg">No completed work yet</p>
+                      <p className="text-gray-500 text-sm mt-2">Complete your first task to see it here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Completed Tasks */}
+                      {completedTasks.slice(0, 5).map(task => (
+                        <div
+                          key={task.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-green-500/20 rounded-2xl p-6"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">{task.task_title}</h3>
+                            <div className="flex items-center space-x-2">
+                              <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs rounded-full font-medium">
+                                Completed
+                              </span>
+                              <span className="text-green-400 text-sm font-medium">
+                                Task #{task.task_id}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                            {task.notes || 'No additional notes provided'}
+                          </p>
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <span className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>Completed {formatDate(task.completed_at)}</span>
+                            </span>
+                            <button
+                              onClick={() => handleTaskClick({ id: task.task_id })}
+                              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Completed Reviews */}
+                      {completedReviews.slice(0, 3).map(review => (
+                        <div
+                          key={review.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-yellow-500/20 rounded-2xl p-6"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">Review: {review.task_title}</h3>
+                            <div className="flex items-center space-x-2">
+                              <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-full font-medium">
+                                Review
+                              </span>
+                              <span className="text-yellow-400 text-sm font-medium">
+                                +${formatCompensation(review.compensation)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-4">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              review.is_approved 
+                                ? 'bg-green-500/20 text-green-400' 
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {review.is_approved ? 'Approved' : 'Rejected'}
+                            </span>
+                            {review.feedback && (
+                              <span className="text-gray-400 ml-2">- {review.feedback}</span>
+                            )}
+                          </p>
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <span className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>Reviewed {formatDate(review.created_at)}</span>
+                            </span>
+                            <button
+                              onClick={() => handleTaskClick({ id: review.task_id })}
+                              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                            >
+                              View Task
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* View All Button */}
+                      {(completedTasks.length > 5 || completedReviews.length > 3) && (
+                        <div className="text-center pt-4">
+                          <button
+                            onClick={() => navigate('/tasks')}
+                            className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center justify-center space-x-2 mx-auto"
+                          >
+                            <span>View All Completed Work</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Main Dashboard Content */}
-          <div className="flex-1 px-4 sm:px-6 lg:px-8">
-            {/* Navigation Tabs */}
-            <div className="mb-8">
-              <nav className="flex space-x-8 border-b border-gray-200">
-                {[
-                  { key: 'overview', label: 'Overview', icon: <Sparkles className="h-4 w-4" /> },
-                  { key: 'undertaking', label: 'Active Tasks', icon: <Target className="h-4 w-4" /> },
-                  { key: 'completed', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
-                  { key: 'pending_review', label: 'Under Review', icon: <Eye className="h-4 w-4" /> },
-                  { key: 'dispatched', label: 'Posted Tasks', icon: <Lightbulb className="h-4 w-4" /> },
-                ].map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.key
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* Overview Tab Content (at top when active) */}
-            {activeTab === 'overview' && (
+              {/* Right Column - Quick Actions & Stats */}
               <div className="space-y-8">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Total Earnings</p>
-                        <p className="text-2xl font-bold text-gray-900">${totalEarnings}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <DollarSign className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Active Tasks</p>
-                        <p className="text-2xl font-bold text-gray-900">{activeTasks}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Target className="h-6 w-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Reviews Completed</p>
-                        <p className="text-2xl font-bold text-gray-900">{totalReviews}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Star className="h-6 w-6 text-purple-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                        <p className="text-2xl font-bold text-gray-900">{completionRate}%</p>
-                      </div>
-                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="h-6 w-6 text-indigo-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Tasks Posted</p>
-                        <p className="text-2xl font-bold text-gray-900">{createdTasks.length}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <Lightbulb className="h-6 w-6 text-orange-600" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Quick Actions */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button
-                      onClick={() => navigate('/tasks')}
-                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors group"
-                    >
-                      <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-indigo-200 transition-colors">
-                        <Briefcase className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">Find New Work</p>
-                        <p className="text-sm text-gray-500">Discover tasks that match your skills</p>
-                      </div>
-                    </button>
-
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
+                  <div className="space-y-3">
                     <button
                       onClick={() => setIsDispatchModalOpen(true)}
-                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
                     >
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-green-200 transition-colors">
-                        <Lightbulb className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">Post a Task</p>
-                        <p className="text-sm text-gray-500">Share your project with the community</p>
-                      </div>
+                      <Plus className="h-5 w-5" />
+                      <span>Post New Task</span>
                     </button>
-
-                    <button
-                      onClick={() => setActiveTab('undertaking')}
-                      className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-                    >
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-blue-200 transition-colors">
-                        <Clipboard className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-gray-900">My Tasks</p>
-                        <p className="text-sm text-gray-500">View your active assignments</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Other Tab Content (at top when active) */}
-            {activeTab === 'undertaking' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Active Tasks</h2>
-                  <button
-                    onClick={() => navigate('/tasks')}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                  >
-                    Find More Work
-                  </button>
-                </div>
-                
-                {loading ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading your tasks...</p>
-                  </div>
-                ) : (assignedTasks.length === 0 && assignedReviewTasks.length === 0) ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <Target className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Tasks</h3>
-                    <p className="text-gray-500 mb-6">You're not currently working on any tasks.</p>
                     <button
                       onClick={() => navigate('/tasks')}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
                     >
-                      Find Work That Matches Your Skills
+                      <Briefcase className="h-5 w-5" />
+                      <span>Browse Tasks</span>
                     </button>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                    {/* Regular Tasks */}
-                    {assignedTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                                {formatStatus(task.status)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>Started {formatDate(task.created_at)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation?.task)}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm">
-                              {task.notes || 'No additional notes provided.'}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                                task.assignment_type === 'review' 
-                                  ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
-                                  : 'bg-green-100 text-green-800 hover:bg-green-200'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTaskAction(task, task.assignment_type === 'review' ? 'review' : 'submit');
-                              }}
-                            >
-                              {task.assignment_type === 'review' ? 'Submit Review' : 'Submit Work'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Review Tasks */}
-                    {assignedReviewTasks.map(reviewTask => (
-                      <div key={reviewTask.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ ...reviewTask, id: reviewTask.review_task_id, type: 'review' })}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">Review: {reviewTask.parent_task_title}</h3>
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Review Task
-                              </span>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(reviewTask.status)}`}>
-                                {formatStatus(reviewTask.status)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>Started {formatDate(reviewTask.assigned_at)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <User className="h-4 w-4" />
-                                <span>Submitted by: {reviewTask.submitter_name}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm">
-                              {reviewTask.assignment_notes || 'No additional notes provided.'}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium text-sm hover:bg-yellow-200 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTaskAction(reviewTask, 'review');
-                              }}
-                            >
-                              Submit Review
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'completed' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Completed Tasks & Reviews</h2>
-                </div>
-                
-                {loading ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading completed tasks...</p>
-                  </div>
-                ) : (completedTasks.length === 0 && completedReviews.length === 0) ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <CheckCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Work</h3>
-                    <p className="text-gray-500 mb-6">Complete your first task to see it here.</p>
                     <button
-                      onClick={() => navigate('/tasks')}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                      onClick={() => setIsSkillsModalOpen(true)}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
                     >
-                      Find Work to Complete
+                      <Target className="h-5 w-5" />
+                      <span>Update Skills</span>
                     </button>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Completed Tasks Section */}
-                    {completedTasks.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Tasks</h3>
-                        <div className="grid gap-4">
-                          {completedTasks.map(task => (
-                            <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-3 mb-3">
-                                    <h3 className="text-lg font-semibold text-gray-900">{task.title || task.task_title || `Task ${task.id}`}</h3>
-                                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      Completed
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                                    <div className="flex items-center space-x-1">
-                                      <Calendar className="h-4 w-4" />
-                                      <span>Completed {formatDate(task.completed_at)}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <DollarSign className="h-4 w-4" />
-                                      <span>{formatCompensation(task.compensation?.task)}</span>
-                                    </div>
-                                  </div>
-                                  <p className="text-gray-600 text-sm">
-                                    {task.description || 'No description provided.'}
-                                  </p>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                                    {formatCompensation(task.compensation?.task)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                </div>
 
-                    {/* Completed Reviews Section */}
-                    {completedReviews.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Completed Reviews</h3>
-                        <div className="grid gap-4">
-                          {completedReviews.map(review => (
-                            <div key={review.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick({ id: review.task_id })}>
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-3 mb-3">
-                                    <h3 className="text-lg font-semibold text-gray-900">{review.task_title || `Task ${review.task_id}`}</h3>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                      review.is_approved 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : 'bg-red-100 text-red-800'
-                                    }`}>
-                                      {review.is_approved ? 'Approved' : 'Rejected'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                                    <div className="flex items-center space-x-1">
-                                      <Calendar className="h-4 w-4" />
-                                      <span>Reviewed {formatDate(review.created_at)}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <DollarSign className="h-4 w-4" />
-                                      <span>{formatCompensation(review.compensation?.review)}</span>
-                                    </div>
-                                  </div>
-                                  {review.feedback && (
-                                    <p className="text-gray-600 text-sm">
-                                      <strong>Feedback:</strong> {review.feedback}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                                    {formatCompensation(review.compensation?.review)}
-                                  </span>
-                                </div>
-                              </div>
+                {/* Skills in Demand */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Skills in Demand</h3>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
+                    </div>
+                  ) : !topSkills || topSkills.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No skills data available</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {topSkills.slice(0, 5).map((skill, index) => (
+                        <div 
+                          key={skill.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 transition-colors"
+                          onClick={() => navigate(`/skills/${skill.id}`)}
+                        >
+                          <span className="text-gray-300 text-sm">{skill.name}</span>
+                          <span className="text-purple-400 text-xs font-medium">{skill.task_count} tasks</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Top Skills */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Your Top Skills</h3>
+                  {userSkills.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No skills added yet</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {userSkills.slice(0, 5).map((skill, index) => (
+                        <div 
+                          key={skill.id} 
+                          className="flex items-center justify-between cursor-pointer hover:bg-slate-700/30 rounded-lg p-2 transition-colors"
+                          onClick={() => navigate(`/skills/${skill.id}`)}
+                        >
+                          <span className="text-gray-300 text-sm">{skill.name}</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                                style={{ width: `${(skill.rating / 5) * 100}%` }}
+                              ></div>
                             </div>
-                          ))}
+                            <span className="text-gray-400 text-xs">{skill.rating}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>
+                  <div className="space-y-4">
+                    {completedTasks.slice(0, 3).map(task => (
+                      <div key={task.id} className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                          <CheckCircle className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white text-sm font-medium">{task.task_title}</p>
+                          <p className="text-gray-400 text-xs">Completed {formatDate(task.completed_at)}</p>
                         </div>
                       </div>
+                    ))}
+                    {completedTasks.length === 0 && (
+                      <p className="text-gray-400 text-sm">No recent activity</p>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'pending_review' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Tasks Under Review</h2>
                 </div>
-                
-                {loading ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading tasks under review...</p>
-                  </div>
-                ) : pendingReviewTasks.length === 0 ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <Eye className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Tasks Under Review</h3>
-                    <p className="text-gray-500 mb-6">Tasks you've submitted will appear here while being reviewed.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                    {pendingReviewTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task.type === 'review' || task.review_task_id ? { ...task, id: task.review_task_id || task.id, type: 'review' } : task)}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{task.task_title}</h3>
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Under Review
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>Submitted {formatDate(task.created_at)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation?.task)}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm">
-                              {task.notes || 'No additional notes provided.'}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg font-medium text-sm"
-                              disabled
-                            >
-                              Being Reviewed
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            )}
-
-            {activeTab === 'dispatched' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Tasks You've Posted</h2>
-                  <button
-                    onClick={() => setIsDispatchModalOpen(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                  >
-                    Post New Task
-                  </button>
-                </div>
-                
-                {loading ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading your posted tasks...</p>
-                  </div>
-                ) : createdTasks.length === 0 ? (
-                  <div className="bg-white rounded-xl p-8 text-center">
-                    <Lightbulb className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Posted Tasks</h3>
-                    <p className="text-gray-500 mb-6">Share your projects with the community to get help.</p>
-                    <button
-                      onClick={() => setIsDispatchModalOpen(true)}
-                      className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                    >
-                      Post Your First Task
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid gap-6">
-                    {createdTasks.map(task => (
-                      <div key={task.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleTaskClick(task)}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
-                                {formatStatus(task.status)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>Posted {formatDate(task.created_at)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <DollarSign className="h-4 w-4" />
-                                <span>{formatCompensation(task.compensation?.task)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Clock className="h-4 w-4" />
-                                <span>Due {formatDate(task.deadline)}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm">
-                              {task.description || 'No description provided.'}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <button
-                              className="px-4 py-2 bg-red-100 text-red-800 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm('Are you sure you want to delete this task?')) {
-                                  deleteTask(task.id);
-                                }
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Modals */}
-        {isTaskModalOpen && selectedTask && (
-          selectedTask.type === 'review' ? (
-            <ReviewDetailModal
-              task={selectedTask}
-              isOpen={isTaskModalOpen}
-              onClose={() => {
-                setIsTaskModalOpen(false);
-                setSelectedTask(null);
-              }}
-              onReview={(task, submission) => {
-                // Handle review submission
-                console.log('Review submission:', task, submission);
-              }}
-            />
-          ) : (
-            <TaskDetailModal
-              task={selectedTask}
-              isOpen={isTaskModalOpen}
-              onClose={() => {
-                setIsTaskModalOpen(false);
-                setSelectedTask(null);
-              }}
-              onSubmit={handleTaskSubmitFromModal}
-            />
-          )
-        )}
-
-        {isTaskActionModalOpen && selectedTask && (
-          <TaskActionModal
+      {/* Modals */}
+      {isTaskModalOpen && selectedTask && (
+        selectedTask.type === 'review' ? (
+          <ReviewDetailModal
             task={selectedTask}
-            mode={actionMode}
-            isOpen={isTaskActionModalOpen}
+            isOpen={isTaskModalOpen}
             onClose={() => {
-              setIsTaskActionModalOpen(false);
+              setIsTaskModalOpen(false);
               setSelectedTask(null);
             }}
-            onSubmit={actionMode === 'review' ? handleTaskReview : handleTaskSubmit}
-          />
-        )}
-
-        {isDispatchModalOpen && (
-          <DispatchTaskModal
-            isOpen={isDispatchModalOpen}
-            onClose={() => setIsDispatchModalOpen(false)}
-            onTaskCreated={(newTask) => {
-              setCreatedTasks(prev => [newTask, ...prev]);
-              setSuccess('Task created successfully!');
-              setIsDispatchModalOpen(false);
+            onReview={(task, submission) => {
+              // Handle review submission
+              console.log('Review submission:', task, submission);
             }}
           />
-        )}
+        ) : (
+          <TaskDetailModal
+            task={selectedTask}
+            isOpen={isTaskModalOpen}
+            onClose={() => {
+              setIsTaskModalOpen(false);
+              setSelectedTask(null);
+            }}
+            onSubmit={handleTaskSubmitFromModal}
+            onUndertake={async (task) => {
+              // You can customize this logic as needed
+              // For now, just navigate to /tasks and open the undertake modal for this task
+              setIsTaskModalOpen(false);
+              navigate('/tasks', { state: { openTaskId: task.id } });
+            }}
+          />
+        )
+      )}
 
-        {/* Skills Modal */}
-        <SkillsModal 
-          isOpen={isSkillsModalOpen}
-          onClose={() => setIsSkillsModalOpen(false)}
-          onComplete={() => {
-            setIsSkillsModalOpen(false);
-            setSuccess('Skills updated successfully!');
-            // Refresh user skills
-            // The original fetchDashboardData already handles this, but calling it again here
-            // ensures the latest skills are displayed in the profile dropdown.
-            // However, the original fetchDashboardData doesn't re-fetch userSkills.
-            // For now, we'll just close the modal and show a success message.
-            // A more robust solution would involve re-fetching userSkills after skills are updated.
+      {isTaskActionModalOpen && selectedTask && (
+        <TaskActionModal
+          task={selectedTask}
+          mode={actionMode}
+          isOpen={isTaskActionModalOpen}
+          onClose={() => {
+            setIsTaskActionModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onSubmit={actionMode === 'review' ? handleTaskReview : handleTaskSubmit}
+        />
+      )}
+
+      {isDispatchModalOpen && (
+        <DispatchTaskModal
+          isOpen={isDispatchModalOpen}
+          onClose={() => setIsDispatchModalOpen(false)}
+          onTaskCreated={(newTask) => {
+            setCreatedTasks(prev => [newTask, ...prev]);
+            setSuccess('Task created successfully!');
+            setIsDispatchModalOpen(false);
           }}
         />
-      </main>
-    </div>
+      )}
+
+      {/* Skills Modal */}
+      <SkillsModal 
+        isOpen={isSkillsModalOpen}
+        onClose={() => setIsSkillsModalOpen(false)}
+        onComplete={() => {
+          setIsSkillsModalOpen(false);
+          setSuccess('Skills updated successfully!');
+          // Refresh user skills
+          // The original fetchDashboardData already handles this, but calling it again here
+          // ensures the latest skills are displayed in the profile dropdown.
+          // However, the original fetchDashboardData doesn't re-fetch userSkills.
+          // For now, we'll just close the modal and show a success message.
+          // A more robust solution would involve re-fetching userSkills after skills are updated.
+        }}
+      />
+    </>
   );
 };
 

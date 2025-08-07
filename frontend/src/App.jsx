@@ -7,10 +7,12 @@ import IdeaDetailPage from './IdeaDetailPage';
 import ContributorProfile from './ContributorProfile';
 import TaskBrowser from './pages/contributor/TaskBrowser';
 import TasksPage from './TasksPage';
+import TaskPage from './TaskPage';
 import OAuthCallback from './components/OAuthCallback';
 import VerifyEmail from './VerifyEmail';
 import OnboardingFlow from './OnboardingFlow';
 import SkillDetailPage from './pages/SkillDetailPage';
+import ResetPassword from './ResetPassword';
 
 function CheckEmail() {
   return (
@@ -39,11 +41,13 @@ function App() {
         <Route path="/profile" element={<ContributorProfile />} />
         <Route path="/contributor/tasks" element={<TaskBrowser />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/tasks/:taskId" element={<TaskPage />} />
         <Route path="/auth/callback" element={<OAuthCallback />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/check-email" element={<CheckEmail />} />
         <Route path="/onboarding" element={<OnboardingFlow />} />
         <Route path="/skills/:skillId" element={<SkillDetailPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </NotificationProvider>
   );

@@ -15,6 +15,7 @@ import {
   Filter, Zap, Target, Users, Calendar, UserCircle,
   BarChart3, Activity, TrendingDown, TrendingUp as TrendingUpIcon, ClipboardList
 } from 'lucide-react';
+import TaskDetailModal from '../TaskDetailModal';
 
 const SkillDetailPage = () => {
   const { skillId } = useParams();
@@ -28,6 +29,8 @@ const SkillDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const [currentUserRating, setCurrentUserRating] = useState(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -118,10 +121,10 @@ const SkillDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading skill details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <p className="text-gray-300">Loading skill details...</p>
         </div>
       </div>
     );
@@ -129,262 +132,233 @@ const SkillDetailPage = () => {
 
   if (!skill) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <Award className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">Skill not found.</p>
+          <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400">Skill not found.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium">Back to Dashboard</span>
-              </button>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-5 animate-spin-slow"></div>
+      </div>
+
+      <div className="relative z-10">
+        {/* Header */}
+        <header className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg border-b border-purple-500/20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-20">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center space-x-2 text-white hover:text-gray-200 transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="font-medium">Back to Dashboard</span>
+                </button>
               </div>
-              <span className="text-xl font-bold text-gray-900">Avasara</span>
+              <div className="flex items-center space-x-4">
+                <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
+                  Avasara
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Skill Overview Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              {/* Skill Header */}
-              <div className="text-center mb-6">
-                <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Award className="h-12 w-12 text-white" />
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Skill Overview Card */}
+            <div className="lg:col-span-1">
+              <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8">
+                {/* Skill Header */}
+                <div className="text-center mb-8">
+                  <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Award className="h-12 w-12 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold text-white mb-3">
+                    {skill.name}
+                  </h1>
+                  <p className="text-gray-300 text-sm mb-4">
+                    {skill.description || 'No description available'}
+                  </p>
+                  {currentUserRating && (
+                    <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium">
+                      <Star className="h-4 w-4 mr-2" />
+                      Your Rating: {currentUserRating.toFixed(1)}
+                    </div>
+                  )}
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  {skill.name}
-                </h1>
-                <p className="text-gray-600 text-sm mb-3">
-                  {skill.description || 'No description available'}
-                </p>
-                {currentUserRating && (
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(currentUserRating)}`}>
-                    <Star className="h-4 w-4 mr-1" />
-                    Your Rating: {currentUserRating.toFixed(1)}
+
+                {/* Skill Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-4 text-center">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Users className="h-4 w-4 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-gray-400">Active Users</p>
+                    <p className="text-lg font-bold text-white">
+                      {topTaskContributors.length + topRatedContributors.length}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-4 text-center">
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Briefcase className="h-4 w-4 text-white" />
+                    </div>
+                    <p className="text-xs font-medium text-gray-400">Open Jobs</p>
+                    <p className="text-lg font-bold text-white">{openJobs.length}</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate('/tasks')}
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
+                  >
+                    <Briefcase className="h-5 w-5" />
+                    <span>Browse All Tasks</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center space-x-2"
+                  >
+                    <Target className="h-5 w-5" />
+                    <span>Update My Skills</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Current Jobs Available */}
+              <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">
+                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Current Jobs</span> Available
+                </h2>
+                {openJobs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Briefcase className="h-6 w-6 text-white" />
+                    </div>
+                    <p className="text-gray-400 text-sm">No jobs available for this skill</p>
+                    <p className="text-gray-500 text-xs mt-1">Check back later for new opportunities</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {openJobs.slice(0, 3).map(job => (
+                      <div
+                        key={job.id}
+                        className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-xl p-4 cursor-pointer hover:border-purple-400/40 transition-all duration-300"
+                        onClick={() => {
+                          setSelectedTask(job);
+                          setIsTaskModalOpen(true);
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-base font-semibold text-white">{job.title}</h3>
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs rounded-full font-medium">
+                              Open
+                            </span>
+                            <span className="text-green-400 text-xs font-medium">
+                              ${job.compensation}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-gray-300 text-xs mb-2 line-clamp-1">{job.description}</p>
+                        <div className="flex items-center justify-between text-xs text-gray-400">
+                          <span className="flex items-center space-x-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Posted {formatDate(job.created_at)}</span>
+                          </span>
+                          <button className="text-purple-400 hover:text-purple-300 text-xs font-medium">
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* View More Jobs Button */}
+                    {openJobs.length > 3 && (
+                      <div className="text-center pt-2">
+                        <button
+                          onClick={() => navigate('/tasks')}
+                          className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center justify-center space-x-2 mx-auto"
+                        >
+                          <span>View More Jobs</span>
+                          <ArrowLeft className="h-4 w-4 rotate-180" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Skill Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Users className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="text-xs font-medium text-gray-500">Active Users</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {topTaskContributors.length + topRatedContributors.length}
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Briefcase className="h-4 w-4 text-green-600" />
-                  </div>
-                  <p className="text-xs font-medium text-gray-500">Open Jobs</p>
-                  <p className="text-lg font-bold text-gray-900">{openJobs.length}</p>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate('/tasks')}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                >
-                  <Target className="h-4 w-4" />
-                  <span>Browse {skill.name} Jobs</span>
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  <Briefcase className="h-4 w-4" />
-                  <span>View Dashboard</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* User Rating History */}
-            {userData && userSkillHistory.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Your Rating History</h2>
-                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Performance tracking</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {userSkillHistory.map((entry, index) => {
-                    const previousRating = index > 0 ? userSkillHistory[index - 1].new_rating : null;
-                    const trendIcon = getTrendIcon(entry.new_rating, previousRating);
-                    return (
-                      <div key={entry.id} className="flex flex-col md:flex-row md:items-center md:justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center space-x-4 mb-2 md:mb-0">
+              {/* Top Contributors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Top Task Contributors */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Top Task Contributors</h3>
+                  {topTaskContributors.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No contributors yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {topTaskContributors.slice(0, 3).map((contributor, index) => (
+                        <div key={contributor.id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
-                            {trendIcon}
-                            <span className="font-medium text-gray-900">
-                              {formatDate(entry.created_at)}
-                            </span>
+                            <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                              <UserCircle className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-300 text-sm">{contributor.username}</span>
                           </div>
-                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(entry.new_rating)}`}>
-                            {entry.new_rating.toFixed(2)}
+                          <span className="text-purple-400 text-xs font-medium">{contributor.task_count} tasks</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Top Rated Contributors */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Top Rated Contributors</h3>
+                  {topRatedContributors.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No rated contributors yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {topRatedContributors.slice(0, 3).map((contributor, index) => (
+                        <div key={contributor.id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                              <Star className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-gray-300 text-sm">{contributor.username}</span>
                           </div>
+                          <span className="text-yellow-400 text-xs font-medium">{contributor.rating.toFixed(1)}</span>
                         </div>
-                        <div className="flex flex-col md:flex-row md:items-center md:space-x-4 text-sm text-gray-500">
-                          <span>Old: {entry.old_rating?.toFixed ? entry.old_rating.toFixed(2) : entry.old_rating}</span>
-                          <span>Change: {entry.change_amount > 0 ? '+' : ''}{entry.change_amount?.toFixed ? entry.change_amount.toFixed(2) : entry.change_amount}</span>
-                          <span>Type: {entry.change_type}</span>
-                          {entry.related_task_id && <span>Task: {entry.related_task_id}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Community Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Top Contributors by Tasks */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <ClipboardList className="h-5 w-5 text-indigo-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Top Contributors by Tasks</h3>
-                </div>
-                <div className="space-y-3">
-                  {topTaskContributors.slice(0, 5).map((user, index) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-indigo-600">{index + 1}</span>
-                        </div>
-                        <span className="font-medium text-gray-800">{user.username}</span>
-                      </div>
-                      <span className="text-sm text-indigo-600 font-medium">{user.task_count} tasks</span>
-                    </div>
-                  ))}
-                  {topTaskContributors.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      <Users className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No contributors yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Top Contributors by Rating */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <Star className="h-5 w-5 text-yellow-500 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Top Contributors by Rating</h3>
-                </div>
-                <div className="space-y-3">
-                  {topRatedContributors.slice(0, 5).map((user, index) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-yellow-600">{index + 1}</span>
-                        </div>
-                        <span className="font-medium text-gray-800">{user.username}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        <span className="text-sm text-yellow-600 font-medium">{user.avg_rating}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {topRatedContributors.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      <Star className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No rated contributors yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Top Job Posters */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <Users className="h-5 w-5 text-green-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Top Job Posters</h3>
-                </div>
-                <div className="space-y-3">
-                  {topJobPosters.slice(0, 5).map((user, index) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-green-600">{index + 1}</span>
-                        </div>
-                        <span className="font-medium text-gray-800">{user.username}</span>
-                      </div>
-                      <span className="text-sm text-green-600 font-medium">{user.job_post_count} jobs</span>
-                    </div>
-                  ))}
-                  {topJobPosters.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      <Briefcase className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No job posters yet</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Current Jobs Available */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center mb-4">
-                  <Briefcase className="h-5 w-5 text-indigo-600 mr-2" />
-                  <h3 className="text-lg font-semibold text-gray-900">Current Jobs Available</h3>
-                </div>
-                <div className="space-y-3">
-                  {openJobs.slice(0, 5).map((job, index) => (
-                    <div key={job.id} className="p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-gray-800 text-sm">{job.title}</span>
-                        <span className="text-xs text-gray-500">#{job.id}</span>
-                      </div>
-                      <p className="text-xs text-gray-600">Posted by {job.creator_name}</p>
-                    </div>
-                  ))}
-                  {openJobs.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      <Briefcase className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No open jobs available</p>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
+      <TaskDetailModal
+        isOpen={isTaskModalOpen}
+        task={selectedTask}
+        onClose={() => setIsTaskModalOpen(false)}
+      />
     </div>
   );
 };

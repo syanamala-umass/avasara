@@ -101,9 +101,9 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
     
     try:
         query = text("""
-            INSERT INTO users (email, username, hashed_password, is_active, email_verified, email_verification_token, email_verification_expires, email_verification_sent_at)
-            VALUES (:email, :username, :hashed_password, FALSE, FALSE, :token, :expires, :sent_at)
-            RETURNING id, email, username, is_active, email_verified, email_verification_token, email_verification_expires, email_verification_sent_at
+            INSERT INTO users (email, username, hashed_password, is_active, email_verified, email_verification_token, email_verification_expires, email_verification_sent_at, first_name, last_name)
+            VALUES (:email, :username, :hashed_password, FALSE, FALSE, :token, :expires, :sent_at, :first_name, :last_name)
+            RETURNING id, email, username, is_active, email_verified, email_verification_token, email_verification_expires, email_verification_sent_at, first_name, last_name
         """)
         result = db.execute(query, {
             "email": user.email,
@@ -111,7 +111,9 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
             "hashed_password": hashed_password,
             "token": verification_token,
             "expires": verification_expires,
-            "sent_at": verification_sent_at
+            "sent_at": verification_sent_at,
+            "first_name": user.first_name,
+            "last_name": user.last_name
         }).fetchone()
         
         print(f"User created with ID: {result.id}")
@@ -146,6 +148,8 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
             "email_verification_token": result.email_verification_token,
             "email_verification_expires": result.email_verification_expires,
             "email_verification_sent_at": result.email_verification_sent_at,
+            "first_name": result.first_name,
+            "last_name": result.last_name,
             "skills": user.skills
         }
         

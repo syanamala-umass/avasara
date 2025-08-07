@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Share2 } from 'lucide-react';
 import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask, fetchUserSkills } from './api';
 import TaskDurationInfo from './components/TaskDurationInfo';
 import ReactMarkdown from 'react-markdown';
@@ -24,6 +24,7 @@ const TaskDetailModal = ({ isOpen, task = {
   const [canUndertake, setCanUndertake] = useState(null);
   const [capabilityLoading, setCapabilityLoading] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen && task?.id) {
@@ -111,6 +112,24 @@ const TaskDetailModal = ({ isOpen, task = {
     }
   };
 
+  const handleShare = async () => {
+    const taskUrl = `${window.location.origin}/tasks/${task.id}`;
+    try {
+      await navigator.clipboard.writeText(taskUrl);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = taskUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    }
+  };
 
 
   if (!isOpen || !task) {
@@ -948,6 +967,15 @@ const TaskDetailModal = ({ isOpen, task = {
                 Reset for Resubmission
               </button>
             )}
+            
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 flex items-center space-x-2"
+            >
+              <Share2 className="h-4 w-4" />
+              <span>{shareSuccess ? 'Copied!' : 'Share'}</span>
+            </button>
             
             {/* Close Button */}
             <button

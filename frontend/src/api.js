@@ -280,3 +280,5 @@ export const generateTaskDescriptionTemplate = (templateData) => api.post('/ai-t
 export const rewriteTaskDescription = (rewriteData) => api.post('/ai-templates/rewrite-task-description', rewriteData);
 
 export const requestPasswordReset = (email) => api.post('/auth/request-password-reset', { email });
+
+export const resetPassword = (token, newPassword) => api.post('/auth/reset-password', { token, new_password: newPassword });
