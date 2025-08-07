@@ -624,9 +624,18 @@ const ProfessionalDashboard = () => {
 
                 {/* Completed Tasks & Reviews Section */}
                 <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-8">
-                  <h2 className="text-2xl font-bold text-white mb-6">
-                    <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Completed</span> Tasks & Reviews
-                  </h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white">
+                      <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Completed</span> Tasks & Reviews
+                    </h2>
+                    <button
+                      onClick={() => navigate('/task-management')}
+                      className="text-green-400 hover:text-green-300 text-sm font-medium flex items-center space-x-1"
+                    >
+                      <span>Manage Tasks</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
                   
                   {completedTasks.length === 0 && completedReviews.length === 0 && pendingReviewTasks.length === 0 ? (
                     <div className="text-center py-12">
@@ -756,10 +765,10 @@ const ProfessionalDashboard = () => {
                       {(completedTasks.length > 5 || completedReviews.length > 3 || pendingReviewTasks.length > 3) && (
                         <div className="text-center pt-4">
                           <button
-                            onClick={() => navigate('/profile')}
+                            onClick={() => navigate('/task-management')}
                             className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center justify-center space-x-2 mx-auto"
                           >
-                            <span>View All Completed Work</span>
+                            <span>Manage All Tasks</span>
                             <ArrowRight className="h-4 w-4" />
                           </button>
                         </div>
@@ -820,6 +829,56 @@ const ProfessionalDashboard = () => {
                           <span className="text-purple-400 text-xs font-medium">{skill.task_count} tasks</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Posted Tasks */}
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
+                  <h3 className="text-xl font-bold text-white mb-4">Posted Tasks</h3>
+                  {createdTasks.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Plus className="h-6 w-6 text-white" />
+                      </div>
+                      <p className="text-gray-400 text-sm">No posted tasks yet</p>
+                      <p className="text-gray-500 text-xs mt-1">Create your first task to see it here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {createdTasks.slice(0, 3).map(task => (
+                        <div 
+                          key={task.id}
+                          className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-indigo-500/20 rounded-xl p-3 cursor-pointer hover:border-indigo-400/40 transition-all duration-300"
+                          onClick={() => handleTaskClick(task)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="text-sm font-semibold text-white line-clamp-1">{task.title}</h4>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(task.status)}`}>
+                              {formatStatus(task.status)}
+                            </span>
+                          </div>
+                          <p className="text-gray-400 text-xs mb-2 line-clamp-2">{task.description}</p>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span className="flex items-center space-x-1">
+                              <DollarSign className="h-3 w-3" />
+                              <span>{formatCompensation(task.compensation)}</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>{formatDate(task.created_at)}</span>
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {createdTasks.length > 3 && (
+                        <button
+                          onClick={() => navigate('/task-management')}
+                          className="w-full text-purple-400 hover:text-purple-300 text-xs font-medium text-center py-2"
+                        >
+                          View All {createdTasks.length} Posted Tasks →
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

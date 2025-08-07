@@ -52,13 +52,50 @@ def login_for_access_token(
     client_ip = request.client.host if request else None
     user_agent = request.headers.get("user-agent") if request else None
     
+    # First check if user exists and get their verification status
+    user_by_email = get_user_by_email(db, form_data.username)
+    
+    if not user_by_email:
+        # Log failed login attempt
+        if request:
+            LoginLogger.log_login(
+                db=db,
+                user_id=0,  # No user ID for failed login
+                login_method="email",
+                ip_address=client_ip,
+                user_agent=user_agent,
+                success="failed"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check email verification status
+    if not user_by_email['email_verified']:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Please verify your email address before logging in. Check your inbox for a verification link.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # # Check if account is active
+    # if not user_by_email['is_active']:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Your account is not active. Please contact support.",
+    #         headers={"WWW-Authenticate": "Bearer"},
+    #     )
+    
+    # Now authenticate with password
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         # Log failed login attempt
         if request:
             LoginLogger.log_login(
                 db=db,
-                user_id=0,  # No user ID for failed login
+                user_id=user_by_email['id'],  # We know the user exists
                 login_method="email",
                 ip_address=client_ip,
                 user_agent=user_agent,
@@ -91,7 +128,19 @@ def login_for_access_token(
 @router.get("/me", response_model=UserSchema)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
-    return UserSchema.model_validate(current_user)
+    # Convert SQLAlchemy model to dict for Pydantic validation
+    user_dict = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "username": current_user.username,
+        "is_active": current_user.is_active,
+        "email_verified": current_user.email_verified,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "oauth_provider": current_user.oauth_provider,
+        "oauth_id": current_user.oauth_id
+    }
+    return UserSchema.model_validate(user_dict)
 
 @router.get("/verify-email")
 def verify_email(token: str = Query(...), db: Session = Depends(get_db)):

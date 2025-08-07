@@ -25,6 +25,8 @@ class User(Base):
     hashed_password = Column(String, nullable=True)  # Nullable for OAuth users
     is_active = Column(Boolean, default=False)  # Changed to False - requires email verification
     username = Column(String, unique=True, index=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
     
     # OAuth fields
     oauth_provider = Column(String, nullable=True)  # 'google', 'linkedin', 'github'

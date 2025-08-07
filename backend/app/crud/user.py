@@ -175,36 +175,54 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
                 detail="Registration failed. Please try again."
             )
 
-def create_oauth_user(db: Session, email: str, username: str,  oauth_provider: str, oauth_id: str):
+def create_oauth_user(db: Session, email: str, username: str, full_name: str, oauth_provider: str, oauth_id: str):
     """Create a new user from OAuth provider"""
+    print(f"Creating OAuth user: email={email}, username={username}, provider={oauth_provider}")
+    
     # Check if user already exists
     existing_user = get_user_by_email(db, email)
     if existing_user:
+        print(f"User already exists: {existing_user}")
         return existing_user
 
     # Create new OAuth user
     query = text("""
-        INSERT INTO users (email, username, hashed_password, is_active, oauth_provider, oauth_id)
-        VALUES (:email, :username, NULL, TRUE, :oauth_provider, :oauth_id)
-        RETURNING id, email, username, is_active, oauth_provider, oauth_id
+        INSERT INTO users (email, username, first_name, last_name, hashed_password, is_active, oauth_provider, oauth_id)
+        VALUES (:email, :username, :first_name, :last_name, NULL, TRUE, :oauth_provider, :oauth_id)
+        RETURNING id, email, username, first_name, last_name, is_active, oauth_provider, oauth_id
     """)
+    
+    # Split full name into first and last name
+    name_parts = full_name.split(' ', 1)
+    first_name = name_parts[0] if name_parts else ''
+    last_name = name_parts[1] if len(name_parts) > 1 else ''
+    
+    print(f"Name parts: first_name='{first_name}', last_name='{last_name}'")
+    
     result = db.execute(query, {
         "email": email,
         "username": username,
+        "first_name": first_name,
+        "last_name": last_name,
         "oauth_provider": oauth_provider,
         "oauth_id": oauth_id
     }).fetchone()
     
     db.commit()
     
-    return {
+    user_data = {
         "id": result.id,
         "email": result.email,
         "username": result.username,
+        "first_name": result.first_name,
+        "last_name": result.last_name,
         "is_active": result.is_active,
         "oauth_provider": result.oauth_provider,
         "oauth_id": result.oauth_id
     }
+    
+    print(f"Created OAuth user: {user_data}")
+    return user_data
 
 def authenticate_user(db: Session, email: str, password: str):
     """Authenticate a user by email and password"""
@@ -215,4 +233,8 @@ def authenticate_user(db: Session, email: str, password: str):
         return False  # OAuth users don't have passwords
     if not verify_password(password, user['hashed_password']):
         return False
+    # if not user['is_active']:
+    #     return False  # User account is not active
+    if not user['email_verified']:
+        return False  # Email is not verified
     return user

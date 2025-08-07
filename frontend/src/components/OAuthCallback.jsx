@@ -11,8 +11,7 @@ const OAuthCallback = () => {
   useEffect(() => {
     const handleOAuthCallback = async () => {
       try {
-        const token = searchParams.get('token');
-        const provider = searchParams.get('provider');
+        const code = searchParams.get('code');
         const error = searchParams.get('error');
         const errorMessage = searchParams.get('message');
 
@@ -22,73 +21,61 @@ const OAuthCallback = () => {
           return;
         }
 
-        if (token) {
-          // Store the token
-          localStorage.setItem('token', token);
-          
-          // Fetch user data
+        if (code) {
+          console.log('Received OAuth code:', code);
+          // Exchange code for token with backend
           try {
-            const API_URL = process.env.REACT_APP_API_URL || 'https://avasara-backend.onrender.com';
-            const response = await fetch(`${API_URL}/auth/me`, {
+            const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+            console.log('Calling backend at:', `${API_URL}/oauth/token`);
+            
+            const response = await fetch(`${API_URL}/oauth/token`, {
+              method: 'POST',
               headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
-              }
+              },
+              body: JSON.stringify({
+                provider: 'google',
+                code: code
+              })
             });
             
+            console.log('Backend response status:', response.status);
+            
             if (response.ok) {
-              const userData = await response.json();
-              localStorage.setItem('userData', JSON.stringify(userData));
-              setStatus('success');
-              setMessage(`Successfully signed in with ${provider}!`);
+              const data = await response.json();
+              console.log('Backend response data:', data);
+              const token = data.access_token;
+              const userData = data.user;  // User data is already included in the response
               
-              // Check if user has skills
-              try {
-                const skillsResponse = await fetch(`${API_URL}/users/${userData.id}/skills`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                if (skillsResponse.ok) {
-                  const userSkills = await skillsResponse.json();
-                  
-                  if (userSkills.length === 0) {
-                    // User has no skills, redirect to skills setup
-                    setTimeout(() => {
-                      navigate('/onboarding');
-                    }, 2000);
-                  } else {
-                    // User has skills, redirect to dashboard
-                    setTimeout(() => {
-                      navigate('/dashboard');
-                    }, 2000);
-                  }
-                } else {
-                  // If we can't check skills, proceed to dashboard anyway
-                  setTimeout(() => {
-                    navigate('/dashboard');
-                  }, 2000);
-                }
-              } catch (skillsError) {
-                console.error('Error checking user skills:', skillsError);
-                // If we can't check skills, proceed to dashboard anyway
-                setTimeout(() => {
-                  navigate('/dashboard');
-                }, 2000);
-              }
+              // Store the token and user data
+              localStorage.setItem('token', token);
+              localStorage.setItem('userData', JSON.stringify(userData));
+              
+              setStatus('success');
+              setMessage('Successfully signed in with Google!');
+              
+              // Redirect immediately to dashboard
+              navigate('/dashboard');
             } else {
-              throw new Error('Failed to fetch user data');
+              const errorText = await response.text();
+              console.error('Backend error response:', errorText);
+              let errorMessage = 'Failed to authenticate with Google';
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.detail || errorMessage;
+              } catch (e) {
+                errorMessage = errorText || errorMessage;
+              }
+              throw new Error(errorMessage);
             }
           } catch (err) {
-            console.error('Error fetching user data:', err);
+            console.error('Error processing OAuth callback:', err);
             setStatus('error');
-            setMessage('Authentication successful but failed to load user data');
+            setMessage(err.message || 'Authentication failed. Please try again.');
           }
         } else {
           setStatus('error');
-          setMessage('No authentication token received');
+          setMessage('No authorization code received from Google');
         }
       } catch (err) {
         console.error('OAuth callback error:', err);

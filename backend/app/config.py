@@ -21,22 +21,22 @@ class Settings(BaseSettings):
 
     # OAuth Configuration
     # Google OAuth
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:3000/auth/callback")
     
     # LinkedIn OAuth
-    LINKEDIN_CLIENT_ID: str = ""
-    LINKEDIN_CLIENT_SECRET: str = ""
-    LINKEDIN_REDIRECT_URI: str = "http://localhost:3000/auth/linkedin/callback"
+    LINKEDIN_CLIENT_ID: str = os.getenv("LINKEDIN_CLIENT_ID", "")
+    LINKEDIN_CLIENT_SECRET: str = os.getenv("LINKEDIN_CLIENT_SECRET", "")
+    LINKEDIN_REDIRECT_URI: str = os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:8000/oauth/linkedin/callback")
     
     # GitHub OAuth
-    GITHUB_CLIENT_ID: str = ""
-    GITHUB_CLIENT_SECRET: str = ""
-    GITHUB_REDIRECT_URI: str = "http://localhost:3000/auth/github/callback"
+    GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
+    GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
+    GITHUB_REDIRECT_URI: str = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:8000/oauth/github/callback")
     
     # Frontend URL
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
     class Config:
         env_file = ".env"

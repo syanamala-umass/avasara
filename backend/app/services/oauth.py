@@ -5,6 +5,7 @@ from app.crud.user import get_user_by_email, create_oauth_user
 from app.schemas.user import UserCreate
 from app.core.security import create_access_token
 from sqlalchemy.orm import Session
+from app.crud.user import get_user_by_username
 
 
 class OAuthService:
@@ -62,19 +63,32 @@ class OAuthService:
     @staticmethod
     async def exchange_google_code(code: str) -> Optional[str]:
         """Exchange authorization code for Google access token"""
+        print(f"Exchanging Google code with client_id: {settings.GOOGLE_CLIENT_ID}")
+        print(f"Redirect URI: {settings.GOOGLE_REDIRECT_URI}")
+        print(f"Code length: {len(code)}")
+        
         async with httpx.AsyncClient() as client:
+            token_data = {
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": settings.GOOGLE_REDIRECT_URI
+            }
+            print(f"Token exchange data: {token_data}")
+            
             response = await client.post(
                 "https://oauth2.googleapis.com/token",
-                data={
-                    "client_id": settings.GOOGLE_CLIENT_ID,
-                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": settings.GOOGLE_REDIRECT_URI
-                }
+                data=token_data
             )
+            print(f"Google token exchange response status: {response.status_code}")
+            if response.status_code != 200:
+                print(f"Google token exchange error: {response.text}")
+            
             if response.status_code == 200:
-                return response.json().get("access_token")
+                token_response = response.json()
+                print(f"Token response keys: {token_response.keys()}")
+                return token_response.get("access_token")
         return None
     
     @staticmethod
@@ -126,7 +140,7 @@ class OAuthService:
         
         # Extract user information based on provider
         if provider == "Google":
-            username = user_info.get("given_name", "").lower() + user_info.get("family_name", "").lower()
+            username = email.split("@")[0]
             full_name = user_info.get("name", "")
             oauth_id = user_info.get("id")
         elif provider == "LinkedIn":
@@ -142,12 +156,19 @@ class OAuthService:
             full_name = user_info.get("name", "")
             oauth_id = str(user_info.get("id", ""))
         
-        # Ensure username is unique
+        # Use first part of email as username
+       
+        print(f"Initial username from email: {username}")
+        
+        # Ensure username is unique by appending integer if needed
         base_username = username
         counter = 1
-        while get_user_by_email(db, f"{username}@temp.com"):  # Temporary check
+        while get_user_by_username(db, username):
+            print(f"Username '{username}' already exists, trying next...")
             username = f"{base_username}{counter}"
             counter += 1
+        
+        print(f"Final unique username: {username}")
         
         # Create OAuth user
         new_user = create_oauth_user(

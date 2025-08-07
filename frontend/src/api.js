@@ -30,8 +30,15 @@ api.interceptors.response.use(
       // Clear invalid token
       localStorage.removeItem('token');
       localStorage.removeItem('userData');
-      // Redirect to login
-      window.location.href = '/';
+      
+      // Only redirect if we're not on the login page and not making a login request
+      const isLoginRequest = error.config?.url?.includes('/auth/token');
+      const isOnLoginPage = window.location.pathname === '/' || window.location.pathname === '/login';
+      
+      if (!isLoginRequest && !isOnLoginPage) {
+        // Redirect to login only for authenticated requests that fail
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }

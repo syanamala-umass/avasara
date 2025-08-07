@@ -13,6 +13,7 @@ import VerifyEmail from './VerifyEmail';
 import OnboardingFlow from './OnboardingFlow';
 import SkillDetailPage from './pages/SkillDetailPage';
 import ResetPassword from './ResetPassword';
+import TaskManagement from './TaskManagement';
 
 function CheckEmail() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/onboarding" element={<OnboardingFlow />} />
         <Route path="/skills/:skillId" element={<SkillDetailPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/task-management" element={<TaskManagement />} />
       </Routes>
     </NotificationProvider>
   );

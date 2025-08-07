@@ -4,7 +4,8 @@ import {
   ArrowLeft, UserCircle, Edit3, Save, X, Plus, Star, 
   Briefcase, Globe, FileText, Award, TrendingUp, 
   CheckCircle, Clock, DollarSign, Sparkles, Search, 
-  Filter, Zap, Target, Users, Calendar
+  Filter, Zap, Target, Users, Calendar, Eye, Trash2,
+  AlertCircle, CheckSquare, Clock3, UserCheck
 } from 'lucide-react';
 import { fetchUserProfile, fetchSkills, fetchUserSkills, updateUserProfile, addUserSkills, createSkill, addNewUserSkill } from './api';
 
@@ -34,6 +35,8 @@ const ContributorProfile = () => {
     reviewsCompleted: 0
   });
   const [skillCategory, setSkillCategory] = useState('all');
+  
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -233,6 +236,8 @@ const ContributorProfile = () => {
     return 'other';
   };
 
+
+
   const filteredUserSkills = formData.skills.filter(skill => {
     if (skillCategory === 'all') return true;
     return getSkillCategory(skill.name) === skillCategory;
@@ -250,42 +255,49 @@ const ContributorProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-float animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl opacity-5 animate-spin-slow"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="relative z-10 bg-gradient-to-r from-slate-800/50 to-slate-900/50 backdrop-blur-sm border-b border-purple-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
                 <button
                   onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="font-medium">Back to Dashboard</span>
                 </button>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">Avasara</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Avasara</span>
             </div>
       </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl">
             <p className="font-medium">Error</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-green-500/10 border border-green-500/20 text-green-400 px-4 py-3 rounded-xl">
             <p className="font-medium">Success</p>
             <p className="text-sm">Profile updated successfully!</p>
           </div>
@@ -294,19 +306,19 @@ const ContributorProfile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Overview Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
               {/* Profile Header */}
               <div className="text-center mb-6">
-                <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-24 h-24 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <UserCircle className="h-12 w-12 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-white">
                   {formData.firstName && formData.lastName 
                     ? `${formData.firstName} ${formData.lastName}`
                     : userData?.username || 'User'
                   }
                 </h1>
-                <p className="text-gray-500">{userData?.email}</p>
+                <p className="text-gray-300">{userData?.email}</p>
                 <p className="text-sm text-gray-400 mt-1">
                   Member since {formatDate(userData?.created_at)}
                 </p>
@@ -314,39 +326,39 @@ const ContributorProfile = () => {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <CheckCircle className="h-4 w-4 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-gray-500">Tasks Completed</p>
-                  <p className="text-lg font-bold text-gray-900">{userStats.tasksCompleted}</p>
+                  <p className="text-xs font-medium text-gray-400">Tasks Completed</p>
+                  <p className="text-lg font-bold text-white">{userStats.tasksCompleted}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
+                <div className="bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-4 text-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <DollarSign className="h-4 w-4 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-gray-500">Total Earnings</p>
-                  <p className="text-lg font-bold text-gray-900">${userStats.totalEarnings}</p>
+                  <p className="text-xs font-medium text-gray-400">Total Earnings</p>
+                  <p className="text-lg font-bold text-white">${userStats.totalEarnings}</p>
                 </div>
               </div>
 
               {/* Skills Summary */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Skills Overview</h3>
+                <h3 className="text-sm font-medium text-white mb-3">Skills Overview</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Skills</span>
-                    <span className="font-medium">{formData.skills.length}</span>
+                    <span className="text-gray-400">Total Skills</span>
+                    <span className="font-medium text-white">{formData.skills.length}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Expert Level</span>
-                    <span className="font-medium text-green-600">
+                    <span className="text-gray-400">Expert Level</span>
+                    <span className="font-medium text-green-400">
                       {formData.skills.filter(s => s.rating >= 4.5).length}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Advanced Level</span>
-                    <span className="font-medium text-blue-600">
+                    <span className="text-gray-400">Advanced Level</span>
+                    <span className="font-medium text-blue-400">
                       {formData.skills.filter(s => s.rating >= 4.0 && s.rating < 4.5).length}
                     </span>
                   </div>
@@ -357,14 +369,14 @@ const ContributorProfile = () => {
               <div className="space-y-2">
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium shadow-lg"
                 >
                   <Briefcase className="h-4 w-4" />
                   <span>View Dashboard</span>
                 </button>
                 <button
                   onClick={() => navigate('/tasks')}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-purple-500/30 text-gray-300 rounded-xl hover:bg-purple-500/10 transition-all duration-300 font-medium"
                 >
                   <Target className="h-4 w-4" />
                   <span>Browse Tasks</span>
@@ -375,10 +387,10 @@ const ContributorProfile = () => {
 
           {/* Profile Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-purple-500/20 rounded-3xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <h2 className="text-xl font-semibold text-white">Profile Information</h2>
+                <div className="flex items-center space-x-2 text-sm text-gray-400">
                   <Edit3 className="h-4 w-4" />
                   <span>Edit your profile</span>
                 </div>
@@ -388,7 +400,7 @@ const ContributorProfile = () => {
                 {/* Name Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
                 First Name
               </label>
                 <input
@@ -397,13 +409,13 @@ const ContributorProfile = () => {
                   id="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-white placeholder-gray-400"
                       placeholder="Enter your first name"
                 />
             </div>
 
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
                 Last Name
               </label>
                 <input
@@ -412,7 +424,7 @@ const ContributorProfile = () => {
                   id="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-white placeholder-gray-400"
                       placeholder="Enter your last name"
                 />
               </div>
@@ -420,7 +432,7 @@ const ContributorProfile = () => {
 
                 {/* Bio Field */}
                 <div>
-                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-2">
                 Bio
               </label>
                 <textarea
@@ -429,14 +441,14 @@ const ContributorProfile = () => {
                     rows={4}
                   value={formData.bio}
                   onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-purple-500/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-white placeholder-gray-400"
                     placeholder="Tell us about yourself, your experience, and what you're passionate about..."
                 />
             </div>
 
                 {/* Portfolio URL */}
                 <div>
-                  <label htmlFor="portfolioUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="portfolioUrl" className="block text-sm font-medium text-gray-300 mb-2">
                 Portfolio URL
               </label>
                   <div className="relative">
@@ -449,7 +461,7 @@ const ContributorProfile = () => {
                   id="portfolioUrl"
                   value={formData.portfolioUrl}
                   onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-purple-500/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-white placeholder-gray-400"
                       placeholder="https://your-portfolio.com"
                 />
               </div>
@@ -458,10 +470,10 @@ const ContributorProfile = () => {
                 {/* Enhanced Skills Section */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-300">
                       Skills & Expertise
                     </label>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <div className="flex items-center space-x-2 text-sm text-gray-400">
                       <Zap className="h-4 w-4" />
                       <span>Ratings based on performance</span>
                     </div>
@@ -483,15 +495,15 @@ const ContributorProfile = () => {
                             setShowSkillDropdown(true);
                           }}
                           onFocus={() => setShowSkillDropdown(true)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                          className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-purple-500/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-white placeholder-gray-400"
                         />
                         {showSkillDropdown && (
-                          <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-lg border border-gray-200 py-1 text-base overflow-auto focus:outline-none">
+                          <div className="absolute z-10 mt-1 w-full bg-slate-800/90 backdrop-blur-sm shadow-lg max-h-60 rounded-xl border border-purple-500/30 py-1 text-base overflow-auto focus:outline-none">
                       {filteredSkills.length > 0 ? (
                         filteredSkills.map(skill => (
                           <div
                             key={skill.id}
-                                  className="cursor-pointer select-none relative py-3 px-4 hover:bg-indigo-50"
+                                  className="cursor-pointer select-none relative py-3 px-4 hover:bg-purple-500/20 text-gray-300"
                             onClick={() => {
                                     setSelectedSkill(skill.name);
                               setSkillSearch(skill.name);
@@ -502,16 +514,16 @@ const ContributorProfile = () => {
                           </div>
                         ))
                       ) : (
-                              <div className="py-3 px-4 text-gray-500">
+                              <div className="py-3 px-4 text-gray-400">
                                 No matching skills found
                         </div>
                       )}
                       {skillSearch && !filteredSkills.some(skill => skill.name.toLowerCase() === skillSearch.toLowerCase()) && (
                         <div
-                                className="cursor-pointer select-none relative py-3 px-4 hover:bg-green-50 border-t border-gray-200"
+                                className="cursor-pointer select-none relative py-3 px-4 hover:bg-green-500/20 border-t border-purple-500/30 text-green-400"
                           onClick={handleAddNewSkill}
                         >
-                                <span className="block truncate text-green-600 font-medium">
+                                <span className="block truncate font-medium">
                                   + Add "{skillSearch}" as new skill
                           </span>
                         </div>
@@ -523,7 +535,7 @@ const ContributorProfile = () => {
                   type="button"
                   onClick={handleAddSkill}
                         disabled={!selectedSkill}
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
                         <Plus className="h-4 w-4" />
                         <span>Add Skill</span>
@@ -534,8 +546,8 @@ const ContributorProfile = () => {
                   {/* Skill Categories Filter */}
                   <div className="mb-4">
                     <div className="flex items-center space-x-2 mb-3">
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-700">Filter by category:</span>
+                      <Filter className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-300">Filter by category:</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {[
@@ -550,10 +562,10 @@ const ContributorProfile = () => {
                           key={category.key}
                           type="button"
                           onClick={() => setSkillCategory(category.key)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                             skillCategory === category.key
-                              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                              : 'bg-slate-800/50 text-gray-400 hover:bg-slate-700/50 border border-purple-500/20'
                           }`}
                         >
                           {category.label} ({category.count})
@@ -565,8 +577,8 @@ const ContributorProfile = () => {
                   {/* Current Skills Display */}
                   <div className="space-y-3">
                     {filteredUserSkills.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <Target className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <div className="text-center py-8 text-gray-400">
+                        <Target className="h-12 w-12 mx-auto mb-3 text-gray-500" />
                         <p className="text-sm">No skills found in this category</p>
                         <p className="text-xs">Add some skills to get started!</p>
                       </div>
@@ -574,21 +586,20 @@ const ContributorProfile = () => {
                       filteredUserSkills.map(skill => (
                         <div
                           key={skill.id}
-                          className={`flex items-center justify-between p-4 rounded-lg border ${getRatingColor(skill.rating)} cursor-pointer hover:bg-indigo-50 transition`}
+                          className="flex items-center justify-between p-4 bg-gradient-to-br from-slate-800/30 to-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl cursor-pointer hover:border-purple-400/40 transition-all duration-300"
                           onClick={() => navigate(`/skills/${skill.id}`)}
                         >
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2">
-                              <span className="font-medium text-gray-900 underline underline-offset-2">{skill.name}</span>
-                              {/* Removed skill rating label */}
+                              <span className="font-medium text-white underline underline-offset-2">{skill.name}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 fill-current" />
-                              <span className="text-sm font-medium">{skill.rating.toFixed(1)}</span>
+                              <Star className="h-4 w-4 fill-current text-yellow-400" />
+                              <span className="text-sm font-medium text-white">{skill.rating.toFixed(1)}</span>
                             </div>
                           </div>
                           <div className="flex items-center space-x-4">
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-gray-400">
                               <div className="flex items-center space-x-1">
                                 <CheckCircle className="h-3 w-3" />
                                 <span>{skill.num_tasks || 0} tasks</span>
@@ -597,7 +608,7 @@ const ContributorProfile = () => {
                             <button
                               type="button"
                               onClick={e => { e.stopPropagation(); handleRemoveSkill(skill.id); }}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              className="text-gray-400 hover:text-red-400 transition-colors"
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -608,19 +619,23 @@ const ContributorProfile = () => {
             </div>
           </div>
 
+
+
+
+
                 {/* Form Actions */}
-                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <div className="flex justify-end space-x-4 pt-6 border-t border-purple-500/20">
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    className="px-6 py-3 border border-purple-500/30 text-gray-300 rounded-xl hover:bg-purple-500/10 transition-all duration-300 font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-300 font-medium flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   >
                     {loading ? (
                       <>
