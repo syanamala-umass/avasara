@@ -441,7 +441,7 @@ const ProfessionalDashboard = () => {
             {/* Welcome Section */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-white mb-2">
-                Welcome back, <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{userData?.username || 'User'}</span>
+                Welcome back, <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{userData?.first_name || 'User'}</span>
               </h1>
               <p className="text-gray-300">Here's what's happening with your tasks today</p>
             </div>

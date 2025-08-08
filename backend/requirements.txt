@@ -29,4 +29,6 @@ gunicorn==21.2.0
 httpx>=0.23.0
 
 openai==1.95.1
+PyPDF2==3.0.1
+python-docx==1.1.0
 

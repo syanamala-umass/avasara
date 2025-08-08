@@ -494,7 +494,7 @@ const TasksPage = () => {
                   >
                     {capabilityTypes.map(type => (
                       <option key={type} value={type}>
-                        {type === 'All' ? 'All Tasks' : type === 'can_undertake' ? 'Can Undertake' : 'Cannot Undertake'}
+                        {type === 'All' ? 'All Tasks' : type === 'can_undertake' ? 'Match My Skills' : 'Unavailable Tasks'}
                       </option>
                     ))}
                   </select>
@@ -532,6 +532,32 @@ const TasksPage = () => {
                 </div>
                 <p className="text-gray-400 text-lg">No tasks found</p>
                 <p className="text-gray-500 text-sm mt-2">Try adjusting your search filters</p>
+              </div>
+            ) : getFilteredResults().length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="h-8 w-8 text-white" />
+                </div>
+                <p className="text-gray-400 text-lg">
+                  {filters.capability === 'can_undertake' 
+                    ? 'No tasks match your skills' 
+                    : 'No tasks match your filter criteria'
+                  }
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  {filters.capability === 'can_undertake' 
+                    ? 'Try updating your skills or browse all tasks to find opportunities' 
+                    : 'Try adjusting your search filters'
+                  }
+                </p>
+                {filters.capability === 'can_undertake' && (
+                  <button
+                    onClick={() => setFilters(prev => ({ ...prev, capability: 'All' }))}
+                    className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-300"
+                  >
+                    View All Tasks
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

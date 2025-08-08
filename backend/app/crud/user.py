@@ -21,7 +21,8 @@ def get_user_by_email(db: Session, email: str):
     """Get user by email"""
     query = text("""
         SELECT id, email, username, hashed_password, is_active, oauth_provider, oauth_id,
-               email_verified, email_verification_token, email_verification_expires, email_verification_sent_at
+               email_verified, email_verification_token, email_verification_expires, email_verification_sent_at,
+               first_name, last_name
         FROM users
         WHERE email = :email
         LIMIT 1
@@ -39,7 +40,9 @@ def get_user_by_email(db: Session, email: str):
             "email_verified": getattr(result, "email_verified", None),
             "email_verification_token": getattr(result, "email_verification_token", None),
             "email_verification_expires": getattr(result, "email_verification_expires", None),
-            "email_verification_sent_at": getattr(result, "email_verification_sent_at", None)
+            "email_verification_sent_at": getattr(result, "email_verification_sent_at", None),
+            "first_name": getattr(result, "first_name", None),
+            "last_name": getattr(result, "last_name", None)
         }
     return None
 
@@ -47,7 +50,8 @@ def get_user_by_username(db: Session, username: str):
     """Get user by username"""
     query = text("""
         SELECT id, email, username, hashed_password, is_active, oauth_provider, oauth_id,
-               email_verified, email_verification_token, email_verification_expires, email_verification_sent_at
+               email_verified, email_verification_token, email_verification_expires, email_verification_sent_at,
+               first_name, last_name
         FROM users
         WHERE username = :username
         LIMIT 1
@@ -65,7 +69,9 @@ def get_user_by_username(db: Session, username: str):
             "email_verified": getattr(result, "email_verified", None),
             "email_verification_token": getattr(result, "email_verification_token", None),
             "email_verification_expires": getattr(result, "email_verification_expires", None),
-            "email_verification_sent_at": getattr(result, "email_verification_sent_at", None)
+            "email_verification_sent_at": getattr(result, "email_verification_sent_at", None),
+            "first_name": getattr(result, "first_name", None),
+            "last_name": getattr(result, "last_name", None)
         }
     return None
 

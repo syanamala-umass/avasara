@@ -180,6 +180,16 @@ export const addUserSkills = (userId, skillData) => api.post(`/users/${userId}/s
 export const addNewUserSkill = (userId, skillData) => api.post(`/users/${userId}/skills/new`, skillData);
 export const addUserSkillsBulk = (userId, skillData) => api.post(`/users/${userId}/skills/bulk`, skillData);
 
+export const parseResumeSkills = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/skills/parse-resume', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export const fetchTopSkillsByTasks = (limit = 5) => api.get(`/skills/top-by-tasks?limit=${limit}`);
 export const fetchSkillDetails = (skillId) => api.get(`/skills/${skillId}`);
 export const fetchTopTaskContributors = (skillId) => api.get(`/skills/${skillId}/top-task-contributors`);

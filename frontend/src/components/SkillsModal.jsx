@@ -6,9 +6,11 @@ import {
   CheckCircle, 
   Sparkles, 
   ArrowRight,
-  Zap
+  Zap,
+  Upload,
+  FileText
 } from 'lucide-react';
-import { fetchSkills, addNewUserSkill, createSkill, addUserSkills, fetchUserSkills, addUserSkillsBulk } from '../api';
+import { fetchSkills, addNewUserSkill, createSkill, addUserSkills, fetchUserSkills, addUserSkillsBulk, parseResumeSkills } from '../api';
 
 const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   const [availableSkills, setAvailableSkills] = useState([]);
@@ -18,6 +20,10 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [parsedSkills, setParsedSkills] = useState([]);
+  const [showResumeSection, setShowResumeSection] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -52,19 +58,22 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
     }
   }, [isOpen]);
 
-  const handleAddSkill = (skillName) => {
+  const handleToggleSkill = (skillName) => {
     setError(null); // Clear error on new action
     if (!skillName) return;
 
     // Check if skill is already added
-    if (userSkills.some(skill => skill.name === skillName)) {
-      return;
-    }
-
-    // Find the skill in available skills to get the full skill object
-    const skillToAdd = availableSkills.find(skill => skill.name === skillName);
-    if (skillToAdd) {
-      setUserSkills(prev => [...prev, skillToAdd]);
+    const isAlreadySelected = userSkills.some(skill => skill.name === skillName);
+    
+    if (isAlreadySelected) {
+      // Remove skill if already selected
+      setUserSkills(prev => prev.filter(skill => skill.name !== skillName));
+    } else {
+      // Add skill if not selected
+      const skillToAdd = availableSkills.find(skill => skill.name === skillName);
+      if (skillToAdd) {
+        setUserSkills(prev => [...prev, skillToAdd]);
+      }
     }
   };
 
@@ -93,6 +102,64 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
     setUserSkills(prev => [...prev, tempSkill]);
     setSkillSearch('');
     setShowSkillDropdown(false);
+  };
+
+  const handleResumeUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please upload a PDF or DOCX file only.');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB.');
+      return;
+    }
+
+    setResumeFile(file);
+    setResumeUploading(true);
+    setError(null);
+
+    try {
+      const response = await parseResumeSkills(file);
+      const { extracted_skills, total_skills_found } = response.data;
+      
+      setParsedSkills(extracted_skills);
+      
+      if (total_skills_found === 0) {
+        setError('No skills found in your resume. Please try adding skills manually.');
+      } else {
+        setShowResumeSection(true);
+      }
+    } catch (error) {
+      console.error('Error parsing resume:', error);
+      setError('Failed to parse resume. Please try again or add skills manually.');
+    } finally {
+      setResumeUploading(false);
+    }
+  };
+
+  const handleAddParsedSkills = () => {
+    setError(null);
+    
+    // Add all parsed skills to user skills
+    const newSkills = parsedSkills.filter(parsedSkill => 
+      !userSkills.some(userSkill => userSkill.name.toLowerCase() === parsedSkill.name.toLowerCase())
+    );
+    
+    setUserSkills(prev => [...prev, ...newSkills]);
+    setParsedSkills([]);
+    setShowResumeSection(false);
+    setResumeFile(null);
+  };
+
+  const handleRemoveParsedSkill = (skillName) => {
+    setParsedSkills(prev => prev.filter(skill => skill.name !== skillName));
   };
 
   const handleComplete = async () => {
@@ -168,11 +235,96 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
           </div>
         )}
 
+        {/* Resume Upload Section */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+
+          
+          <div className="relative">
+            <input
+              type="file"
+              accept=".pdf,.docx,.doc"
+              onChange={handleResumeUpload}
+              disabled={resumeUploading}
+              className="hidden"
+              id="resume-upload"
+            />
+            <label
+              htmlFor="resume-upload"
+              className={`group relative block w-full p-8 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all ${
+                resumeUploading
+                  ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                  : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+              }`}
+            >
+              {resumeUploading ? (
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
+                  <span className="text-sm font-medium text-gray-600">Analyzing your resume...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <Upload className="w-8 h-8 text-gray-400 group-hover:text-indigo-500 mb-3 transition-colors" />
+                  <span className="text-sm font-medium text-gray-900 mb-1">
+                    Drop your resume here or click to browse
+                  </span>
+                  <span className="text-xs text-gray-500">PDF or DOCX files up to 10MB</span>
+                </div>
+              )}
+            </label>
+          </div>
+
+          {/* Parsed Skills Display */}
+          {parsedSkills.length > 0 && (
+            <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Found {parsedSkills.length} skills in your resume
+                  </h4>
+                </div>
+                <button
+                  onClick={handleAddParsedSkills}
+                  className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add All
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {parsedSkills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        skill.is_existing ? 'bg-green-500' : 'bg-blue-500'
+                      }`}></div>
+                      <span className="text-sm font-medium text-gray-900">{skill.name}</span>
+                      {skill.is_existing && (
+                        <span className="text-xs text-green-600 font-medium">✓</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveParsedSkill(skill.name)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Skill Search */}
         <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              Add Your Skills
+              Add Your Skills Manually
             </label>
           </div>
           
@@ -201,7 +353,7 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                         key={skill.id}
                         className="cursor-pointer select-none relative py-3 px-4 hover:bg-indigo-50"
                         onClick={() => {
-                          handleAddSkill(skill.name);
+                          handleToggleSkill(skill.name);
                           setSkillSearch('');
                           setShowSkillDropdown(false);
                         }}
@@ -247,12 +399,11 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => handleAddSkill(skill.name)}
-                        disabled={userSkills.some(userSkill => userSkill.name === skill.name)}
+                        onClick={() => handleToggleSkill(skill.name)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                           userSkills.some(userSkill => userSkill.name === skill.name)
-                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 border-gray-200 hover:border-indigo-200'
+                            ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                            : 'bg-gray-100 text-gray-700 border-gray-200'
                         }`}
                       >
                         {skill.name}
@@ -272,12 +423,11 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => handleAddSkill(skill.name)}
-                        disabled={userSkills.some(userSkill => userSkill.name === skill.name)}
+                        onClick={() => handleToggleSkill(skill.name)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                           userSkills.some(userSkill => userSkill.name === skill.name)
-                            ? 'bg-pink-100 text-pink-700 border-pink-200 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-pink-100 text-gray-700 hover:text-pink-700 border-gray-200 hover:border-pink-200'
+                            ? 'bg-pink-100 text-pink-700 border-pink-200'
+                            : 'bg-gray-100 text-gray-700 border-gray-200'
                         }`}
                       >
                         {skill.name}
@@ -297,12 +447,11 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => handleAddSkill(skill.name)}
-                        disabled={userSkills.some(userSkill => userSkill.name === skill.name)}
+                        onClick={() => handleToggleSkill(skill.name)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                           userSkills.some(userSkill => userSkill.name === skill.name)
-                            ? 'bg-green-100 text-green-700 border-green-200 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 border-gray-200 hover:border-green-200'
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : 'bg-gray-100 text-gray-700 border-gray-200'
                         }`}
                       >
                         {skill.name}
@@ -322,12 +471,11 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => handleAddSkill(skill.name)}
-                        disabled={userSkills.some(userSkill => userSkill.name === skill.name)}
+                        onClick={() => handleToggleSkill(skill.name)}
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                           userSkills.some(userSkill => userSkill.name === skill.name)
-                            ? 'bg-yellow-100 text-yellow-700 border-yellow-200 cursor-not-allowed'
-                            : 'bg-gray-100 hover:bg-yellow-100 text-gray-700 hover:text-yellow-700 border-gray-200 hover:border-yellow-200'
+                            ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                            : 'bg-gray-100 text-gray-700 border-gray-200'
                         }`}
                       >
                         {skill.name}

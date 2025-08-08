@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import SkillsModal from './SkillsModal';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
   const [message, setMessage] = useState('');
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -53,8 +56,36 @@ const OAuthCallback = () => {
               
               setStatus('success');
               setMessage('Successfully signed in with Google!');
+              setUserData(userData);
               
-              // Redirect immediately to dashboard
+              // Check if user has skills (exactly like login popup)
+              try {
+                if (userData && userData.id) {
+                  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+                  const skillsResponse = await fetch(`${API_URL}/users/${userData.id}/skills`, {
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  if (skillsResponse.ok) {
+                    const skillsData = await skillsResponse.json();
+                    const userSkills = skillsData.data || [];
+                    
+                    if (userSkills.length === 0) {
+                      // User has no skills, show skills modal
+                      setShowSkillsModal(true);
+                      return;
+                    }
+                  }
+                }
+              } catch (skillsError) {
+                console.error('Error checking user skills:', skillsError);
+                // If we can't check skills, proceed to dashboard anyway
+              }
+              
+              // Redirect to dashboard
               navigate('/dashboard');
             } else {
               const errorText = await response.text();
@@ -86,6 +117,18 @@ const OAuthCallback = () => {
 
     handleOAuthCallback();
   }, [searchParams, navigate]);
+
+  const handleSkillsModalComplete = () => {
+    // Close skills modal and redirect to dashboard
+    setShowSkillsModal(false);
+    navigate('/dashboard', { replace: true });
+  };
+
+  const handleSkillsModalClose = () => {
+    // Close skills modal and redirect to dashboard
+    setShowSkillsModal(false);
+    navigate('/dashboard', { replace: true });
+  };
 
   const getStatusIcon = () => {
     switch (status) {
@@ -153,6 +196,13 @@ const OAuthCallback = () => {
           )}
         </div>
       </div>
+      
+      {/* Skills Modal - exactly like login popup */}
+      <SkillsModal 
+        isOpen={showSkillsModal}
+        onClose={handleSkillsModalClose}
+        onComplete={handleSkillsModalComplete}
+      />
     </div>
   );
 };

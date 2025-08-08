@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, Minus } from 'lucide-react';
+import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
 import { createTask, fetchSkills } from './api';
 import ReactMarkdown from 'react-markdown';
 
@@ -391,15 +391,13 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                   placeholder="0.0"
                 />
               </div>
-              <div className="text-xs text-gray-500 ml-2">
-                {renderSkillLevelStars(formData.skill_review_requirements[skill.name] || 1.8)}
-              </div>
+
               <button
                 type="button"
                 onClick={() => handleRemoveSkill(skill.id)}
                 className="ml-2 text-red-500 hover:text-red-700"
               >
-                <Minus className="w-4 h-4" />
+                <XCircle className="w-4 h-4" />
               </button>
             </div>
           ))}
