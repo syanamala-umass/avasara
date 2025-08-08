@@ -88,13 +88,26 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
             detail="Email already registered. Please use a different email address."
         )
     
-    # Check for existing username
-    existing_username = get_user_by_username(db, user.username)
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken. Please choose a different username."
-        )
+    # Generate username if not provided
+    username = user.username
+    if not username:
+        # Use first part of email as base username
+        base_username = user.email.split("@")[0]
+        username = base_username
+        
+        # Ensure username is unique by appending integer if needed
+        counter = 1
+        while get_user_by_username(db, username):
+            username = f"{base_username}{counter}"
+            counter += 1
+    else:
+        # Check for existing username if provided
+        existing_username = get_user_by_username(db, username)
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken. Please choose a different username."
+            )
 
     hashed_password = get_password_hash(user.password) if user.password else None
     
@@ -113,7 +126,7 @@ def create_user(db: Session, user: UserCreate, email_service: EmailService):
         """)
         result = db.execute(query, {
             "email": user.email,
-            "username": user.username,
+            "username": username,
             "hashed_password": hashed_password,
             "token": verification_token,
             "expires": verification_expires,

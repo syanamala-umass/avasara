@@ -19,8 +19,7 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
     password: '',
     confirmPassword: '',
     first_name: '',
-    last_name: '',
-    username: ''
+    last_name: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,18 +45,12 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
       return;
     }
 
-    // Validate username format
-    if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      setError('Username can only contain letters, numbers, and underscores');
-      setLoading(false);
-      return;
-    }
+
 
     try {
       const response = await registerUser({
         email: formData.email,
         password: formData.password,
-        username: formData.username,
         first_name: formData.first_name,
         last_name: formData.last_name
       });
@@ -178,26 +171,7 @@ const SignupPopup = ({ isOpen, onClose, onShowLogin }) => {
             </div>
           </div>
           
-          {/* Username */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="username">
-              Username
-            </label>
-            <div className="relative">
-              <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                id="username"
-                name="username"
-                type="text"
-                value={formData.username}
-                onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
-                placeholder="johndoe"
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
+
           
           {/* Email */}
           <div>
