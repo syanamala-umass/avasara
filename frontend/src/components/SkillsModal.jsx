@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Plus, 
@@ -24,6 +24,7 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
   const [resumeUploading, setResumeUploading] = useState(false);
   const [parsedSkills, setParsedSkills] = useState([]);
   const [showResumeSection, setShowResumeSection] = useState(false);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,6 +58,23 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
       setUserSkills([]); // Reset user skills when modal closes
     }
   }, [isOpen]);
+
+  // Handle clicking outside the search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSkillDropdown(false);
+      }
+    };
+
+    if (showSkillDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSkillDropdown]);
 
   const handleToggleSkill = (skillName) => {
     setError(null); // Clear error on new action
@@ -329,7 +347,7 @@ const SkillsModal = ({ isOpen, onClose, onComplete }) => {
           </div>
           
           <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
-            <div className="flex-1 relative">
+            <div className="flex-1 relative" ref={searchRef}>
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
