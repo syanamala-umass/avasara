@@ -37,12 +37,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import LoginPopup from './LoginPopup';
 import SignupPopup from './SignupPopup';
 import Logo from './components/Logo';
-import { fetchLandingStats } from './api';
+import { fetchLandingStats, fetchLandingPublicTasks } from './api';
 
 const LandingPage = () => {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [showSignupPopup, setShowSignupPopup] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [publicTasks, setPublicTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -88,6 +90,24 @@ const LandingPage = () => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fetch public tasks for landing page
+  useEffect(() => {
+    const loadPublicTasks = async () => {
+      try {
+        setTasksLoading(true);
+        const response = await fetchLandingPublicTasks();
+        setPublicTasks(response.data?.tasks || []);
+      } catch (error) {
+        console.error('Error fetching public tasks:', error);
+        // If API fails, we'll show empty state gracefully
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
+    loadPublicTasks();
   }, []);
 
   const openLoginPopup = () => {
@@ -232,12 +252,82 @@ const LandingPage = () => {
             </button>
           </div>
 
-          {/* Scroll indicator */}
-          <div className="animate-bounce">
-            <ChevronDown className="h-8 w-8 text-purple-400 mx-auto" />
-          </div>
+
         </div>
       </section>
+
+      {/* Live Tasks Section */}
+      {publicTasks.length > 0 && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8 relative">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Live Tasks</span>
+                <br />
+                <span className="text-white">Happening Now</span>
+              </h2>
+            </div>
+            
+            {/* Task Scrolling Container */}
+            <div className="relative overflow-hidden">
+              {tasksLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                </div>
+              ) : (
+                <div className="flex space-x-6 animate-scroll">
+                  {/* Task Cards - Duplicated for seamless loop */}
+                  {[...Array(2)].map((_, setIndex) => (
+                    <div key={setIndex} className="flex space-x-6">
+                      {publicTasks.map((task, index) => (
+                        <div
+                          key={`${setIndex}-${index}`}
+                          className="flex-shrink-0 w-80 bg-gradient-to-br from-slate-800/60 to-slate-900/60 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6 cursor-pointer hover:border-purple-400/40 hover:bg-gradient-to-br hover:from-slate-800/70 hover:to-slate-900/70 transition-all duration-200"
+                          onClick={() => {
+                            const token = localStorage.getItem('token');
+                            if (token) {
+                              navigate('/tasks');
+                            } else {
+                              setShowLoginPopup(true);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white line-clamp-2">{task.title}</h3>
+                            <div className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                              Open
+                            </div>
+                          </div>
+                          
+                          <p className="text-gray-300 text-sm mb-4 line-clamp-2">{task.description}</p>
+                          
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="text-2xl font-bold text-green-400">${task.budget || '0'}</div>
+                            <div className="text-xs text-gray-400">
+                              {task.created_at ? new Date(task.created_at).toLocaleDateString() : 'Recently'}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2">
+                            {task.skills && task.skills.map((skill, skillIndex) => (
+                              <span
+                                key={skillIndex}
+                                className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full border border-purple-500/30"
+                              >
+                                {skill.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 relative">
@@ -310,50 +400,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* Community Section */}
-      <section id="community" className="py-20 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Ready to Make
-            <span className="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent"> Your Mark?</span>
-          </h2>
-          <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-            Join our community today and start contributing to meaningful projects. 
-            Every skill matters, every contribution counts.
-          </p>
-          
-          <button
-            onClick={openSignupPopup}
-            className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-12 py-6 rounded-2xl font-bold text-xl shadow-2xl flex items-center space-x-4 mx-auto"
-          >
-            <span>Join for Free</span>
-            <Gift className="h-8 w-8" />
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-purple-500/20 py-12 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-8 md:mb-0">
-              <Logo className="h-10 w-auto" textClassName="text-2xl font-bold" />
-              <p className="text-gray-400 mt-2">Every task for everyone</p>
-            </div>
-            
-            <div className="flex space-x-8">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Privacy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Terms</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Support</a>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
-            <p>&copy; 2024 Avasara. Every task for everyone.</p>
-          </div>
-        </div>
-      </footer>
 
       {/* Popups */}
       <LoginPopup 

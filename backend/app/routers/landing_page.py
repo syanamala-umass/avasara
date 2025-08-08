@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
@@ -56,3 +56,68 @@ async def get_landing_stats(db: Session = Depends(get_db)) -> Dict[str, Any]:
         "completedTasksCount": completed_tasks_count,
         "topContributors": top_contributors
     }
+
+
+@router.get("/public-tasks")
+async def get_public_tasks(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """Get public tasks for landing page display"""
+    try:
+        print("Starting to fetch public tasks...")
+        # Fetch 7 recent open tasks with basic information
+        query = text("""
+            SELECT 
+                t.id,
+                t.title,
+                t.description,
+                t.created_at,
+                json_agg(
+                    json_build_object(
+                        'id', s.id,
+                        'name', s.name,
+                        'category', s.category
+                    )
+                ) FILTER (WHERE s.id IS NOT NULL) as skills
+            FROM tasks t
+            INNER JOIN task_skills ts ON t.id = ts.task_id
+            INNER JOIN skills s ON ts.skill_id = s.id
+            GROUP BY t.id, t.title, t.description, t.created_at
+            HAVING COUNT(s.id) > 0
+            ORDER BY t.created_at DESC
+            LIMIT 7
+        """)
+        
+        print("Executing query...")
+        result = db.execute(query)
+        print(f"Query executed successfully, fetching results...")
+        
+        tasks = []
+        
+        for row in result:
+            print(f"Processing task: {row.id} - {row.title}")
+            # Handle skills array - filter out null values
+            skills = [skill for skill in row.skills if skill['id'] is not None] if row.skills else []
+            
+            task = {
+                "id": row.id,
+                "title": row.title,
+                "description": row.description,
+                "created_at": row.created_at.isoformat() if row.created_at else None,  # Since we're filtering for open tasks
+                "skills": skills
+            }
+            tasks.append(task)
+        
+        print(f"Successfully processed {len(tasks)} tasks")
+        
+        return {
+            "tasks": tasks,
+            "count": len(tasks)
+        }
+        
+    except Exception as e:
+        print(f"Error in get_public_tasks: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching public tasks: {str(e)}"
+        )
