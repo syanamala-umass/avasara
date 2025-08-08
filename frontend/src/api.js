@@ -90,6 +90,15 @@ export const deleteTask = async (taskId) => {
     throw error;
   }
 };
+
+export const deleteTaskWithVerification = async (taskId) => {
+  try {
+    const response = await api.delete(`/tasks/${taskId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 export const applyForTask = (id, data) => api.post(`/tasks/${id}/apply`, data);
 export const submitTask = async (taskId, formData) => {
   try {

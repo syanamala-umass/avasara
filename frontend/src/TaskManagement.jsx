@@ -4,7 +4,7 @@ import {
   ArrowLeft, Briefcase, Clock3, CheckCircle, AlertCircle, Star,
   Plus, DollarSign, Calendar, Tag, User, Sparkles
 } from 'lucide-react';
-import { fetchTasks, fetchMyAssignments, fetchTaskAssignments, fetchMyReviews } from './api';
+import { fetchTasks, fetchMyAssignments, fetchTaskAssignments, fetchMyReviews, deleteTaskWithVerification } from './api';
 
 const TaskManagement = () => {
   const navigate = useNavigate();
@@ -19,6 +19,10 @@ const TaskManagement = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchTaskData = async () => {
@@ -65,6 +69,40 @@ const TaskManagement = () => {
   const handleTaskClick = (task) => {
     setSelectedTask(task);
     setIsTaskModalOpen(true);
+  };
+
+  const handleDeleteTask = (task, e) => {
+    e.stopPropagation(); // Prevent task modal from opening
+    setTaskToDelete(task);
+    setShowDeleteModal(true);
+    setDeleteError('');
+  };
+
+  const confirmDeleteTask = async () => {
+    try {
+      setDeleteLoading(true);
+      setDeleteError('');
+      
+      await deleteTaskWithVerification(taskToDelete.id);
+      
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setTaskToDelete(null);
+      
+      // Refresh the page to fetch updated tasks
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      setDeleteError(error.response?.data?.detail || 'Failed to delete task.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setTaskToDelete(null);
+    setDeleteError('');
   };
 
   const getStatusColor = (status) => {
@@ -226,9 +264,22 @@ const TaskManagement = () => {
                       >
                         <div className="flex items-start justify-between mb-4">
                           <h3 className="text-lg font-semibold text-white line-clamp-2">{task.title}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-                            {task.status.replace('_', ' ').toUpperCase()}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
+                              {task.status.replace('_', ' ').toUpperCase()}
+                            </span>
+                            {task.status === 'open' && (
+                              <button
+                                onClick={(e) => handleDeleteTask(task, e)}
+                                className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors duration-200"
+                                title="Delete task"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <p className="text-gray-300 text-sm mb-4 line-clamp-3">{task.description}</p>
                         <div className="flex items-center justify-between text-sm text-gray-400">
@@ -426,6 +477,60 @@ const TaskManagement = () => {
           </div>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && taskToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-red-500/20 rounded-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Delete Task</h3>
+              <p className="text-gray-300 mb-4">
+                Are you sure you want to delete "<span className="font-semibold text-white">{taskToDelete.title}</span>"?
+              </p>
+              <p className="text-red-400 text-sm mb-6">
+                This action cannot be undone. All task data will be permanently removed.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {deleteError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                  <p className="text-red-400 text-sm">{deleteError}</p>
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors duration-200 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteTask}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Deleting...
+                    </div>
+                  ) : (
+                    'Delete Task'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

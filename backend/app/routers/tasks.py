@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File, Form, Body
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import logging
@@ -875,6 +875,7 @@ def delete_task(
     Raises:
         HTTPException: If task not found, user not authorized, or task cannot be deleted
     """
+    
     # Get the task
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     
