@@ -72,6 +72,7 @@ export const getOAuthToken = (provider, code) => api.post('/oauth/token', { prov
 
 // Landing page stats
 export const fetchLandingStats = () => api.get('/landing/stats');
+export const fetchRecentTasks = (limit = 8) => api.get('/tasks', { params: { limit, status: 'open' } });
 
 // Task services
 export const fetchTasks = (filters) => api.get('/tasks', { params: filters });

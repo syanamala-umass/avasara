@@ -58,25 +58,30 @@ const OAuthCallback = () => {
               setMessage('Successfully signed in with Google!');
               setUserData(userData);
               
-              // Check if user has skills (exactly like login popup)
+              // Check if user has skills - only show skills modal for new OAuth users
               try {
                 if (userData && userData.id) {
-                  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-                  const skillsResponse = await fetch(`${API_URL}/users/${userData.id}/skills`, {
-                    headers: {
-                      'Authorization': `Bearer ${token}`,
-                      'Content-Type': 'application/json'
-                    }
-                  });
+                  // Only show skills modal for new OAuth users who have no skills
+                  const isNewUser = userData.is_new_user === true;
                   
-                  if (skillsResponse.ok) {
-                    const skillsData = await skillsResponse.json();
-                    const userSkills = skillsData.data || [];
+                  if (isNewUser) {
+                    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+                    const skillsResponse = await fetch(`${API_URL}/users/${userData.id}/skills`, {
+                      headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
                     
-                    if (userSkills.length === 0) {
-                      // User has no skills, show skills modal
-                      setShowSkillsModal(true);
-                      return;
+                    if (skillsResponse.ok) {
+                      const skillsData = await skillsResponse.json();
+                      const userSkills = skillsData.data || [];
+                      
+                      if (userSkills.length === 0) {
+                        // New OAuth user has no skills, show skills modal
+                        setShowSkillsModal(true);
+                        return; // Don't redirect to dashboard, let skills modal handle it
+                      }
                     }
                   }
                 }
@@ -85,7 +90,7 @@ const OAuthCallback = () => {
                 // If we can't check skills, proceed to dashboard anyway
               }
               
-              // Redirect to dashboard
+              // Only redirect to dashboard if user has skills or skills check failed
               navigate('/dashboard');
             } else {
               const errorText = await response.text();

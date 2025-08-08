@@ -136,6 +136,8 @@ class OAuthService:
         # Check if user already exists
         existing_user = get_user_by_email(db, email)
         if existing_user:
+            # Add flag to indicate this is an existing user
+            existing_user["is_new_user"] = False
             return existing_user
         
         # Extract user information based on provider
@@ -179,6 +181,9 @@ class OAuthService:
             oauth_provider=provider.lower(),
             oauth_id=oauth_id
         )
+        
+        # Add flag to indicate this is a new user
+        new_user["is_new_user"] = True
         
         return new_user
 

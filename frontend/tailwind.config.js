@@ -10,6 +10,7 @@ module.exports = {
         'spin-slow': 'spin-slow 20s linear infinite',
         'shimmer': 'shimmer 2s infinite',
         'fadeIn': 'fadeIn 0.6s ease-out',
+        'scroll': 'scroll 30s linear infinite',
       },
       keyframes: {
         'gradient-x': {
@@ -62,6 +63,14 @@ module.exports = {
           'to': {
             'opacity': '1',
             'transform': 'translateY(0)'
+          },
+        },
+        'scroll': {
+          '0%': {
+            'transform': 'translateX(0)'
+          },
+          '100%': {
+            'transform': 'translateX(-50%)'
           },
         },
       },
