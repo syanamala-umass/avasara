@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, DollarSign, Tag, CheckCircle, XCircle, AlertCircle, Users, ArrowLeft, Eye, Plus } from 'lucide-react';
 import { fetchTasks, canUndertakeTask, fetchSkills, createTaskAssignment, fetchReviewTasks, assignReviewTask } from './api';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import TaskDetailModal from './TaskDetailModal';
 import ReviewDetailModal from './ReviewDetailModal';
 import LoginPopup from './LoginPopup';
@@ -32,6 +32,7 @@ const capabilityTypes = ['All', 'can_undertake', 'cannot_undertake'];
 const TasksPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { taskId } = useParams();
   const [filters, setFilters] = useState({
     title: '',
     category: 'All',
@@ -53,7 +54,42 @@ const TasksPage = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
+  // Check authentication before making any API calls
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    
+    if (!token || !userData) {
+      // Show login popup for unauthenticated users
+      setShowLoginPopup(true);
+      return;
+    }
+  }, []);
+
+  // Listen for storage changes to handle login from popup
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' && e.newValue) {
+        // User logged in, close popup and load data
+        setShowLoginPopup(false);
+        loadSkills();
+        handleSearch();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
+    // Only load data if user is authenticated
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    
+    if (!token || !userData) {
+      return; // Don't load data if not authenticated
+    }
+
     loadSkills();
     
     // Check if we have a selected skill from navigation
@@ -96,6 +132,19 @@ const TasksPage = () => {
     }
   }, [location.state]);
 
+  // Handle opening a specific task modal from navigation state or URL params
+  useEffect(() => {
+    const targetTaskId = location.state?.openTaskId || (taskId ? parseInt(taskId) : null);
+    
+    if (targetTaskId && results.length > 0) {
+      const taskToOpen = results.find(task => task.id === targetTaskId);
+      if (taskToOpen) {
+        setSelectedTask(taskToOpen);
+        setIsTaskModalOpen(true);
+      }
+    }
+  }, [location.state?.openTaskId, taskId, results]);
+
   // Trigger search when skill filter changes (but not when capability changes)
   useEffect(() => {
     if (filters.skillId && availableSkills.length > 0) {
@@ -104,6 +153,14 @@ const TasksPage = () => {
   }, [filters.skillId, availableSkills]);
 
   const loadSkills = async () => {
+    // Check authentication before making API call
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    
+    if (!token || !userData) {
+      return; // Don't load skills if not authenticated
+    }
+    
     try {
       const response = await fetchSkills();
       setAvailableSkills(response.data || []);
@@ -207,6 +264,16 @@ const TasksPage = () => {
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
+    
+    // Check authentication before making API call
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    
+    if (!token || !userData) {
+      setShowLoginPopup(true);
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
@@ -345,6 +412,9 @@ const TasksPage = () => {
 
   const closeLoginPopup = () => {
     setShowLoginPopup(false);
+    // After successful login, load the data
+    loadSkills();
+    handleSearch();
   };
 
   return (
