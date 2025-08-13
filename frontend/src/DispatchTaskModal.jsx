@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
-import { createTask, fetchSkills } from './api';
+import { createTask, fetchSkills, createSkill } from './api';
 import ReactMarkdown from 'react-markdown';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
@@ -10,14 +10,14 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     title: '',
     description: '',
     compensation_type: 'cash',
-    compensation_amount: '0',
+    compensation_amount: 0,
     review_compensation_type: 'cash',
-    review_compensation_amount: '0',
+    review_compensation_amount: 0,
     skills: [],
     num_reviewers: 2,
     skill_review_requirements: {},  // {"skill_name": min_skill_level_required}
     // Duration field
-    task_duration: ''
+    task_duration: null
   });
   
   const [loading, setLoading] = useState(false);
@@ -104,11 +104,23 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     setError('');
 
     try {
+      // Ensure all skills have valid database IDs
+      const validSkills = formData.skills.filter(skill => {
+        return typeof skill.id === 'number' && skill.id > 0;
+      });
+
+      if (validSkills.length === 0) {
+        setError('Please select at least one valid skill.');
+        return;
+      }
+
       const formattedData = {
         ...formData,
-        skills: formData.skills.map(skill => skill.id),
-        compensation_amount: parseFloat(formData.compensation_amount),
-        review_compensation_amount: parseFloat(formData.review_compensation_amount)
+        skills: validSkills.map(skill => skill.id),
+        compensation_amount: parseFloat(formData.compensation_amount) || 0,
+        review_compensation_amount: parseFloat(formData.review_compensation_amount) || 0,
+        num_reviewers: parseInt(formData.num_reviewers) || 2,
+        task_duration: formData.task_duration ? parseInt(formData.task_duration) : null
       };
 
       const response = await createTask(formattedData);
@@ -133,10 +145,20 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Handle number inputs
+    if (name === 'compensation_amount' || name === 'review_compensation_amount' || name === 'task_duration') {
+      const numValue = value === '' ? null : parseFloat(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleAddSkill = (skill) => {
@@ -155,22 +177,68 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     setShowSkillDropdown(false);
   };
 
-  const handleAddNewSkill = () => {
+  const handleAddNewSkill = async () => {
     if (!skillSearch.trim()) return;
     const newSkillName = skillSearch.trim();
+    
     // Check if already exists in formData.skills
     if (formData.skills.some(s => s.name.toLowerCase() === newSkillName.toLowerCase())) {
       setSkillSearch('');
       setShowSkillDropdown(false);
       return;
     }
-    // Create a temporary skill object
-    const tempSkill = {
-      id: `temp_${Date.now()}`,
-      name: newSkillName,
-      is_new: true
-    };
-    handleAddSkill(tempSkill);
+    
+    try {
+      setLoading(true);
+      
+      // Create the skill in the database first
+      const response = await createSkill({ 
+        name: newSkillName, 
+        category: formData.category || 'Other' 
+      });
+      
+      // Add the newly created skill to the form
+      const newSkill = {
+        id: response.data.id, // Use the real database ID
+        name: response.data.name,
+        category: response.data.category
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill],
+        // Initialize skill level requirement for this skill
+        skill_review_requirements: {
+          ...prev.skill_review_requirements,
+          [newSkill.name]: 1.8  // Default to level 1.8 required
+        }
+      }));
+      
+      // Also add to available skills for future use
+      setAvailableSkills(prev => [...prev, newSkill]);
+      
+      setSkillSearch('');
+      setShowSkillDropdown(false);
+      
+      // Show success message
+      console.log(`Skill "${newSkillName}" created successfully with ID: ${newSkill.id}`);
+      
+    } catch (err) {
+      console.error('Error creating skill:', err);
+      let errorMessage = 'Failed to create skill.';
+      
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          errorMessage = err.response.data.detail.map(error => error.msg).join(', ');
+        } else {
+          errorMessage = err.response.data.detail;
+        }
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRemoveSkill = (skillId) => {
@@ -221,7 +289,15 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
 
   // Validation functions
   const isStep1Valid = () => {
-    return formData.category && formData.title.trim() !== '' && formData.skills.length > 0;
+    // Check if all skills have valid database IDs
+    const allSkillsValid = formData.skills.every(skill => 
+      typeof skill.id === 'number' && skill.id > 0
+    );
+    
+    return formData.category && 
+           formData.title.trim() !== '' && 
+           formData.skills.length > 0 && 
+           allSkillsValid;
   };
 
   const isStep2Valid = () => {
