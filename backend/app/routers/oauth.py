@@ -179,6 +179,10 @@ class OAuthTokenRequest(BaseModel):
 async def get_oauth_token(request: OAuthTokenRequest, db: Session = Depends(get_db)):
     """Get OAuth token for a specific provider (alternative to callback)"""
     try:
+        # Get client IP and user agent for logging
+        client_ip = http_request.client.host if http_request else None
+        user_agent = http_request.headers.get("user-agent") if http_request else None
+        
         print(f"Processing OAuth token request for provider: {request.provider}")
         print(f"Code received: {request.code[:10]}...")
         
@@ -209,6 +213,16 @@ async def get_oauth_token(request: OAuthTokenRequest, db: Session = Depends(get_
         # Process user
         user = oauth_service.process_oauth_user(db, user_info, request.provider)
         print(f"User processed: {user}")
+        
+        # Log successful OAuth login
+        LoginLogger.log_login(
+            db=db,
+            user_id=user["id"],
+            login_method=f"oauth_{request.provider.lower()}",
+            ip_address=client_ip,
+            user_agent=user_agent,
+            success="success"
+        )
         
         # Create JWT token
         jwt_token = create_access_token(data={"sub": user["email"]})
