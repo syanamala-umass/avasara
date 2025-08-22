@@ -176,24 +176,24 @@ class OAuthTokenRequest(BaseModel):
     code: str
 
 @router.post("/token")
-async def get_oauth_token(request: OAuthTokenRequest, db: Session = Depends(get_db)):
+async def get_oauth_token(oauth_request: OAuthTokenRequest, db: Session = Depends(get_db), http_request: Request = None):
     """Get OAuth token for a specific provider (alternative to callback)"""
     try:
         # Get client IP and user agent for logging
         client_ip = http_request.client.host if http_request else None
         user_agent = http_request.headers.get("user-agent") if http_request else None
         
-        print(f"Processing OAuth token request for provider: {request.provider}")
-        print(f"Code received: {request.code[:10]}...")
+        print(f"Processing OAuth token request for provider: {oauth_request.provider}")
+        print(f"Code received: {oauth_request.code[:10]}...")
         
-        if request.provider == "google":
-            access_token = await oauth_service.exchange_google_code(request.code)
+        if oauth_request.provider == "google":
+            access_token = await oauth_service.exchange_google_code(oauth_request.code)
             user_info = await oauth_service.get_google_user_info(access_token)
-        elif request.provider == "linkedin":
-            access_token = await oauth_service.exchange_linkedin_code(request.code)
+        elif oauth_request.provider == "linkedin":
+            access_token = await oauth_service.exchange_linkedin_code(oauth_request.code)
             user_info = await oauth_service.get_linkedin_user_info(access_token)
-        elif request.provider == "github":
-            access_token = await oauth_service.exchange_github_code(request.code)
+        elif oauth_request.provider == "github":
+            access_token = await oauth_service.exchange_github_code(oauth_request.code)
             user_info = await oauth_service.get_github_user_info(access_token)
         else:
             raise HTTPException(
@@ -211,14 +211,14 @@ async def get_oauth_token(request: OAuthTokenRequest, db: Session = Depends(get_
         print(f"User info keys: {user_info.keys()}")
         
         # Process user
-        user = oauth_service.process_oauth_user(db, user_info, request.provider)
+        user = oauth_service.process_oauth_user(db, user_info, oauth_request.provider)
         print(f"User processed: {user}")
         
         # Log successful OAuth login
         LoginLogger.log_login(
             db=db,
             user_id=user["id"],
-            login_method=f"oauth_{request.provider.lower()}",
+            login_method=f"oauth_{oauth_request.provider.lower()}",
             ip_address=client_ip,
             user_agent=user_agent,
             success="success"
@@ -233,11 +233,30 @@ async def get_oauth_token(request: OAuthTokenRequest, db: Session = Depends(get_
             "access_token": jwt_token,
             "token_type": "bearer",
             "user": user,
-            "provider": request.provider
+            "provider": oauth_request.provider
         }
         
     except Exception as e:
         print(f"Error in OAuth token endpoint: {str(e)}")
+        
+        # Log failed OAuth attempt if we have user info
+        try:
+            if 'user_info' in locals() and user_info and user_info.get('email'):
+                # Try to find user by email for logging
+                from app.crud.user import get_user_by_email
+                user = get_user_by_email(db, user_info['email'])
+                if user:
+                    LoginLogger.log_login(
+                        db=db,
+                        user_id=user.id,
+                        login_method=f"oauth_{oauth_request.provider.lower()}",
+                        ip_address=client_ip if 'client_ip' in locals() else None,
+                        user_agent=user_agent if 'user_agent' in locals() else None,
+                        success="failed"
+                    )
+        except Exception as log_error:
+            print(f"Failed to log OAuth error: {log_error}")
+        
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
