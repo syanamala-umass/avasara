@@ -2,6 +2,40 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, XCircle, Save } from 'lucide-react';
 import { createTask, saveTaskDraft, fetchSkills, createSkill } from './api';
 import ReactMarkdown from 'react-markdown';
+import { Editor, EditorState, convertToRaw, convertFromRaw } from 'draft-js';
+import 'draft-js/dist/Draft.css';
+
+// Custom CSS for Draft.js editor
+const customStyles = `
+  .DraftEditor-root {
+    min-height: 200px;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+  }
+  
+  .DraftEditor-editorContainer {
+    min-height: 200px;
+  }
+  
+  .public-DraftEditor-content {
+    min-height: 200px;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #1f2937;
+    outline: none;
+  }
+  
+  .public-DraftEditorPlaceholder-root {
+    color: #9ca3af;
+    position: absolute;
+    pointer-events: none;
+    padding: 1rem 1.25rem;
+  }
+  
+
+`;
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -34,6 +68,10 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const skillInputRef = useRef(null);
   const [descriptionTemplate, setDescriptionTemplate] = useState('');
   const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
+  
+  // Draft.js rich text editor state
+  const [editorState, setEditorState] = useState(EditorState.createEmpty());
+  const editorRef = useRef(null);
 
   useEffect(() => {
     const loadSkills = async () => {
@@ -64,6 +102,10 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSkillDropdown]);
+
+     
+
+
 
 
 
@@ -99,8 +141,14 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         return typeof skill.id === 'number' && skill.id > 0;
       });
 
+      // Convert Draft.js content to HTML for submission
+      const contentState = editorState.getCurrentContent();
+      const rawContent = convertToRaw(contentState);
+      const htmlContent = convertDraftToHTML(rawContent);
+      
       const formattedData = {
         ...formData,
+        description: htmlContent,
         skills: validSkills.map(skill => skill.id),
         compensation_amount: parseFloat(formData.compensation_amount) || 0,
         review_compensation_amount: parseFloat(formData.review_compensation_amount) || 0,
@@ -187,8 +235,14 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         return;
       }
 
+      // Convert Draft.js content to HTML for submission
+      const contentState = editorState.getCurrentContent();
+      const rawContent = convertToRaw(contentState);
+      const htmlContent = convertDraftToHTML(rawContent);
+      
       const formattedData = {
         ...formData,
+        description: htmlContent,
         skills: validSkills.map(skill => skill.id),
         compensation_amount: parseFloat(formData.compensation_amount) || 0,
         review_compensation_amount: parseFloat(formData.review_compensation_amount) || 0,
@@ -382,7 +436,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   };
 
   const isStep2Valid = () => {
-    return formData.description.trim() !== '';
+    return editorState.getCurrentContent().getPlainText().trim() !== '';
   };
   const isStep3Valid = () => {
     const isValid = (
@@ -431,17 +485,73 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       // Replace this with your backend call if available
       // Example: const response = await fetchAiTemplate({ title: formData.title, category: formData.category, skills: formData.skills });
       // setDescriptionTemplate(response.data.template);
+      // setDescriptionTemplate(response.data.template);
       // setFormData(prev => ({ ...prev, description: response.data.template }));
       await new Promise(res => setTimeout(res, 1200)); // Simulate delay
       const template = `# ${formData.title}\n\nCategory: ${formData.category}\n\n## Background\n(Describe the project background and goals here.)\n\n## Brief Description\n(Fill in the details here.)\n\n## Objectives\n(Fill in the details here.)\n\n## Step-by-Step Instructions\n(Fill in the details here.)\n\n## Technical Requirements\n(Fill in the details here.)\n\n## Evaluation Criteria\n(Fill in the details here.)`;
       setDescriptionTemplate(template);
-      setFormData(prev => ({ ...prev, description: template }));
+      
+      // Convert template to Draft.js content
+      const contentState = convertFromRaw({
+        blocks: [
+          {
+            text: template,
+            type: 'unstyled',
+            depth: 0,
+            inlineStyleRanges: [],
+            entityRanges: [],
+            key: 'template'
+          }
+        ],
+        entityMap: {}
+      });
+      const newEditorState = EditorState.createWithContent(contentState);
+      setEditorState(newEditorState);
     } catch (err) {
       setError('Failed to generate template.');
     } finally {
       setIsGeneratingTemplate(false);
     }
   };
+
+  // Draft.js rich text editor functions
+  const handleEditorChange = (newEditorState) => {
+    setEditorState(newEditorState);
+    
+    // Only convert to HTML when we need to submit the form
+    // Keep the Draft.js state intact for editing
+    setHasUnsavedChanges(true);
+  };
+
+
+
+  // Helper function to convert Draft.js content to HTML
+  const convertDraftToHTML = (rawContent) => {
+    // Since we're not using formatting, just return plain text
+    return rawContent.blocks.map(block => block.text).join('\n');
+  };
+
+  // Add custom styles to document head
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customStyles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
+  // Sync form data with editor state when editor changes
+  useEffect(() => {
+    const contentState = editorState.getCurrentContent();
+    const plainText = contentState.getPlainText();
+    
+    // Only update if the content actually changed
+    if (formData.description !== plainText) {
+      setFormData(prev => ({ ...prev, description: plainText }));
+    }
+  }, [editorState]);
 
   if (!isOpen) return null;
 
@@ -570,29 +680,51 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         <h3 className="text-lg font-semibold">Detailed Description</h3>
       </div>
       
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-          Description <span className="text-red-500">*</span>
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+        <label htmlFor="description" className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+          <Target className="w-4 h-4 text-blue-600" />
+          Task Description <span className="text-red-500">*</span>
         </label>
-        <textarea
-          id="description"
-          name="description"
-          required
-          value={formData.description}
-          onChange={handleChange}
-          rows={8}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-base py-3 px-4 min-h-[120px]"
-          placeholder="Describe the task in detail. Include goals, deliverables, expectations, and any relevant context."
-        />
+        
+        
+        <div className="border-2 border-gray-200 rounded-lg focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 focus-within:ring-opacity-50 min-h-[200px] bg-white">
+          <Editor
+            ref={editorRef}
+            editorState={editorState}
+            onChange={handleEditorChange}
+            placeholder="Write your task description here...
+
+• What needs to be accomplished?
+• What are the key deliverables?
+• What skills or experience are required?
+• Any specific requirements or constraints?
+
+Feel free to be detailed and structured in your description."
+            editorClassName="px-5 py-4 text-base font-sans leading-relaxed text-gray-800 min-h-[200px] outline-none"
+            onMouseDown={() => {
+              // Ensure the editor gets focus when clicked
+              if (editorRef.current) {
+                editorRef.current.focus();
+              }
+            }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between items-center text-xs text-gray-500">
+          <span>Press Enter for line breaks</span>
+          <span>{editorState.getCurrentContent().getPlainText().length} characters</span>
+        </div>
+        {/* AI Template Button - Commented out for now
         <button
           type="button"
-          className="mt-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 disabled:opacity-50"
+          className="mt-4 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 font-medium shadow-sm transition-all duration-200 hover:shadow-md"
           onClick={generateTemplate}
           disabled={isGeneratingTemplate || !formData.title || !formData.category}
         >
           {isGeneratingTemplate ? 'Generating Template...' : 'Generate AI Template'}
         </button>
+        */}
       </div>
+      {/* AI Template Display - Commented out for now
       {descriptionTemplate && !isGeneratingTemplate && (
         <div className="mt-2 text-sm text-gray-600">
           <span>💡 AI template generated based on your task details. Feel free to edit and customize it.</span>
@@ -603,6 +735,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           </div>
         </div>
       )}
+      */}
     </div>
   );
 
@@ -767,6 +900,11 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         <form
           onSubmit={handleSubmit}
           onKeyDown={e => {
+            // Allow Enter key in textarea elements for line breaks
+            if (e.target.tagName === 'TEXTAREA') {
+              return; // Allow Enter key to work normally in textareas
+            }
+            
             // Prevent Enter from submitting the form unless on step 3 and focused on the submit button
             if (e.key === 'Enter' && currentStep < 3) {
               e.preventDefault();
@@ -847,19 +985,19 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         
         {/* Close Confirmation Dialog */}
         {showCloseConfirmation && (
-          <div className="fixed inset-0 flex items-center justify-center z-60 bg-black bg-opacity-75">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Unsaved Changes
+          <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Save Draft?
               </h3>
-              <p className="text-gray-600 mb-6">
-                You have unsaved changes. Would you like to save them as a draft before closing?
+              <p className="text-gray-600 mb-6 text-sm">
+                You have unsaved changes. Save as draft?
               </p>
-              <div className="flex gap-3 justify-end">
+              <div className="flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={handleCancelClose}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
                 >
                   Cancel
                 </button>
@@ -867,16 +1005,16 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
                   type="button"
                   onClick={handleSaveDraft}
                   disabled={draftSaving}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 text-sm"
                 >
-                  {draftSaving ? 'Saving...' : 'Save Draft'}
+                  {draftSaving ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmClose}
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                  className="px-4 py-2 text-red-600 hover:text-red-800 text-sm"
                 >
-                  Close Without Saving
+                  Don't Save
                 </button>
               </div>
             </div>
