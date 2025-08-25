@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, XCircle } from 'lucide-react';
-import { createTask, fetchSkills, createSkill } from './api';
+import { X, Sparkles, DollarSign, Target, CheckCircle, ArrowRight, ArrowLeft, XCircle, Save } from 'lucide-react';
+import { createTask, saveTaskDraft, fetchSkills, createSkill } from './api';
 import ReactMarkdown from 'react-markdown';
 
 const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
@@ -26,6 +26,10 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
   const [skillSearch, setSkillSearch] = useState('');
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
   const [allowSubmission, setAllowSubmission] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
+
   const skillDropdownRef = useRef(null);
   const skillInputRef = useRef(null);
   const [descriptionTemplate, setDescriptionTemplate] = useState('');
@@ -43,6 +47,8 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     loadSkills();
   }, []);
 
+
+
   useEffect(() => {
     if (!showSkillDropdown) return;
     function handleClickOutside(event) {
@@ -58,6 +64,73 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showSkillDropdown]);
+
+
+
+
+
+
+
+  const handleClose = () => {
+    if (hasUnsavedChanges) {
+      setShowCloseConfirmation(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleConfirmClose = () => {
+    setShowCloseConfirmation(false);
+    setHasUnsavedChanges(false);
+    onClose();
+  };
+
+  const handleCancelClose = () => {
+    setShowCloseConfirmation(false);
+  };
+
+  const handleSaveDraft = async () => {
+    setDraftSaving(true);
+    setError('');
+
+    try {
+      // Ensure all skills have valid database IDs
+      const validSkills = formData.skills.filter(skill => {
+        return typeof skill.id === 'number' && skill.id > 0;
+      });
+
+      const formattedData = {
+        ...formData,
+        skills: validSkills.map(skill => skill.id),
+        compensation_amount: parseFloat(formData.compensation_amount) || 0,
+        review_compensation_amount: parseFloat(formData.review_compensation_amount) || 0,
+        num_reviewers: parseInt(formData.num_reviewers) || 2,
+        task_duration: formData.task_duration ? parseInt(formData.task_duration) : null
+      };
+
+      const response = await saveTaskDraft(formattedData);
+      setHasUnsavedChanges(false);
+      setError('');
+      // Show success message and close modal
+      console.log('Draft saved successfully:', response.data);
+      onTaskCreated(response.data);
+      onClose();
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          const errorMessages = err.response.data.detail.map(error => error.msg).join(', ');
+          setError(errorMessages);
+        } else {
+          setError(err.response.data.detail);
+        }
+      } else {
+        setError('Failed to save draft. Please try again.');
+      }
+    } finally {
+      setDraftSaving(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,6 +197,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       };
 
       const response = await createTask(formattedData);
+      setHasUnsavedChanges(false);
       onTaskCreated(response.data);
       onClose();
     } catch (err) {
@@ -159,6 +233,9 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         [name]: value
       }));
     }
+    
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
   };
 
   const handleAddSkill = (skill) => {
@@ -172,6 +249,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           [skill.name]: 1.8  // Default to level 1.8 required
         }
       }));
+      setHasUnsavedChanges(true);
     }
     setSkillSearch('');
     setShowSkillDropdown(false);
@@ -219,6 +297,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
       
       setSkillSearch('');
       setShowSkillDropdown(false);
+      setHasUnsavedChanges(true);
       
       // Show success message
       console.log(`Skill "${newSkillName}" created successfully with ID: ${newSkill.id}`);
@@ -252,6 +331,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           Object.entries(prev.skill_review_requirements).filter(([key]) => key !== skillToRemove.name)
         ) : prev.skill_review_requirements
     }));
+    setHasUnsavedChanges(true);
   };
 
   const updateSkillLevelRequirement = (skillName, value) => {
@@ -262,6 +342,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
         [skillName]: Math.max(0, Math.min(5, parseFloat(value) || 0))  // Between 0-5
       }
     }));
+    setHasUnsavedChanges(true);
   };
 
   const renderSkillLevelStars = (level) => {
@@ -659,7 +740,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div 
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
+        onClick={handleClose}
       ></div>
       
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl p-10 z-10 max-h-[95vh] overflow-y-auto text-[1.15rem]">
@@ -670,7 +751,7 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           </div>
           <button 
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700"
           >
             <X className="w-6 h-6" />
@@ -702,15 +783,37 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
           {renderStepContent()}
           
           <div className="flex justify-between pt-6 border-t">
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Previous
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={prevStep}
+                disabled={currentStep === 1}
+                className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Previous
+              </button>
+              
+              {/* Save Draft Button */}
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={draftSaving}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {draftSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save Draft
+                  </>
+                )}
+              </button>
+            </div>
             
             {currentStep < 3 ? (
               <button
@@ -741,6 +844,44 @@ const DispatchTaskModal = ({ isOpen, onClose, onTaskCreated }) => {
             )}
           </div>
         </form>
+        
+        {/* Close Confirmation Dialog */}
+        {showCloseConfirmation && (
+          <div className="fixed inset-0 flex items-center justify-center z-60 bg-black bg-opacity-75">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Unsaved Changes
+              </h3>
+              <p className="text-gray-600 mb-6">
+                You have unsaved changes. Would you like to save them as a draft before closing?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelClose}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  disabled={draftSaving}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {draftSaving ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmClose}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                >
+                  Close Without Saving
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

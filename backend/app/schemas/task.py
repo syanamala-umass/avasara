@@ -21,14 +21,10 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     pass
 
-class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    deadline: Optional[datetime] = None
-    status: Optional[str] = None
-    skills: Optional[List[int]] = None
-    skill_review_requirements: Optional[Dict[str, float]] = None
-    task_duration: Optional[int] = None
+class TaskUpdate(TaskBase):
+    pass
+   
+    
 
 class Task(TaskBase):
     id: int

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Briefcase, Clock3, CheckCircle, AlertCircle, Star,
-  Plus, DollarSign, Calendar, Tag, User, Sparkles
+  Plus, DollarSign, Calendar, Tag, User, Sparkles, Edit3
 } from 'lucide-react';
 import { fetchTasks, fetchMyAssignments, fetchTaskAssignments, fetchMyReviews, deleteTaskWithVerification } from './api';
+import TaskDetailModal from './TaskDetailModal';
 
 const TaskManagement = () => {
   const navigate = useNavigate();
@@ -105,9 +106,17 @@ const TaskManagement = () => {
     setDeleteError('');
   };
 
+  const handleEditTask = (task, e) => {
+    e.stopPropagation(); // Prevent task modal from opening
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'open': return 'bg-green-100 text-green-800 border-green-200';
+      case 'editing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'submitted': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'completed': return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -268,15 +277,37 @@ const TaskManagement = () => {
                             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
                               {task.status.replace('_', ' ').toUpperCase()}
                             </span>
-                            {task.status === 'open' && (
+                            {(task.status === 'open' || task.status === 'editing') && (
+                              <>
+                                <button
+                                  onClick={(e) => handleEditTask(task, e)}
+                                  className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-colors duration-200"
+                                  title="Edit task"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                {task.status === 'open' && (
+                                  <button
+                                    onClick={(e) => handleDeleteTask(task, e)}
+                                    className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors duration-200"
+                                    title="Delete task"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                )}
+                              </>
+                            )}
+                            
+                            {/* Edit Draft Button */}
+                            {task.status === 'draft' && (
                               <button
-                                onClick={(e) => handleDeleteTask(task, e)}
-                                className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors duration-200"
-                                title="Delete task"
+                                onClick={(e) => handleEditTask(task, e)}
+                                className="p-1 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded transition-colors duration-200"
+                                title="Edit draft"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
+                                <Edit3 className="w-4 h-4" />
                               </button>
                             )}
                           </div>
@@ -530,6 +561,30 @@ const TaskManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {isTaskModalOpen && selectedTask && (
+        <TaskDetailModal
+          isOpen={isTaskModalOpen}
+          task={selectedTask}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onUndertake={(task) => {
+            console.log('Task undertaken:', task);
+            // Handle task undertaking if needed
+          }}
+          onResubmit={(task) => {
+            console.log('Task resubmitted:', task);
+            // Handle task resubmission if needed
+          }}
+          onSubmit={(task) => {
+            console.log('Task submitted:', task);
+            // Handle task submission if needed
+          }}
+        />
       )}
     </div>
   );

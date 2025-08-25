@@ -81,7 +81,9 @@ export const fetchTaskById = (id) => api.get(`/tasks/${id}`);
 export const fetchTaskDetails = (id) => api.get(`/tasks/${id}/details`);
 export const fetchRecommendedTasks = (limit = 5) => api.get(`/tasks/recommended?limit=${limit}`);
 export const createTask = (taskData) => api.post('/tasks', taskData);
+export const saveTaskDraft = (taskData) => api.post('/tasks/draft', taskData);
 export const updateTask = (id, taskData) => api.put(`/tasks/${id}`, taskData);
+export const finishEditingTask = (id, taskData) => api.post(`/tasks/${id}/finish-editing`, taskData);
 export const deleteTask = async (taskId) => {
   try {
     const response = await api.delete(`/tasks/${taskId}`);

@@ -183,6 +183,95 @@ def create_new_task(
     
     return task_response
 
+@router.post("/draft", response_model=TaskWithDetails)
+def create_task_draft(
+    task: TaskCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Save a task as a draft in the system.
+    
+    This endpoint allows authenticated users to save incomplete tasks as drafts
+    that can be completed and published later. Drafts are saved with 'draft' status.
+    
+    Args:
+        task (TaskCreate): Task draft data including title, description, 
+                          compensation, deadline, and skill requirements
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user (task creator)
+        
+    Returns:
+        TaskWithDetails: Complete task information including all relationships
+                        and computed fields like assignment counts
+        
+    Raises:
+        HTTPException: If task draft creation fails or validation errors occur
+    """
+    # Create task with user_id and draft status
+    db_task = create_task(db=db, task=task, user_id=current_user.id)
+    
+    # Set status to draft
+    db_task.status = "draft"
+    
+    # Set category from primary skill
+    db_task.set_category_from_skills()
+    db.commit()
+    db.refresh(db_task)
+    
+    # Get task assignments count
+    assignments_count = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == db_task.id
+    ).count()
+    
+    # Get reviews count
+    reviews_count = db.query(ReviewTask).filter(
+        ReviewTask.parent_task_id == db_task.id
+    ).count()
+
+    # Get number of people currently working on the task
+    num_people_working = db.query(TaskAssignment).filter(
+        TaskAssignment.task_id == db_task.id,
+        TaskAssignment.status == 'in_progress'
+    ).count()
+
+    # Format skills for response
+    skills = [
+        {
+            "id": skill.id,
+            "name": skill.name
+        }
+        for skill in db_task.skills
+    ]
+    
+    # Create response with all required fields explicitly listed
+    task_response = {
+        # Basic task fields
+        "id": db_task.id,
+        "user_id": db_task.user_id,
+        "title": db_task.title,
+        "description": db_task.description,
+        "compensation": db_task.compensation,
+        "deadline": db_task.deadline,
+        "created_at": db_task.created_at,
+        "status": db_task.status,
+        "skill_review_requirements": db_task.skill_review_requirements,
+        "category": db_task.category,
+        "type": "task",
+        "task_duration": db_task.task_duration,
+        
+        # Additional fields required by TaskWithDetails
+        "skills": skills,
+        "creator_name": db_task.user.username if db_task.user else "Unknown User",
+        "creator_avatar": None,
+        "assignments_count": assignments_count,
+        "reviews_count": reviews_count,
+        "num_people_working": num_people_working,
+        "has_assignment": False
+    }
+    
+    return task_response
+
 @router.get("/", response_model=List[TaskWithDetails])
 def read_tasks(
     request: Request,
@@ -752,13 +841,15 @@ def read_task(
     
     return task_response
 
-@router.put("/{task_id}", response_model=Task)
+@router.put("/{task_id}", response_model=TaskWithDetails)
 def update_task_details(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     Update an existing task's details.
     
     This endpoint allows task creators to modify their tasks. Only the original
-    task creator can update task details.
+    task creator can update task details. Tasks with 'open', 'editing', or 'draft'
+    status can be modified. The task status will be set to 'editing' during the
+    update process to prevent it from being undertaken.
     
     Args:
         task_id (int): Unique identifier of the task to update
@@ -772,7 +863,66 @@ def update_task_details(task_id: int, task: TaskUpdate, db: Session = Depends(ge
     Raises:
         HTTPException: If task not found, user not authorized, or update fails
     """
+    # Check if task exists and user is authorized
+    db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if db_task.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this task")
+    
+    # Check if task can be edited (open, editing, or draft tasks can be modified)
+    if db_task.status not in ['open', 'editing', 'draft']:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot edit task that is not in 'open', 'editing', or 'draft' status"
+        )
+    
     return update_task(db=db, task_id=task_id, task=task, user_id=current_user.id)
+
+@router.post("/{task_id}/finish-editing", response_model=TaskWithDetails)
+def finish_editing_task_endpoint(task_id: int, task: TaskUpdate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Mark a task as finished editing and return it to 'open' status.
+    
+    This endpoint allows task creators to indicate they have finished editing
+    their task, making it available for contributors to undertake again.
+    
+    Args:
+        task_id (int): Unique identifier of the task to finish editing
+        db (Session): Database session dependency
+        current_user (User): Currently authenticated user
+        
+    Returns:
+        TaskWithDetails: Updated task with full details
+        
+    Raises:
+        HTTPException: If task not found, user not authorized, or status change fails
+    """
+    # Check if task exists and user is authorized
+    db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if db_task.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this task")
+    
+    # Check if task is currently in editing status
+    if db_task.status != 'editing':
+        raise HTTPException(
+            status_code=400, 
+            detail="Task is not currently being edited"
+        )
+    
+    # Finish editing using the merged update_task function
+    # Create empty TaskUpdate object since we're only changing status
+   
+    updated_task = update_task(db=db, task_id=task_id, task=task, user_id=current_user.id, finish_editing=True)
+    
+    if updated_task:
+        return updated_task
+    else:
+        raise HTTPException(status_code=400, detail="Failed to finish editing task")
 
 def assign_reviewers_randomly(db: Session, task_id: int, num_reviewers: int = 2):
     """

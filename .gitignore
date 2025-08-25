@@ -1,3 +1,33 @@
 .venv
 __pycache__
 node_modules/
+
+# Database configuration files
+backend/app/database/connection.py
+backend/app/database/connection.py.bak
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+startup_platform.db
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

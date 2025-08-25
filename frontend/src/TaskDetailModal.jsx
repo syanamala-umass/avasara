@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Share2 } from 'lucide-react';
-import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask, fetchUserSkills } from './api';
+import { X, Clock, CheckCircle, XCircle, User, FileText, MessageSquare, Calendar, DollarSign, AlertCircle, Share2, Edit3, Save, CheckCircle as CheckCircleIcon } from 'lucide-react';
+import { fetchTaskDetails, fetchReviewTaskDetails, canUndertakeTask, fetchUserSkills, updateTask, finishEditingTask, fetchSkills, createSkill } from './api';
 import TaskDurationInfo from './components/TaskDurationInfo';
 import ReactMarkdown from 'react-markdown';
 
@@ -25,6 +25,16 @@ const TaskDetailModal = ({ isOpen, task = {
   const [capabilityLoading, setCapabilityLoading] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTask, setEditedTask] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+  
+  // Skills management state
+  const [availableSkills, setAvailableSkills] = useState([]);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
   useEffect(() => {
     if (isOpen && task?.id) {
@@ -65,6 +75,39 @@ const TaskDetailModal = ({ isOpen, task = {
     }
   }, [isOpen, task?.id]);
 
+  // Load available skills when modal opens
+  useEffect(() => {
+    const loadSkills = async () => {
+      try {
+        const response = await fetchSkills();
+        setAvailableSkills(response.data);
+      } catch (err) {
+        console.error('Error loading skills:', err);
+      }
+    };
+    
+    if (isOpen) {
+      loadSkills();
+    }
+  }, [isOpen]);
+
+  // Handle clicking outside the skills dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.skills-dropdown-container')) {
+        setShowSkillDropdown(false);
+      }
+    };
+
+    if (showSkillDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSkillDropdown]);
+
   const fetchAndSetTaskDetails = async () => {
     if (!task?.id) return;
     
@@ -85,6 +128,25 @@ const TaskDetailModal = ({ isOpen, task = {
       }
       
       setTaskDetails(taskData);
+      
+      // Auto-enter edit mode if task is already being edited
+      if (taskData.status === 'editing' && taskData.user_id === userData?.id) {
+        setEditedTask({
+          title: taskData.title || '',
+          description: taskData.description || '',
+          category: taskData.category || 'Other',
+          deadline: taskData.deadline ? new Date(taskData.deadline).toISOString().split('T')[0] : '',
+          compensation_type: taskData.compensation?.task?.compensation_type || 'cash',
+          compensation_amount: taskData.compensation?.task?.amount || '',
+          review_compensation_type: taskData.compensation?.review?.compensation_type || 'cash',
+          review_compensation_amount: taskData.compensation?.review?.amount || '',
+          task_duration: taskData.task_duration || '',
+          num_reviewers: taskData.num_reviewers || 2,
+          max_parallel_contributors: taskData.max_parallel_contributors || null,
+          skills: taskData.skills || []
+        });
+        setIsEditing(true);
+      }
     } catch (err) {
       console.error('Error loading task details:', err);
       setError('Failed to load task details');
@@ -119,15 +181,244 @@ const TaskDetailModal = ({ isOpen, task = {
       setShareSuccess(true);
       setTimeout(() => setShareSuccess(false), 2000);
     } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = taskUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setShareSuccess(true);
-      setTimeout(() => setShareSuccess(false), 2000);
+      console.error('Failed to copy URL:', err);
+    }
+  };
+
+  const handleEditTask = () => {
+    if (!taskDetails) return;
+    
+    // Initialize edited task with current values
+    setEditedTask({
+      title: taskDetails.title || '',
+      description: taskDetails.description || '',
+      category: taskDetails.category || 'Other',
+      deadline: taskDetails.deadline ? new Date(taskDetails.deadline).toISOString().split('T')[0] : '',
+      compensation_type: taskDetails.compensation?.task?.compensation_type || 'cash',
+      compensation_amount: taskDetails.compensation?.task?.amount || '',
+      review_compensation_type: taskDetails.compensation?.review?.compensation_type || 'cash',
+      review_compensation_amount: taskDetails.compensation?.review?.amount || '',
+      task_duration: taskDetails.task_duration || '',
+      num_reviewers: taskDetails.num_reviewers || 2,
+      max_parallel_contributors: taskDetails.max_parallel_contributors || null,
+      skills: taskDetails.skills || []
+    });
+    setIsEditing(true);
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedTask(null);
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const handleSaveTask = async () => {
+    if (!editedTask || !taskDetails) return;
+    
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    try {
+      // Prepare task data for update
+      const taskData = {
+        title: editedTask.title,
+        description: editedTask.description,
+        category: editedTask.category,
+        deadline: editedTask.deadline ? new Date(editedTask.deadline).toISOString() : null,
+        compensation_type: editedTask.compensation_type,
+        compensation_amount: parseFloat(editedTask.compensation_amount) || 0,
+        review_compensation_type: editedTask.review_compensation_type,
+        review_compensation_amount: parseFloat(editedTask.review_compensation_amount) || 0,
+        task_duration: editedTask.task_duration ? parseInt(editedTask.task_duration) : null,
+        num_reviewers: editedTask.num_reviewers ? parseInt(editedTask.num_reviewers) : 2,
+        max_parallel_contributors: editedTask.max_parallel_contributors ? parseInt(editedTask.max_parallel_contributors) : null,
+        skills: editedTask.skills.map(skill => skill.id)
+      };
+
+      await updateTask(taskDetails.id, taskData);
+      setEditSuccess('Draft saved successfully! Task is now in editing mode and cannot be undertaken.');
+      
+      // Refresh task details
+      await fetchAndSetTaskDetails();
+      
+      // Keep edit mode active since task is now in editing status
+      setIsEditing(true);
+    } catch (err) {
+      console.error('Error updating task:', err);
+      setEditError(err.response?.data?.detail || 'Failed to update task');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleSaveAsDraft = async () => {
+    if (!editedTask || !taskDetails) return;
+    
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    try {
+      // Prepare task data for saving as draft
+      const taskData = {
+        title: editedTask.title,
+        description: editedTask.description,
+        category: editedTask.category,
+        deadline: editedTask.deadline ? new Date(editedTask.deadline).toISOString() : null,
+        compensation_type: editedTask.compensation_type,
+        compensation_amount: parseFloat(editedTask.compensation_amount) || 0,
+        review_compensation_type: editedTask.review_compensation_type,
+        review_compensation_amount: parseFloat(editedTask.review_compensation_amount) || 0,
+        task_duration: editedTask.task_duration ? parseInt(editedTask.task_duration) : null,
+        num_reviewers: editedTask.num_reviewers ? parseInt(editedTask.num_reviewers) : 2,
+        max_parallel_contributors: editedTask.max_parallel_contributors ? parseInt(editedTask.max_parallel_contributors) : null,
+        skills: editedTask.skills.map(skill => skill.id)
+      };
+
+      // Save as draft (this will change status to 'editing' for draft/open tasks)
+      await updateTask(taskDetails.id, taskData);
+      
+      // Determine appropriate success message based on original status
+      const originalStatus = taskDetails.status;
+      if (originalStatus === 'draft') {
+        setEditSuccess('Draft saved successfully! Task is now in editing mode.');
+      } else if (originalStatus === 'open') {
+        setEditSuccess('Changes saved successfully! Task is now in editing mode and cannot be undertaken.');
+      } else {
+        setEditSuccess('Changes saved successfully!');
+      }
+      
+      // Refresh task details
+      await fetchAndSetTaskDetails();
+      
+      // Keep edit mode active
+      setIsEditing(true);
+    } catch (err) {
+      console.error('Error saving draft:', err);
+      setEditError(err.response?.data?.detail || 'Failed to save draft');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleFinishEditing = async () => {
+    if (!taskDetails) return;
+    
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+
+    try {
+      // Prepare task data for finish editing (same as save draft)
+      const taskData = {
+        title: editedTask.title,
+        description: editedTask.description,
+        category: editedTask.category,
+        deadline: editedTask.deadline ? new Date(editedTask.deadline).toISOString() : null,
+        compensation_type: editedTask.compensation_type,
+        compensation_amount: parseFloat(editedTask.compensation_amount) || 0,
+        review_compensation_type: editedTask.review_compensation_type,
+        review_compensation_amount: parseFloat(editedTask.review_compensation_amount) || 0,
+        task_duration: editedTask.task_duration ? parseInt(editedTask.task_duration) : null,
+        num_reviewers: editedTask.num_reviewers ? parseInt(editedTask.num_reviewers) : 2,
+        max_parallel_contributors: editedTask.max_parallel_contributors ? parseInt(editedTask.max_parallel_contributors) : null,
+        skills: editedTask.skills.map(skill => skill.id)
+      };
+
+      await finishEditingTask(taskDetails.id, taskData);
+      
+      // Determine appropriate success message based on original status
+      const originalStatus = taskDetails.status;
+      if (originalStatus === 'draft') {
+        setEditSuccess('Draft published successfully! Task is now available for contributors.');
+      } else {
+        setEditSuccess('Task editing finished! Task is now available for contributors.');
+      }
+      
+      // Refresh task details
+      await fetchAndSetTaskDetails();
+      
+      // Exit edit mode
+      setIsEditing(false);
+      setEditedTask(null);
+    } catch (err) {
+      console.error('Error finishing editing:', err);
+      setEditError(err.response?.data?.detail || 'Failed to finish editing task');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditedTask(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Skills management functions
+  const handleAddSkill = (skill) => {
+    if (!editedTask.skills.some(s => s.id === skill.id)) {
+      setEditedTask(prev => ({
+        ...prev,
+        skills: [...prev.skills, skill]
+      }));
+    }
+    setSkillSearch('');
+    setShowSkillDropdown(false);
+  };
+
+  const handleRemoveSkill = (skillId) => {
+    setEditedTask(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => skill.id !== skillId)
+    }));
+  };
+
+  const handleAddNewSkill = async () => {
+    if (!skillSearch.trim()) return;
+    const newSkillName = skillSearch.trim();
+    
+    // Check if already exists in editedTask.skills
+    if (editedTask.skills.some(s => s.name.toLowerCase() === newSkillName.toLowerCase())) {
+      setSkillSearch('');
+      setShowSkillDropdown(false);
+      return;
+    }
+    
+    try {
+      // Create the skill in the database first
+      const response = await createSkill({ 
+        name: newSkillName, 
+        category: editedTask.category || 'Other' 
+      });
+      
+      // Add the newly created skill to the form
+      const newSkill = {
+        id: response.data.id,
+        name: response.data.name,
+        category: response.data.category
+      };
+      
+      setEditedTask(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill]
+      }));
+      
+      // Also add to available skills for future use
+      setAvailableSkills(prev => [...prev, newSkill]);
+      
+      setSkillSearch('');
+      setShowSkillDropdown(false);
+      
+    } catch (err) {
+      console.error('Error creating skill:', err);
+      setEditError('Failed to create new skill');
     }
   };
 
@@ -266,211 +557,464 @@ const TaskDetailModal = ({ isOpen, task = {
     }
   };
 
-  const renderOverviewTab = () => (
-    <div className="space-y-6">
-      {/* Capability Indicator */}
-      {renderCapabilityIndicator()}
+  const renderOverviewTab = () => {
+    if (isEditing && editedTask) {
+      return (
+        <div className="space-y-6">
+          {/* Edit Form */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Edit Task Information</h4>
+            <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  value={editedTask.title}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter task title"
+                />
+              </div>
 
-      {/* Basic Information */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Basic Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-gray-500">Title</p>
-            <p className="text-sm font-medium text-gray-900">{task.title}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Status</p>
-            <div className="flex items-center mt-1">
-              <span className={getStatusBadge(task.status)}>
-                {task.status.replace(/_/g, ' ')}
-              </span>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Created By</p>
-            <p className="text-sm font-medium text-gray-900">{task.creator_name}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Created Date</p>
-            <p className="text-sm font-medium text-gray-900">{formatDate(task.created_at)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Deadline</p>
-            <p className="text-sm font-medium text-gray-900">{formatDate(task.deadline)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Category</p>
-            <p className="text-sm font-medium text-gray-900 capitalize">{task.category}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Task Configuration */}
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-blue-700 mb-3">Task Configuration</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-xs text-blue-600">Number of Reviewers</p>
-            <p className="text-sm font-medium text-blue-900">
-              {taskDetails?.num_reviewers || task.num_reviewers || 'Not specified'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-blue-600">Max Parallel Contributors</p>
-            <p className="text-sm font-medium text-blue-900">
-              {taskDetails?.max_parallel_contributors || task.max_parallel_contributors || 'Unlimited'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-blue-600">Time Limit (Hours)</p>
-            <p className="text-sm font-medium text-blue-900">
-              {taskDetails?.task_duration || task.task_duration || 'No limit'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Description */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-        <div className="text-sm text-gray-900 whitespace-pre-wrap">
-          <ReactMarkdown>{task.description}</ReactMarkdown>
-        </div>
-      </div>
-
-      {/* Review Status - Show for contributors and task creators only for submitted tasks */}
-      {taskDetails?.review_status && (task.status === 'submitted' || task.status === 'under_review' || task.status === 'completed') && (
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-purple-700 mb-3">Review Status</h4>
-          {taskDetails.review_status.all_submissions ? (
-            // Task creator view - show all submissions
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-purple-600">Total Submissions:</span>
-                <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.total_submissions}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-purple-600">With Review Tasks:</span>
-                <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.submissions_with_reviews}</span>
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs text-purple-600 font-medium">Individual Submissions:</p>
-                {taskDetails.review_status.all_submissions.map((submission, index) => (
-                  <div key={submission.assignment_id} className="bg-white p-3 rounded border border-purple-200">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-purple-900">{submission.contributor_name}</span>
-                      <span className={`text-xs px-2 py-1 rounded ${submission.review_tasks_created ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                        {submission.review_tasks_created ? 'Review Tasks Created' : 'Pending Review Tasks'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-purple-600">
-                      {submission.review_progress} • {submission.review_tasks_count} review tasks
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            // Contributor view - show individual status
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-purple-600">Review Tasks Created:</span>
-                <span className={`text-sm font-medium ${taskDetails.review_status.review_tasks_created ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {taskDetails.review_status.review_tasks_created ? 'Yes' : 'No'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-purple-600">Reviews Received:</span>
-                <span className="text-sm font-medium text-purple-900">
-                  {taskDetails.review_status.review_submissions_received} / {taskDetails.review_status.expected_reviewers}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Compensation */}
-      <div className="bg-green-50 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-green-700 mb-3">Compensation Details</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-3 rounded border border-green-200">
-            <h5 className="text-sm font-medium text-green-800 mb-2">Task Compensation</h5>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-green-600">Type:</span>
-                <span className="text-sm font-medium text-green-900 capitalize">
-                  {taskDetails?.compensation?.task?.compensation_type || task.compensation?.task?.compensation_type || 'Not specified'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-green-600">Amount:</span>
-                <span className="text-sm font-medium text-green-900">
-                  {formatCompensation(taskDetails?.compensation?.task || task.compensation?.task)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white p-3 rounded border border-green-200">
-            <h5 className="text-sm font-medium text-green-800 mb-2">Review Compensation</h5>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-green-600">Type:</span>
-                <span className="text-sm font-medium text-green-900 capitalize">
-                  {taskDetails?.compensation?.review?.compensation_type || task.compensation?.review?.compensation_type || 'Not specified'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-green-600">Amount:</span>
-                <span className="text-sm font-medium text-green-900">
-                  {formatCompensation(taskDetails?.compensation?.review || task.compensation?.review)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Skills with required rating and user match indicator */}
-      {(taskDetails?.skills?.length || task.skills?.length) > 0 && (
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h4 className="text-sm font-medium text-green-700 mb-3">Required Skills</h4>
-          <div className="flex flex-wrap gap-2">
-            {(taskDetails?.skills || task.skills).map((skill) => {
-              const minLevel = (taskDetails?.skill_review_requirements || task.skill_review_requirements || {})[skill.name] ?? 0.0;
-              // Use case-insensitive matching for user skills
-              const userSkill = userSkills.find(s => s.name.toLowerCase() === skill.name.toLowerCase());
-              const userSkillRating = userSkill ? userSkill.rating : null;
-              const meetsRequirement = userSkillRating !== null && userSkillRating >= minLevel;
-              // Debug logging
-              console.log('userSkills:', userSkills);
-              console.log('taskDetails.skills:', taskDetails?.skills || task.skills);
-              console.log('skill:', skill.name, 'userSkillRating:', userSkillRating, 'minLevel:', minLevel, 'meetsRequirement:', meetsRequirement);
-              return (
-                <span
-                  key={skill.id || skill.name}
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200
-                    ${meetsRequirement ? 'bg-green-100 text-green-800 border-green-600' : 'bg-red-100 text-red-800 border-red-600'}`}
+              {/* Category */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Category</label>
+                <select
+                  name="category"
+                  value={editedTask.category}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {skill.name} (Min {typeof minLevel === 'number' ? minLevel.toFixed(1) : minLevel})
-                </span>
-              );
-            })}
+                  <option value="Other">Other</option>
+                  <option value="Development">Development</option>
+                  <option value="Design">Design</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Research">Research</option>
+                  <option value="Writing">Writing</option>
+                  <option value="Translation">Translation</option>
+                  <option value="Data Analysis">Data Analysis</option>
+                  <option value="Testing">Testing</option>
+                  <option value="Documentation">Documentation</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Description *</label>
+                <textarea
+                  name="description"
+                  value={editedTask.description}
+                  onChange={handleInputChange}
+                  required
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe the task requirements"
+                />
+              </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Deadline</label>
+                <input
+                  type="date"
+                  name="deadline"
+                  value={editedTask.deadline}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Task Duration */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Task Duration (hours)</label>
+                <input
+                  type="number"
+                  name="task_duration"
+                  value={editedTask.task_duration}
+                  onChange={handleInputChange}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Estimated hours to complete"
+                />
+              </div>
+
+              {/* Number of Reviewers */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Number of Reviewers</label>
+                <input
+                  type="number"
+                  name="num_reviewers"
+                  value={editedTask.num_reviewers}
+                  onChange={handleInputChange}
+                  min="1"
+                  max="10"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Number of reviewers needed"
+                />
+              </div>
+
+              {/* Max Parallel Contributors */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Max Parallel Contributors</label>
+                <input
+                  type="number"
+                  name="max_parallel_contributors"
+                  value={editedTask.max_parallel_contributors}
+                  onChange={handleInputChange}
+                  min="1"
+                  max="100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Maximum contributors working simultaneously"
+                />
+              </div>
+
+              {/* Compensation */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Task Compensation Type</label>
+                  <select
+                    name="compensation_type"
+                    value={editedTask.compensation_type}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="equity">Equity</option>
+                    <option value="experience">Experience</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Task Compensation Amount</label>
+                  <input
+                    type="number"
+                    name="compensation_amount"
+                    value={editedTask.compensation_amount}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Amount"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Review Compensation Type</label>
+                  <select
+                    name="review_compensation_type"
+                    value={editedTask.review_compensation_type}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="equity">Equity</option>
+                    <option value="experience">Experience</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Review Compensation Amount</label>
+                  <input
+                    type="number"
+                    name="review_compensation_amount"
+                    value={editedTask.review_compensation_amount}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Amount"
+                  />
+                </div>
+              </div>
+
+              {/* Skills Section */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-2">Required Skills</label>
+                <div className="space-y-3">
+                  {/* Skill Search and Add */}
+                  <div className="relative skills-dropdown-container">
+                    <input
+                      type="text"
+                      value={skillSearch}
+                      onChange={(e) => setSkillSearch(e.target.value)}
+                      onFocus={() => setShowSkillDropdown(true)}
+                      placeholder="Search or add skills..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    
+                    {/* Skill Dropdown */}
+                    {showSkillDropdown && (skillSearch || availableSkills.length > 0) && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {/* Filtered skills */}
+                        {availableSkills
+                          .filter(skill => 
+                            skill.name.toLowerCase().includes(skillSearch.toLowerCase()) &&
+                            !editedTask.skills.some(s => s.id === skill.id)
+                          )
+                          .map(skill => (
+                            <div
+                              key={skill.id}
+                              onClick={() => handleAddSkill(skill)}
+                              className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                            >
+                              {skill.name}
+                            </div>
+                          ))
+                        }
+                        
+                        {/* Add new skill option */}
+                        {skillSearch && !availableSkills.some(skill => 
+                          skill.name.toLowerCase() === skillSearch.toLowerCase()
+                        ) && (
+                          <div
+                            onClick={handleAddNewSkill}
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-blue-600 font-medium"
+                          >
+                            + Add "{skillSearch}" as new skill
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Selected Skills */}
+                  <div className="flex flex-wrap gap-2">
+                    {editedTask.skills.map(skill => (
+                      <div key={skill.id} className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                        <span>{skill.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(skill.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      );
+    }
 
-      {/* Status Description */}
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="text-sm font-medium text-blue-700 mb-2">Status Information</h4>
-        <p className="text-sm text-blue-600">{getStatusDescription(task.status)}</p>
+    // View mode - original content
+    return (
+      <div className="space-y-6">
+        {/* Capability Indicator */}
+        {renderCapabilityIndicator()}
+
+        {/* Basic Information */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Basic Information</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Title</p>
+              <p className="text-sm font-medium text-gray-900">{task.title}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Status</p>
+              <div className="flex items-center mt-1">
+                <span className={getStatusBadge(task.status)}>
+                  {task.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Created By</p>
+              <p className="text-sm font-medium text-gray-900">{task.creator_name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Created Date</p>
+              <p className="text-sm font-medium text-gray-900">{formatDate(task.created_at)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Deadline</p>
+              <p className="text-sm font-medium text-gray-900">{formatDate(task.deadline)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Category</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">{task.category}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Task Configuration */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-blue-700 mb-3">Task Configuration</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-blue-600">Number of Reviewers</p>
+              <p className="text-sm font-medium text-blue-900">
+                {taskDetails?.num_reviewers || task.num_reviewers || 'Not specified'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-blue-600">Max Parallel Contributors</p>
+              <p className="text-sm font-medium text-blue-900">
+                {taskDetails?.max_parallel_contributors || task.max_parallel_contributors || 'Unlimited'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-blue-600">Time Limit (Hours)</p>
+              <p className="text-sm font-medium text-blue-900">
+                {taskDetails?.task_duration || task.task_duration || 'No limit'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+          <div className="text-sm text-gray-900 whitespace-pre-wrap">
+            <ReactMarkdown>{task.description}</ReactMarkdown>
+          </div>
+        </div>
+
+        {/* Review Status - Show for contributors and task creators only for submitted tasks */}
+        {taskDetails?.review_status && (task.status === 'submitted' || task.status === 'under_review' || task.status === 'completed') && (
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-purple-700 mb-3">Review Status</h4>
+            {taskDetails.review_status.all_submissions ? (
+              // Task creator view - show all submissions
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-purple-600">Total Submissions:</span>
+                  <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.total_submissions}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-purple-600">With Review Tasks:</span>
+                  <span className="text-sm font-medium text-purple-900">{taskDetails.review_status.submissions_with_reviews}</span>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-purple-600 font-medium">Individual Submissions:</p>
+                  {taskDetails.review_status.all_submissions.map((submission, index) => (
+                    <div key={submission.assignment_id} className="bg-white p-3 rounded border border-purple-200">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-medium text-purple-900">{submission.contributor_name}</span>
+                        <span className={`text-xs px-2 py-1 rounded ${submission.review_tasks_created ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {submission.review_tasks_created ? 'Review Tasks Created' : 'Pending Review Tasks'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-purple-600">
+                        {submission.review_progress} • {submission.review_tasks_count} review tasks
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // Contributor view - show individual status
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-purple-600">Review Tasks Created:</span>
+                  <span className={`text-sm font-medium ${taskDetails.review_status.review_tasks_created ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {taskDetails.review_status.review_tasks_created ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-purple-600">Reviews Received:</span>
+                  <span className="text-sm font-medium text-purple-900">
+                    {taskDetails.review_status.review_submissions_received} / {taskDetails.review_status.expected_reviewers}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Compensation */}
+        <div className="bg-green-50 p-4 rounded-lg">
+          <h4 className="text-sm font-medium text-green-700 mb-3">Compensation Details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-3 rounded border border-green-200">
+              <h5 className="text-sm font-medium text-green-800 mb-2">Task Compensation</h5>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-xs text-green-600">Type:</span>
+                  <span className="text-sm font-medium text-green-900 capitalize">
+                    {taskDetails?.compensation?.task?.compensation_type || task.compensation?.task?.compensation_type || 'Not specified'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-green-600">Amount:</span>
+                  <span className="text-sm font-medium text-green-900">
+                    {formatCompensation(taskDetails?.compensation?.task || task.compensation?.task)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-3 rounded border border-green-200">
+              <h5 className="text-sm font-medium text-green-800 mb-2">Review Compensation</h5>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-xs text-green-600">Type:</span>
+                  <span className="text-sm font-medium text-green-900 capitalize">
+                    {taskDetails?.compensation?.review?.compensation_type || task.compensation?.review?.compensation_type || 'Not specified'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-green-600">Amount:</span>
+                  <span className="text-sm font-medium text-green-900">
+                    {formatCompensation(taskDetails?.compensation?.review || task.compensation?.review)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Skills with required rating and user match indicator */}
+        {(taskDetails?.skills?.length || task.skills?.length) > 0 && (
+          <div className="bg-green-50 p-4 rounded-lg">
+            <h4 className="text-sm font-medium text-green-700 mb-3">Required Skills</h4>
+            <div className="flex flex-wrap gap-2">
+              {(taskDetails?.skills || task.skills).map((skill) => {
+                const minLevel = (taskDetails?.skill_review_requirements || task.skill_review_requirements || {})[skill.name] ?? 0.0;
+                // Use case-insensitive matching for user skills
+                const userSkill = userSkills.find(s => s.name.toLowerCase() === skill.name.toLowerCase());
+                const userSkillRating = userSkill ? userSkill.rating : null;
+                const meetsRequirement = userSkillRating !== null && userSkillRating >= minLevel;
+                // Debug logging
+                console.log('userSkills:', userSkills);
+                console.log('taskDetails.skills:', taskDetails?.skills || task.skills);
+                console.log('skill:', skill.name, 'userSkillRating:', userSkillRating, 'minLevel:', minLevel, 'meetsRequirement:', meetsRequirement);
+                return (
+                  <span
+                    key={skill.id || skill.name}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200
+                      ${meetsRequirement ? 'bg-green-100 text-green-800 border-green-600' : 'bg-red-100 text-red-800 border-red-600'}`}
+                  >
+                    {skill.name} (Min {typeof minLevel === 'number' ? minLevel.toFixed(1) : minLevel})
+                    {userSkillRating !== null && (
+                      <span className="ml-2 text-xs opacity-75">
+                        Your rating: {userSkillRating.toFixed(1)}
+                      </span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Task Duration Info Component */}
+        {taskDetails?.current_user_id && (
+          <TaskDurationInfo
+            taskId={taskDetails.id}
+            currentUserId={taskDetails.current_user_id}
+            taskDuration={taskDetails.task_duration}
+          />
+        )}
       </div>
-
-      {/* Duration Information - Only show for tasks assigned to current user */}
-      
-    </div>
-  );
+    );
+  };
 
   const renderSubmissionsTab = () => {
     
@@ -849,12 +1393,69 @@ const TaskDetailModal = ({ isOpen, task = {
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 Task Details: {task.title}
               </h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {/* Edit button - only show for task creators and when task is editable */}
+                {(() => {
+                  // Get user data from localStorage
+                  const userData = JSON.parse(localStorage.getItem('userData'));
+                  
+                  // Check if current user is the task creator
+                  // Try multiple possible fields where user_id might be stored
+                  const taskUserId = taskDetails?.user_id || task.user_id || task.creator_id;
+                  const isCreator = userData && userData.id && taskUserId && userData.id === taskUserId;
+                  
+                  // Check if task is editable (open, editing, or draft status)
+                  const taskStatus = taskDetails?.status || task.status;
+                  const isEditable = taskStatus === 'open' || taskStatus === 'editing' || taskStatus === 'draft';
+                  
+                  if (isCreator && isEditable) {
+                    if (taskStatus === 'editing' && !isEditing) {
+                      // Show "Continue Editing" button for tasks already in editing status
+                      return (
+                        <button
+                          onClick={handleEditTask}
+                          className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Continue editing this task"
+                        >
+                          <Edit3 className="h-5 w-5" />
+                        </button>
+                      );
+                    } else if (taskStatus === 'open') {
+                      // Show regular edit button for open tasks
+                      return (
+                        <button
+                          onClick={handleEditTask}
+                          disabled={isEditing}
+                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                          title={isEditing ? "Already editing" : "Edit task"}
+                        >
+                          <Edit3 className="h-5 w-5" />
+                        </button>
+                      );
+                    } else if (taskStatus === 'draft') {
+                      // Show edit button for draft tasks
+                      return (
+                        <button
+                          onClick={handleEditTask}
+                          disabled={isEditing}
+                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                          title={isEditing ? "Already editing" : "Edit draft"}
+                        >
+                          <Edit3 className="h-5 w-5" />
+                        </button>
+                      );
+                    }
+                  }
+                  
+                  return null;
+                })()}
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -887,6 +1488,34 @@ const TaskDetailModal = ({ isOpen, task = {
             </nav>
           </div>
 
+          {/* Edit Mode Notice and Status Messages */}
+          {isEditing && (
+            <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
+              <div className="flex items-center space-x-2">
+                <CheckCircleIcon className="h-5 w-5 text-yellow-600" />
+                <div>
+                  <p className="text-yellow-800 font-medium">Task in Editing Mode</p>
+                  <p className="text-yellow-700 text-sm">
+                    This task is currently being edited and cannot be undertaken by contributors. 
+                    Use "Save Draft" to save your progress or "Finish Editing" to publish the task.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {editError && (
+            <div className="bg-red-50 border-b border-red-200 px-6 py-3">
+              <p className="text-red-700 text-sm">{editError}</p>
+            </div>
+          )}
+
+          {editSuccess && (
+            <div className="bg-green-50 border-b border-green-200 px-6 py-3">
+              <p className="text-green-700 text-sm">{editSuccess}</p>
+            </div>
+          )}
+
           {/* Content */}
           <div className="bg-white px-6 py-6 max-h-96 overflow-y-auto">
             {error ? (
@@ -905,85 +1534,138 @@ const TaskDetailModal = ({ isOpen, task = {
 
           {/* Footer */}
           <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
-            {/* Submit Work Button for Active Tasks assigned to current user */}
-            {onSubmit && task.status === 'in_progress' && task.type === 'task' && task.has_assignment && (
-              <button
-                onClick={() => onSubmit(task)}
-                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
-              >
-                Submit Work
-              </button>
+            {/* Edit Mode Action Buttons */}
+            {isEditing && (
+              <>
+                {/* Save Draft Button - Available for all editable tasks */}
+                <button
+                  onClick={handleSaveAsDraft}
+                  disabled={editLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>Save Draft</span>
+                    </>
+                  )}
+                </button>
+                
+                {/* Finish Editing Button - Available for all editable tasks */}
+                <button
+                  onClick={handleFinishEditing}
+                  disabled={editLoading}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {editLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Finishing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="h-4 w-4" />
+                      <span>Finish Editing</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* Regular Action Buttons (when not editing) */}
+            {!isEditing && (
+              <>
+                {/* Submit Work Button for Active Tasks assigned to current user */}
+                {onSubmit && task.status === 'in_progress' && task.type === 'task' && task.has_assignment && (
+                  <button
+                    onClick={() => onSubmit(task)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                  >
+                    Submit Work
+                  </button>
+                )}
+                
+                {/* Submit Review Button for Active Review Tasks assigned to current user */}
+                {onSubmit && task.status === 'in_progress' && task.type === 'review' && task.has_assignment && (
+                  <button
+                    onClick={() => onSubmit(task)}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
+                  >
+                    Submit Review
+                  </button>
+                )}
+                
+                {/* Undertake Task Button */}
+                {onUndertake && 
+                  canUndertake?.can_undertake && 
+                  ((task.status === 'open' || task.status === 'available' || !task.status) || 
+                  (task.type === 'review' && task.status === 'submitted'))
+                && (
+                  <button
+                    onClick={() => onUndertake(task)}
+                    className={`px-4 py-2 text-white rounded-md text-sm font-medium hover:bg-opacity-90 ${
+                      task.type === 'review' 
+                        ? 'bg-yellow-600 hover:bg-yellow-700' 
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                  >
+                    {task.type === 'review' ? 'Review Task' : 'Undertake Task'}
+                  </button>
+                )}
+                
+                {/* Cannot Undertake Button */}
+                {onUndertake && 
+                  canUndertake && 
+                  !canUndertake.can_undertake && 
+                  (task.status === 'open' || task.status === 'available' || !task.status)
+                && (
+                  <button
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm font-medium cursor-not-allowed"
+                    title={canUndertake.reason}
+                  >
+                    Cannot Undertake
+                  </button>
+                )}
+                
+                {/* Resubmit Button */}
+                {onResubmit && task.status === 'rejected' && (
+                  <button
+                    onClick={() => onResubmit(task)}
+                    className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
+                  >
+                    Reset for Resubmission
+                  </button>
+                )}
+              </>
             )}
             
-            {/* Submit Review Button for Active Review Tasks assigned to current user */}
-            {onSubmit && task.status === 'in_progress' && task.type === 'review' && task.has_assignment && (
-              <button
-                onClick={() => onSubmit(task)}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
-              >
-                Submit Review
-              </button>
+            {/* Share and Close Buttons - only show when not editing */}
+            {!isEditing && (
+              <>
+                {/* Share Button */}
+                <button
+                  onClick={handleShare}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 flex items-center space-x-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span>{shareSuccess ? 'Copied!' : 'Share'}</span>
+                </button>
+                
+                {/* Close Button */}
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </>
             )}
-            
-            {/* Undertake Task Button */}
-            {onUndertake && 
-              canUndertake?.can_undertake && 
-              ((task.status === 'open' || task.status === 'available' || !task.status) || 
-              (task.type === 'review' && task.status === 'submitted'))
-            && (
-              <button
-                onClick={() => onUndertake(task)}
-                className={`px-4 py-2 text-white rounded-md text-sm font-medium hover:bg-opacity-90 ${
-                  task.type === 'review' 
-                    ? 'bg-yellow-600 hover:bg-yellow-700' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {task.type === 'review' ? 'Review Task' : 'Undertake Task'}
-              </button>
-            )}
-            
-            {/* Cannot Undertake Button */}
-            {onUndertake && 
-              canUndertake && 
-              !canUndertake.can_undertake && 
-              (task.status === 'open' || task.status === 'available' || !task.status)
-            && (
-              <button
-                disabled
-                className="px-4 py-2 bg-gray-400 text-white rounded-md text-sm font-medium cursor-not-allowed"
-                title={canUndertake.reason}
-              >
-                Cannot Undertake
-              </button>
-            )}
-            
-            {/* Resubmit Button */}
-            {onResubmit && task.status === 'rejected' && (
-              <button
-                onClick={() => onResubmit(task)}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
-              >
-                Reset for Resubmission
-              </button>
-            )}
-            
-            {/* Share Button */}
-            <button
-              onClick={handleShare}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 flex items-center space-x-2"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>{shareSuccess ? 'Copied!' : 'Share'}</span>
-            </button>
-            
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>

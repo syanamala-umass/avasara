@@ -542,10 +542,16 @@ def can_undertake_task(
                 }
             
             if task['status'] not in ['open', 'available']:
-                return {
-                    "can_undertake": False,
-                    "reason": f"This task is not available for assignment (status: {task['status']})"
-                }
+                if task['status'] == 'editing':
+                    return {
+                        "can_undertake": False,
+                        "reason": "This task is currently being edited and is not available for assignment"
+                    }
+                else:
+                    return {
+                        "can_undertake": False,
+                        "reason": f"This task is not available for assignment (status: {task['status']})"
+                    }
     
     # Check if user is blocked from this task
     with get_db_cursor() as cursor:
